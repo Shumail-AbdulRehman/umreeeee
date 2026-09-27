@@ -1,0 +1,169 @@
+.policy-page { --policy-accent: #245e50; --policy-tint: #eef6f2; --policy-border: #c4dbd1; --policy-muted: #5f6972; }
+.policy-guardrail { --policy-accent: #80531d; --policy-tint: #fbf4e8; --policy-border: #e5d2b0; }
+.policy-page .policy-overview { display: grid; gap: 20px; min-width: 0; }
+.policy-page .policy-intro { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 10px 0 0; }
+.policy-page .policy-intro-copy { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.policy-page .policy-symbol { display: grid; place-items: center; width: 56px; height: 62px; flex-shrink: 0; color: var(--policy-accent); background: var(--policy-tint); border: 1px solid var(--policy-border); border-radius: 14px; }
+.policy-page .policy-symbol svg { width: 27px; height: 27px; }
+.policy-page .policy-eyebrow { color: var(--policy-accent); font-size: 10px; font-weight: 700; letter-spacing: 1.2px; }
+.policy-page .policy-intro h2 { font-size: clamp(20px, 1.7vw, 26px); line-height: 1.3; letter-spacing: -.65px; margin: 7px 0; font-weight: 600; }
+.policy-page .policy-intro p { color: var(--policy-muted); font-size: 13px; margin: 0; }
+.policy-page .btn { min-height: 44px; border-radius: 7px; font-size: 13px; }
+.policy-page .btn.primary { background: var(--policy-accent); border-color: var(--policy-accent); color: #fff; }
+.policy-page .btn.primary:hover:not(:disabled) { filter: brightness(.92); }
+.policy-page .policy-intro > .btn { flex-shrink: 0; gap: 16px; padding-inline: 18px; }
+.policy-page .policy-summary-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 26px; padding: 0 0 22px 74px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--policy-muted); }
+.policy-page .policy-summary-line strong { color: var(--ink); font-size: 15px; font-weight: 600; margin-right: 3px; font-variant-numeric: tabular-nums; }
+.policy-page .policy-summary-line > button { margin-left: auto; }
+.policy-page .policy-text-button { color: var(--policy-accent); font-size: 12px; font-weight: 600; min-height: 36px; cursor: pointer; padding: 4px 2px; text-underline-offset: 4px; }
+.policy-page .policy-text-button:hover:not(:disabled) { text-decoration: underline; }
+.policy-page .policy-service-notice { font-size: 12px; color: #78571c; background: #fff8e9; border: 1px solid #eddfbe; border-radius: 7px; padding: 12px 16px; line-height: 1.6; }
+.policy-page .policy-surface { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.policy-page .policy-section-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 24px; }
+.policy-page .policy-section-header h2 { font-size: 17px; font-weight: 600; line-height: 1.4; margin: 0; letter-spacing: -.3px; }
+.policy-page .policy-section-header p { color: var(--policy-muted); font-size: 13px; line-height: 1.5; margin: 5px 0 0; }
+.policy-page .policy-number { border: 1px solid var(--line); border-radius: 6px; font-size: 11px; color: var(--policy-muted); padding: 6px 9px; white-space: nowrap; }
+.policy-page .policy-table-tools { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 12px; padding: 0 24px 20px; }
+.policy-page .policy-table-tools input, .policy-page .policy-table-tools select { font-size: 13px; min-height: 44px; background: var(--panel); }
+.policy-page .policy-table-head, .policy-page .policy-table-row { display: grid; grid-template-columns: minmax(180px, 1fr) 150px 138px 120px; gap: 22px; align-items: center; padding: 14px 24px; }
+.policy-page .policy-table-head { background: #f7f9f8; border-block: 1px solid var(--line); font-size: 11px; color: var(--policy-muted); font-weight: 600; }
+.policy-page .policy-table-row { border-bottom: 1px solid var(--line); font-size: 13px; min-height: 96px; }
+.policy-page .policy-table-row:hover { background: #fcfdfc; }
+.policy-page .policy-table-name { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.policy-page .policy-table-name > div { min-width: 0; }
+.policy-page .policy-table-name strong { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.policy-page .policy-table-name p { font-size: 11px; line-height: 1.6; color: var(--policy-muted); margin: 4px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.policy-page .policy-group-avatar { width: 36px; height: 36px; display: grid; place-items: center; background: #f1f3f2; color: #59655f; font-size: 10px; font-weight: 600; border: 1px solid #e3e8e5; border-radius: 9px; flex-shrink: 0; }
+.policy-page .policy-check-count { font-variant-numeric: tabular-nums; }
+.policy-page .policy-check-count > strong { font-size: 15px; font-weight: 600; }
+.policy-page .policy-check-count > span { color: var(--policy-muted); font-size: 11px; }
+.policy-page .policy-check-count > .policy-count-track { display: block; background: #e9edea; height: 3px; margin-top: 7px; max-width: 95px; border-radius: 2px; overflow: hidden; }
+.policy-page .policy-count-track > span { display: block; background: var(--policy-accent); height: 100%; min-width: 2px; }
+.policy-page .policy-assignment-status { display: inline-flex; padding: 5px 9px; font-size: 11px; border-radius: 5px; color: var(--policy-muted); background: #f2f4f3; white-space: nowrap; }
+.policy-page .policy-assignment-status.is-assigned { color: var(--policy-accent); background: var(--policy-tint); }
+.policy-page .policy-row-actions { display: flex; flex-direction: column; align-items: stretch; gap: 1px; }
+.policy-page .policy-row-actions .btn { min-height: 36px; padding: 7px 10px; font-size: 12px; }
+.policy-page .policy-remove { cursor: pointer; min-height: 28px; color: var(--policy-muted); font-size: 11px; }
+.policy-page .policy-remove:hover:not(:disabled) { color: #a23d32; text-decoration: underline; }
+.policy-page .policy-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; font-size: 12px; color: var(--policy-muted); }
+.policy-page .policy-pagination > div { display: flex; align-items: center; gap: 12px; }
+.policy-page .policy-footnote { font-size: 12px; line-height: 1.6; color: var(--policy-muted); margin: 0; }
+.policy-page .policy-success { padding: 12px 16px; border: 1px solid #c4dbd1; border-radius: 8px; background: #eef6f2; color: #245e50; font-size: 13px; }
+.policy-page .policy-scope-note { background: #f7f9f8; margin: 0 24px 16px; border-radius: 6px; padding: 12px; font-size: 12px; line-height: 1.6; color: var(--policy-muted); }
+.policy-page .policy-scope-note a { text-decoration: underline; font-weight: 600; margin-left: 8px; }
+.policy-page .policy-empty { padding: 36px 24px; text-align: center; }
+.policy-page .policy-empty strong { font-size: 15px; font-weight: 600; }
+.policy-page .policy-empty p { font-size: 13px; line-height: 1.6; margin: 8px 0 16px; color: var(--policy-muted); }
+.policy-page .admin-modal { padding: 0; display: flex; flex-direction: column; overflow: hidden; max-height: min(900px, calc(100dvh - 40px)); }
+.policy-page .admin-modal-heading { padding: 18px 24px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.policy-page .admin-modal-heading h2 { margin: 0; font-size: 19px; line-height: 1.4; overflow-wrap: anywhere; font-weight: 600; }
+.policy-page .assignment-editor-body { padding: 22px 24px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.policy-page .policy-editor-intro { font-size: 13px; line-height: 1.6; color: var(--policy-muted); margin: 0 0 20px; }
+.policy-page .assignment-steps { display: flex; gap: 28px; list-style: none; margin: 0 0 20px; padding: 0; }
+.policy-page .assignment-steps li { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--policy-muted); }
+.policy-page .assignment-steps li > span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #f0f2f1; font-size: 11px; }
+.policy-page .assignment-steps li[aria-current="step"] { color: var(--policy-accent); font-weight: 600; }
+.policy-page .assignment-steps li[aria-current="step"] > span { background: var(--policy-accent); color: white; }
+.policy-page .assignment-targets { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 14px; padding: 0 0 20px; font-size: 12px; }
+.policy-page .assignment-targets > span { font-size: 10px; letter-spacing: .8px; color: var(--policy-muted); }
+.policy-page .assignment-targets > strong { font-weight: 600; overflow-wrap: anywhere; }
+.policy-page .assignment-targets > button { margin-left: auto; }
+.policy-page fieldset.assignment-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0; border: 0; margin: 0 0 22px; }
+.policy-page .assignment-modes legend { font-size: 13px; font-weight: 600; padding: 0; margin-bottom: 12px; }
+.policy-page .assignment-modes > label { display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--line); border-radius: 9px; padding: 17px; cursor: pointer; }
+.policy-page .assignment-modes > label.is-selected { border-color: var(--policy-accent); background: var(--policy-tint); box-shadow: inset 0 0 0 1px var(--policy-accent); }
+.policy-page .assignment-modes input[type="radio"] { appearance: auto; width: 17px; height: 17px; min-height: 0; padding: 0; margin-top: 2px; flex-shrink: 0; accent-color: var(--policy-accent); }
+.policy-page .assignment-modes strong { display: block; font-size: 14px; font-weight: 600; }
+.policy-page .assignment-modes small { display: block; font-size: 12px; line-height: 1.5; font-weight: 400; margin-top: 5px; color: var(--policy-muted); }
+.policy-page .assignment-all-summary { display: flex; align-items: flex-start; gap: 16px; padding: 24px; border: 1px solid var(--policy-border); border-radius: 9px; background: var(--policy-tint); }
+.policy-page .assignment-all-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--policy-accent); color: white; flex-shrink: 0; }
+.policy-page .assignment-all-summary h3 { font-size: 15px; font-weight: 600; margin: 2px 0 7px; }
+.policy-page .assignment-all-summary p, .policy-page .assignment-all-summary small { font-size: 12px; color: var(--policy-muted); line-height: 1.6; }
+.policy-page .assignment-all-summary ul { list-style: disc; padding-left: 17px; margin: 15px 0 5px; font-size: 12px; line-height: 1.9; }
+.policy-page .assignment-all-summary .policy-footnote { margin-top: 16px; }
+.policy-page .assignment-scope-note { color: var(--policy-muted); font-size: 11px; line-height: 1.6; margin: 16px 0 0; }
+.policy-page .assignment-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 24px; border-top: 1px solid var(--line); background: #fafbf9; flex-shrink: 0; }
+.policy-page .assignment-editor-footer strong { display: block; font-size: 13px; font-weight: 600; }
+.policy-page .assignment-editor-footer span { font-size: 11px; color: var(--policy-muted); }
+.policy-page .assignment-footer-actions { display: flex; align-items: center; gap: 8px; }
+.policy-page .assignment-footer-actions .primary { min-width: 144px; }
+.policy-page .assignment-footer-actions .primary span { color: inherit; }
+.policy-page fieldset.check-picker { padding: 0; border: 0; margin: 0; min-width: 0; }
+.policy-page .check-picker-filters { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 12px; }
+.policy-page .check-picker-filters > label { font-size: 12px; font-weight: 500; }
+.policy-page .check-picker-filters input, .policy-page .check-picker-filters select { font-size: 13px; min-height: 44px; background: var(--panel); }
+.policy-page .check-search > span { position: relative; display: block; }
+.policy-page .check-search svg { width: 18px; height: 18px; position: absolute; left: 12px; top: 13px; color: var(--policy-muted); }
+.policy-page .check-search input { padding-left: 38px; width: 100%; }
+.policy-page .check-picker-toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; margin: 16px 0 12px; }
+.policy-page .check-filter-tabs { display: flex; gap: 4px; background: #f1f4f2; border-radius: 7px; padding: 3px; }
+.policy-page .check-filter-tabs button { display: flex; align-items: center; gap: 8px; padding: 6px 11px; min-height: 34px; border-radius: 5px; font-size: 12px; color: var(--policy-muted); cursor: pointer; }
+.policy-page .check-filter-tabs button[aria-pressed="true"] { color: var(--policy-accent); background: white; box-shadow: 0 1px 3px #1f3b2f14; font-weight: 600; }
+.policy-page .check-filter-tabs button span { font-size: 10px; font-variant-numeric: tabular-nums; }
+.policy-page .check-bulk-actions { display: flex; gap: 18px; }
+.policy-page .check-picker-list { border: 1px solid var(--line); border-radius: 8px; max-height: 340px; min-height: 130px; overflow-y: auto; overscroll-behavior: contain; }
+.policy-page .check-picker-row { display: flex; align-items: flex-start; gap: 13px; padding: 15px 17px; border-bottom: 1px solid var(--line); }
+.policy-page .check-picker-row:last-child { border-bottom: 0; }
+.policy-page .check-picker-row.is-selected { background: var(--policy-tint); box-shadow: inset 3px 0 var(--policy-accent); }
+.policy-page .check-picker-row input { width: 17px; height: 17px; margin-top: 3px; flex-shrink: 0; accent-color: var(--policy-accent); }
+.policy-page .check-picker-copy { flex: 1; min-width: 0; }
+.policy-page .check-picker-copy > label, .policy-page .check-picker-copy > strong { display: block; font-size: 13px; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+.policy-page .check-picker-copy > label { cursor: pointer; }
+.policy-page .check-picker-copy p { font-size: 12px; font-weight: 400; color: var(--policy-muted); line-height: 1.6; margin: 3px 0 7px; overflow-wrap: anywhere; }
+.policy-page .check-picker-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 5px; font-size: 10px; color: var(--policy-muted); }
+.policy-page .check-picker-meta > span { background: #f2f4f2; padding: 2px 6px; border-radius: 3px; }
+.policy-page .check-picker-meta code { font-size: 10px; overflow-wrap: anywhere; }
+.policy-page .check-selected-mark { color: var(--policy-accent); font-size: 13px; padding-top: 2px; }
+.policy-page .check-pagination { padding: 12px 0 0; }
+.policy-page .policy-group-list { max-height: 290px; }
+.policy-page .policy-group-row.is-selected { background: var(--policy-tint); }
+.policy-page .policy-group-row input { accent-color: var(--policy-accent); }
+.policy-page .policy-group-filters { max-width: 400px; }
+.policy-page .policy-group-bulk .btn { flex: 0 1 auto; font-size: 12px; }
+.policy-page :is(button, input, select, a):focus-visible { outline: 3px solid var(--policy-accent); outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .policy-page .policy-table-head, .policy-page .policy-table-row { grid-template-columns: minmax(140px, 1fr) 120px 120px 112px; gap: 12px; padding-inline: 18px; }
+  .policy-page .policy-intro { align-items: flex-start; }
+  .policy-page .policy-summary-line { padding-left: 0; }
+}
+@media (max-width: 760px) {
+  .policy-page .policy-intro { flex-direction: column; gap: 18px; }
+  .policy-page .policy-intro > .btn { width: 100%; }
+  .policy-page .policy-symbol { width: 44px; height: 50px; border-radius: 10px; }
+  .policy-page .policy-intro-copy { align-items: flex-start; gap: 12px; }
+  .policy-page .policy-intro h2 { font-size: 21px; }
+  .policy-page .policy-summary-line { gap: 6px 18px; padding-bottom: 16px; }
+  .policy-page .policy-summary-line > button { margin-left: 0; }
+  .policy-page .policy-section-header { padding: 18px; align-items: flex-start; }
+  .policy-page .policy-number { font-size: 10px; }
+  .policy-page .policy-table-tools { grid-template-columns: 1fr; padding: 0 18px 18px; }
+  .policy-page .policy-table-head { display: none; }
+  .policy-page .policy-table-row { grid-template-columns: 1fr auto; gap: 12px; padding: 18px; }
+  .policy-page .policy-table-name { grid-column: 1 / -1; }
+  .policy-page .policy-row-actions { grid-column: 2; grid-row: 2 / 4; }
+  .policy-page .policy-table-row > [role="cell"]:nth-child(3) { grid-column: 1; }
+  .policy-page .policy-row-actions .btn, .policy-page .policy-remove { min-height: 44px; }
+  .policy-page .policy-pagination { padding: 14px 18px; flex-wrap: wrap; }
+  .policy-page .policy-scope-note { margin-inline: 18px; }
+  .policy-page .admin-modal-backdrop { padding: 8px; }
+  .policy-page .admin-modal { max-height: calc(100dvh - 16px); }
+  .policy-page .admin-modal-heading { padding: 14px 16px; }
+  .policy-page .admin-modal-heading h2 { font-size: 17px; }
+  .policy-page .assignment-editor-body { padding: 16px; }
+  .policy-page fieldset.assignment-modes { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .policy-page .assignment-modes > label { padding: 12px; gap: 8px; }
+  .policy-page .assignment-modes strong { font-size: 13px; }
+  .policy-page .assignment-modes small { display: none; }
+  .policy-page .assignment-all-summary { padding: 16px; gap: 10px; }
+  .policy-page .assignment-editor-footer { padding: 14px 16px; flex-wrap: wrap; gap: 12px; }
+  .policy-page .assignment-footer-actions { width: 100%; }
+  .policy-page .assignment-footer-actions .btn { flex: 1; }
+  .policy-page .check-picker-filters { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
+  .policy-page .check-picker-toolbar { gap: 7px; }
+  .policy-page .check-bulk-actions { width: 100%; justify-content: space-between; }
+  .policy-page .check-filter-tabs button, .policy-page .policy-text-button { min-height: 44px; }
+  .policy-page .check-picker-list { max-height: 280px; }
+  .policy-page .check-picker-row { padding: 14px 12px; gap: 10px; }
+  .policy-page .check-pagination { padding-inline: 0; }
+  .policy-page .assignment-targets > button { margin-left: 0; }
+}
