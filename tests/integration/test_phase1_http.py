@@ -28,6 +28,7 @@ def http_environment(test_database, monkeypatch):
 
     db = test_database
     ensure_indexes(db)
+    monkeypatch.setattr(main_module, 'get_mongo_client', lambda: db.client)
     monkeypatch.setattr(main_module, 'verify_transactions', lambda: None)
     monkeypatch.setattr(main_module, 'get_database', lambda: db)
     monkeypatch.setattr(admin_module, 'get_database', lambda: db)

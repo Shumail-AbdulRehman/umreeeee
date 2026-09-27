@@ -112,6 +112,7 @@ def test_liveness_and_readiness_when_mongo_is_unavailable(monkeypatch):
     import app.main as main_module
     import app.api.routes.health as health_module
 
+    monkeypatch.setattr(main_module, 'get_mongo_client', lambda: None)
     monkeypatch.setattr(main_module, 'verify_transactions',
                         lambda: (_ for _ in ()).throw(ServerSelectionTimeoutError('offline')))
     monkeypatch.setattr(health_module, 'get_database_status',

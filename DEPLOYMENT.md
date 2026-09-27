@@ -110,3 +110,31 @@ check run history before submitting again because the original call may still in
 - [Procfile process types](https://devcenter.heroku.com/articles/procfile)
 - [Request timeouts](https://devcenter.heroku.com/articles/request-timeout)
 - [Ephemeral dyno filesystem](https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem)
+
+## Safe MongoDB diagnostics
+
+Startup logs now show each database phase (`startup_connection`, `startup_transactions`,
+`startup_indexes`, `startup_run_recovery`, `startup_red_team_recovery`). A failure emits
+`MongoDB diagnostic phase=... reason=... code=... hint=...` without printing the URI,
+password, server messages or application data. Common reasons distinguish authentication,
+permissions, DNS, TLS, connection timeouts, unsupported transactions, duplicate records and
+index conflicts. Network timeouts cannot conclusively prove an Atlas IP-access problem.
+Readiness probes log failures too, throttling identical diagnostics to once per minute;
+the public endpoint still returns only ready/unavailable.
+
+After deploying, copy the `MongoDB diagnostic` line from Heroku logs for troubleshooting.
+You can also run a read-only probe in the actual Heroku environment:
+
+```sh
+heroku run python -m scripts.check_database --app YOUR-APP
+```
+
+For the combined repository use:
+
+```sh
+heroku run 'cd backend && python -m scripts.check_database' --app YOUR-APP
+```
+
+This command checks authentication and a read-only transaction. It does not create indexes,
+change records, or contact model providers. Index-creation failures are diagnosed by the
+normal startup/readiness checks instead. Never paste Config Vars or raw credentials into logs.

@@ -13,7 +13,8 @@ from app.validators.registry import registry
 from scripts.reconcile_interrupted_runs import reconcile
 from app.queue.recovery import recover as recover_red_team
 from app.db.indexes import ensure_indexes
-from app.db.mongo import close_mongo_client, get_database, verify_transactions
+from app.db.mongo import close_mongo_client, get_database, get_mongo_client, verify_transactions, DatabaseTransactionError
+from app.db.diagnostics import database_phase
 from pymongo.errors import PyMongoError
 
 logger = logging.getLogger(__name__)
@@ -25,12 +26,19 @@ async def lifespan(_: FastAPI):
     cipher()
     registry.warm_local_models()
     try:
-        verify_transactions()
-        ensure_indexes(get_database())
-        reconcile(get_database())
-        recover_red_team(get_database())
-    except PyMongoError:
-        logger.warning('MongoDB unavailable at startup; readiness will remain unavailable')
+        with database_phase('startup_connection'):
+            get_mongo_client()
+        with database_phase('startup_transactions'):
+            verify_transactions()
+        with database_phase('startup_indexes'):
+            ensure_indexes(get_database())
+        with database_phase('startup_run_recovery'):
+            reconcile(get_database())
+        with database_phase('startup_red_team_recovery'):
+            recover_red_team(get_database())
+    except (PyMongoError, DatabaseTransactionError, ValueError):
+        logging.getLogger('uvicorn.error').warning(
+            'MongoDB startup checks failed; see MongoDB diagnostic above. No automatic data repair was attempted.')
     try:
         from app.queue.rabbit import RabbitPublisher
         broker = RabbitPublisher()
