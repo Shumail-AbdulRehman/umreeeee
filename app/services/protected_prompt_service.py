@@ -141,7 +141,7 @@ class ProtectedPromptService:
         active_types = {rule['type'] for policy in applicable for rule in policy['rules']}
         caps = registry.capabilities()
         missing = [kind for kind in active_types if not caps.get(kind, {}).get('ready')]
-        if any(p.get('managed_catalog') and not catalog_ready(p) for p in applicable) and 'catalog' not in missing:
+        if any((p.get('managed_catalog') or p.get('policy_set')) and not catalog_ready(p) for p in applicable) and 'catalog' not in missing:
             missing.append('catalog')
         return {'integrations': [{'id': str(i['_id']), 'provider': i['provider'],
                 'account_name': i['account_name'], 'models': i.get('models', []),

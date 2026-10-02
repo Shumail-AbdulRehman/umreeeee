@@ -38,7 +38,7 @@ def import_catalogs(db, catalogs, session):
     now = datetime.now(timezone.utc)
     for company in db.companies.find({}, {'_id': 1}, session=session):
         cid = company['_id']
-        for old in db.policies.find({'company_id': cid, 'managed_catalog': {'$ne': True},
+        for old in db.policies.find({'company_id': cid, 'managed_catalog': {'$ne': True}, 'policy_set': {'$ne': True},
                                      'status': {'$ne': 'archived'}}, session=session):
             old.update(status='archived', updated_at=now, version=old.get('version', 1) + 1)
             db.policies.replace_one({'_id': old['_id']}, old, session=session)
