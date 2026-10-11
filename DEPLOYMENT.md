@@ -96,6 +96,19 @@ slow databases, load or network trickling can still exceed the router limit. Lon
 need an asynchronous job flow, not a larger provider timeout. After an uncertain request,
 check run history before submitting again because the original call may still incur cost.
 
+Guardrail plugins may use LLM grading. A harmless diagnostic check on October 11, 2026
+reported about 15 seconds of server processing, so the four-second limits are suitable
+only for fast checks. `detector_timeout` / `stage_timeout` mean the check did not finish,
+not that the prompt passed or violated a policy. For local diagnosis, the bounded maximums
+are `REMOTE_DETECTION_TIMEOUT_SECONDS=30` and `VALIDATION_STAGE_TIMEOUT_MS=30000`.
+Do not treat those values as a Heroku fix: multiple input fields, provider execution and
+output checks can exceed the router deadline. Slow remote checks need background execution
+and polling before using longer limits in production.
+
+`detector_invalid_response` with Guardrail violations was also caused by the original
+adapter rejecting the service's `pass: false` grades. Deploy the `cytex-findings-v2`
+adapter to accept that format while continuing to reject incomplete/error responses.
+
 - Boot failure: inspect `heroku logs --tail --app YOUR-APP`; check production Config Vars.
 - Readiness 503: check MongoDB connectivity, transactions and active local model readiness.
 - Browser CORS failure: use the exact Netlify origin in `CORS_ORIGINS`.

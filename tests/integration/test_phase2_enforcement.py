@@ -173,7 +173,8 @@ def test_remote_detection_uses_database_group_membership_and_selected_entries(pr
     assert 'not-chosen' not in str(calls)
 
 
-def test_remote_match_prevents_provider_and_records_safe_violation(protected, monkeypatch):
+@pytest.mark.parametrize('kind', ['dlp', 'guardrail'])
+def test_remote_match_prevents_provider_and_records_safe_violation(protected, monkeypatch, kind):
     from app.core import config
     from app.services import remote_detection as remote
     db, user, fake, service, make_policy, request = protected
@@ -183,16 +184,23 @@ def test_remote_match_prevents_provider_and_records_safe_violation(protected, mo
     db.groups.insert_one({'_id': group, 'company_id': ObjectId(user.company.id), 'status': 'active'})
     db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'group_ids': [group]}})
     pid = make_policy()
-    db.policies.update_one({'_id': pid}, {'$set': {'managed_catalog': True, 'category': 'dlp',
-        'scope': {'group_ids': [group], 'integration_ids': []}, 'entries': [{'pattern_id': 'email'}],
-        'selected_entry_ids': ['email'], 'rules': [{'rule_id': 'dlp', 'type': 'catalog', 'config': {}}]}})
-    monkeypatch.setattr(remote, 'post_detection', lambda *args: {'detections': [
-        {'pattern_id': 'email', 'matched_text': 'PRIVATE REMOTE CONTENT'}]})
+    entry_id = 'email' if kind == 'dlp' else 'harmful:weapons:ied'
+    entry = {'pattern_id': entry_id} if kind == 'dlp' else {'id': entry_id}
+    db.policies.update_one({'_id': pid}, {'$set': {'managed_catalog': True, 'category': kind,
+        'scope': {'group_ids': [group], 'integration_ids': []}, 'entries': [entry],
+        'selected_entry_ids': [entry_id], 'rules': [{'rule_id': kind, 'type': 'catalog', 'config': {}}]}})
+    body = {'detections': [{'pattern_id': entry_id, 'matched_text': 'PRIVATE REMOTE CONTENT'}]} if kind == 'dlp' else {
+        'results': [{'pluginId': entry_id, 'pass': False, 'reason': 'PRIVATE REMOTE CONTENT'}],
+        'violations': {'Synthetic check': 1}, 'summary': {'total': 1, 'passed': 0, 'failed': 1}}
+    monkeypatch.setattr(remote, 'post_detection', lambda *args: body)
     with pytest.raises(RunOutcome) as error:
         execute(service, user, request())
     assert error.value.run['status'] == 'blocked_input' and fake.calls == 0
+    assert error.value.run['input_evaluation']['evaluation_complete'] is True
+    assert error.value.run['input_evaluation']['errors'] == []
     assert db.violations.count_documents({}) == 1
     assert 'PRIVATE REMOTE CONTENT' not in str(db.violations.find_one({}))
+    assert 'PRIVATE REMOTE CONTENT' not in str(db.prompt_runs.find_one({}))
 
 
 def test_missing_semantic_validator_is_not_false_pass(protected):

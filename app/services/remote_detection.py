@@ -39,10 +39,10 @@ def build_request(policy, text):
 
 
 def parse_response(body, kind, selected):
-    """Provisional strict contract: findings-only arrays, each with a selected ID.
+    """Findings-only responses; Guardrail's boolean pass=false is a violation.
 
-    Unknown formats and partial/error results fail closed. No raw matched content
-    or remote messages are returned or persisted. Confirm this with API developers.
+    includePassing=false excludes passing grades. Unknown formats and partial/error
+    results fail closed. No raw matched content or remote messages are persisted.
     """
     key = 'detections' if kind == 'dlp' else 'results'
     id_key = 'pattern_id' if kind == 'dlp' else 'pluginId'
@@ -66,14 +66,23 @@ def parse_response(body, kind, selected):
         if body.get('violations') and not findings:
             raise DetectionError('detector_incomplete_response')
     evidence = []
+    seen = set()
     for finding in findings:
         if not isinstance(finding, dict) or finding.get(id_key) not in selected:
             raise DetectionError('detector_invalid_response')
+        entry_id = finding[id_key]
+        if kind == 'guardrail' and entry_id in seen:
+            raise DetectionError('detector_incomplete_response')
+        seen.add(entry_id)
         if finding.get('error') or finding.get('errors') or finding.get('success') is False:
             raise DetectionError('detector_invalid_response')
         if finding.get('status') not in (None, 'violation', 'detected', 'match'):
             raise DetectionError('detector_invalid_response')
-        if 'pass' in finding or 'passed' in finding:
+        # Guardrail grades use boolean `pass`, including on findings-only replies.
+        # Reject true and nonboolean values rather than coercing a clean/error result
+        # into a violation. DLP and the unconfirmed `passed` alias remain strict.
+        if 'passed' in finding or ('pass' in finding and
+                (kind != 'guardrail' or finding['pass'] is not False)):
             raise DetectionError('detector_invalid_response')
         evidence.append({'kind': kind, 'entry_id': finding[id_key]})
     return evidence[:20], len(findings)
@@ -100,7 +109,7 @@ def evaluate_catalog(policy, rule, text, field, timeout):
     start = monotonic()
     result = {'rule_id': rule['rule_id'], 'type': 'catalog', 'field': field,
               'outcome': 'error', 'reason_code': None, 'evidence': [], 'duration_ms': 0,
-              'implementation_version': 'cytex-provisional-v1'}
+              'implementation_version': 'cytex-findings-v2'}
     try:
         # Check before constructing a client: off means absolutely no outbound traffic.
         if not config.REMOTE_DETECTION_ENABLED:
