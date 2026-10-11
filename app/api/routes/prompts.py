@@ -38,6 +38,21 @@ def runs(
                              model=model, provider=provider, start=from_time, end=to_time, user_id=user_id)
 
 
+@router.get('/conversations')
+def conversations(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
+                  current_user: User = Depends(get_current_user),
+                  service: ProtectedPromptService = Depends(protected_service)):
+    return service.list_conversations(current_user, page, page_size)
+
+
+@router.get('/conversations/{conversation_id}')
+def conversation(conversation_id: str, page: int = Query(1, ge=1),
+                 page_size: int = Query(50, ge=1, le=100),
+                 current_user: User = Depends(get_current_user),
+                 service: ProtectedPromptService = Depends(protected_service)):
+    return service.conversation(current_user, conversation_id, page, page_size)
+
+
 @router.get('/runs/{run_id}')
 def run_detail(run_id: str, current_user: User = Depends(get_current_user),
                service: ProtectedPromptService = Depends(protected_service)):

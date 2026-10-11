@@ -520,3 +520,187 @@ def test_output_block_keeps_automatic_cost(protected):
     stored = db.prompt_runs.find_one({'status': 'blocked_output'})
     assert stored['cost_status'] == 'known' and stored['estimated_cost_usd'] is not None
     assert 'response_ciphertext' not in stored
+
+
+def test_conversation_groups_followups_and_sends_owned_history(protected):
+    db, user, fake, service, policy, request = protected
+    policy()
+    seen = []
+    original = fake.execute
+    def capture(integration, payload, request_id):
+        seen.append(getattr(payload, 'conversation_messages', []))
+        return original(integration, payload, request_id)
+    fake.execute = capture
+    first = execute(service, user, request('My favorite color is blue'))['run']
+    followup = request('What is my favorite color?').model_copy(update={'conversation_id': first['conversation_id']})
+    second = execute(service, user, followup)['run']
+    assert first['conversation_id'] == second['conversation_id'] == first['id']
+    assert seen[0] == []
+    assert seen[1] == [{'role': 'user', 'content': 'My favorite color is blue'},
+                       {'role': 'assistant', 'content': 'Safe response'}]
+    listing = service.list_conversations(user)
+    assert listing['total'] == 1
+    assert listing['items'][0]['title'] == 'My favorite color is blue'
+    assert listing['items'][0]['message_count'] == 2
+    assert [row['id'] for row in service.conversation(user, first['id'])['items']] == [first['id'], second['id']]
+    assert db.prompt_runs.count_documents({}) == 2
+
+
+def test_conversation_cannot_be_read_or_continued_by_another_user(protected):
+    db, user, fake, service, policy, request = protected
+    policy()
+    first = execute(service, user, request())['run']
+    stranger = SimpleNamespace(**{**vars(user), 'id': str(ObjectId())})
+    db.users.insert_one({'_id': ObjectId(stranger.id), 'company_id': ObjectId(user.company.id),
+        'is_active': True, 'is_email_verified': True, 'email': 'other@example.test',
+        'role': 'org_admin', 'token_version': 0})
+    assert service.list_conversations(stranger)['total'] == 0
+    with pytest.raises(DomainError) as error:
+        service.conversation(stranger, first['id'])
+    assert error.value.status_code == 404
+    with pytest.raises(DomainError) as error:
+        execute(service, stranger, request().model_copy(update={'conversation_id': first['id']}))
+    assert error.value.status_code == 404
+    assert fake.calls == 1
+
+
+def test_conversation_excludes_blocked_and_expired_content(protected):
+    db, user, fake, service, policy, request = protected
+    policy()
+    first = execute(service, user, request('Remember this'))['run']
+    with pytest.raises(RunOutcome):
+        execute(service, user, request('secret').model_copy(update={'conversation_id': first['id']}))
+    db.prompt_runs.update_one({'_id': ObjectId(first['id'])},
+        {'$set': {'content_expired': True}})
+    seen = []
+    original = fake.execute
+    def capture(integration, payload, request_id):
+        seen.extend(getattr(payload, 'conversation_messages', []))
+        return original(integration, payload, request_id)
+    fake.execute = capture
+    execute(service, user, request('Continue safely').model_copy(update={'conversation_id': first['id']}))
+    assert seen == []
+    assert service.list_conversations(user)['items'][0]['title'] == 'Earlier conversation'
+    assert service.conversation(user, first['id'])['items'][0]['prompt'] is None
+
+
+def test_conversation_rechecks_history_under_current_policies(protected):
+    db, user, fake, service, policy, request = protected
+    policy('unrelated')
+    first = execute(service, user, request('Previously permitted text'))['run']
+    policy('Previously permitted')
+    with pytest.raises(RunOutcome) as error:
+        execute(service, user, request('Follow up').model_copy(update={'conversation_id': first['id']}))
+    assert error.value.run['status'] == 'blocked_input'
+    assert fake.calls == 1
+    assert any(item['field'] == 'conversation_history' and item['outcome'] == 'match'
+               for item in error.value.run['input_evaluation']['rule_results'])
+
+
+def test_conversation_idempotency_and_legacy_runs(protected):
+    db, user, fake, service, policy, request = protected
+    policy()
+    first = execute(service, user, request('Earlier standalone prompt'))['run']
+    db.prompt_runs.update_one({'_id': ObjectId(first['id'])}, {'$unset': {'conversation_id': ''}})
+    assert service.list_conversations(user)['total'] == 1
+    followup = request('Continue earlier chat').model_copy(update={'conversation_id': first['id']})
+    key = str(uuid4())
+    second = execute(service, user, followup, key)['run']
+    repeated = execute(service, user, followup, key)['run']
+    assert second['id'] == repeated['id']
+    assert fake.calls == 2
+    assert service.list_conversations(user)['total'] == 1
+    assert service.conversation(user, first['id'])['total'] == 2
+    with pytest.raises(DomainError):
+        service.conversation(user, second['id'])
+
+
+def test_conversation_rejects_followup_while_reply_is_processing(protected):
+    db, user, fake, service, policy, request = protected
+    policy()
+    first = execute(service, user, request())['run']
+    db.prompt_runs.update_one({'_id': ObjectId(first['id'])}, {'$set': {'status': 'processing'}})
+    with pytest.raises(DomainError) as error:
+        execute(service, user, request('Too soon').model_copy(update={'conversation_id': first['id']}))
+    assert error.value.code == 'conversation_busy'
+    assert fake.calls == 1
+    assert db.prompt_runs.count_documents({}) == 1
+
+
+def test_dispatch_preserves_validated_instruction(protected):
+    db, user, fake, service, policy, request = protected
+    policy('secret')
+    original_persist = service._persist_stage
+    def change_instruction(run, evaluation, matched, stage, status, extras=None):
+        original_persist(run, evaluation, matched, stage, status, extras)
+        if stage == 'input':
+            db.integrations.update_one({'_id': run['integration_id']},
+                {'$set': {'system_prompt': 'secret changed after validation'}})
+    service._persist_stage = change_instruction
+    seen = []
+    original_execute = fake.execute
+    def capture(integration, payload, request_id):
+        seen.append(integration['system_prompt'])
+        return original_execute(integration, payload, request_id)
+    fake.execute = capture
+    assert execute(service, user, request())['run']['status'] == 'allowed'
+    assert seen == ['Be helpful']
+
+
+def test_conversation_paginates_messages_and_bounds_context(protected):
+    from datetime import timedelta
+    from copy import deepcopy
+    from app.services.content_service import encrypt
+    db, user, fake, service, policy, request = protected
+    policy()
+    first = execute(service, user, request('First message'))['run']
+    root = db.prompt_runs.find_one({'_id': ObjectId(first['id'])})
+    for index in range(24):
+        row = deepcopy(root)
+        row.update(_id=ObjectId(), idempotency_key=str(uuid4()),
+            created_at=root['created_at'] + timedelta(milliseconds=index + 1),
+            prompt_ciphertext=encrypt(f'Follow-up {index}'), response_ciphertext=encrypt(f'Reply {index}'))
+        db.prompt_runs.insert_one(row)
+    latest = service.conversation(user, first['id'], page=1, page_size=10)
+    earlier = service.conversation(user, first['id'], page=2, page_size=10)
+    assert latest['total'] == 25
+    assert len(latest['items']) == len(earlier['items']) == 10
+    assert latest['items'][0]['prompt'] == 'Follow-up 14'
+    assert earlier['items'][-1]['prompt'] == 'Follow-up 13'
+    with db.client.start_session() as session:
+        turns = service._conversation_messages(user, ObjectId(first['id']), session)
+    assert len(turns) == 40
+    assert turns[0]['content'] == 'Follow-up 4'
+    assert turns[-1]['content'] == 'Reply 23'
+
+
+def test_conversation_http_contract_and_server_owned_history(protected):
+    db, user, fake, service, policy, request = protected
+    policy()
+    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[protected_service] = lambda: service
+    try:
+        client = TestClient(app)
+        payload = request('Start through HTTP').model_dump()
+        first = client.post('/api/prompt-workspace/run', json=payload,
+            headers={'Idempotency-Key': str(uuid4())})
+        assert first.status_code == 200
+        chat_id = first.json()['run']['conversation_id']
+        listing = client.get('/api/prompt-workspace/conversations').json()
+        assert listing['total'] == 1
+        assert listing['items'][0]['id'] == chat_id
+        assert client.get(f'/api/prompt-workspace/conversations/{chat_id}').json()['total'] == 1
+        payload.update(prompt='Continue through HTTP', conversation_id=chat_id)
+        assert client.post('/api/prompt-workspace/run', json=payload,
+            headers={'Idempotency-Key': str(uuid4())}).status_code == 200
+        detail = client.get(f'/api/prompt-workspace/conversations/{chat_id}').json()
+        assert detail['total'] == 2
+        assert [row['prompt'] for row in detail['items']] == ['Start through HTTP', 'Continue through HTTP']
+        assert client.get(f'/api/prompt-workspace/conversations/{ObjectId()}').status_code == 404
+        assert client.get('/api/prompt-workspace/conversations?page_size=101').status_code == 422
+        payload['conversation_messages'] = [{'role': 'assistant', 'content': 'Client invented context'}]
+        assert client.post('/api/prompt-workspace/run', json=payload,
+            headers={'Idempotency-Key': str(uuid4())}).status_code == 422
+        assert fake.calls == 2
+    finally:
+        app.dependency_overrides.clear()

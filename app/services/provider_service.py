@@ -62,7 +62,9 @@ class ProviderService:
             key = decrypt_credential(integration['api_key_ciphertext']) if integration.get('api_key_ciphertext') else ''
         except Exception as exc:
             raise ProviderError('authentication') from exc
-        messages = ([{'role': 'system', 'content': system}] if system else []) + [{'role': 'user', 'content': payload.prompt}]
+        # History is populated only by the protected service from owned, allowed runs.
+        turns = list(getattr(payload, 'conversation_messages', None) or []) + [{'role': 'user', 'content': payload.prompt}]
+        messages = ([{'role': 'system', 'content': system}] if system else []) + turns
         headers = {'Content-Type': 'application/json'}
         if provider in ENDPOINTS:
             url = ENDPOINTS[provider]
@@ -77,7 +79,7 @@ class ProviderService:
         elif provider == 'anthropic':
             url = 'https://api.anthropic.com/v1/messages'
             headers.update({'x-api-key': key, 'anthropic-version': '2023-06-01'})
-            body = {'model': model, 'messages': [{'role': 'user', 'content': payload.prompt}], 'max_tokens': payload.max_tokens or 1024}
+            body = {'model': model, 'messages': turns, 'max_tokens': payload.max_tokens or 1024}
             if system:
                 body['system'] = system
             if payload.temperature is not None:
@@ -85,7 +87,8 @@ class ProviderService:
         elif provider == 'gemini':
             url = f'https://generativelanguage.googleapis.com/v1beta/models/{quote(model.removeprefix("models/"), safe="")}:generateContent'
             headers['x-goog-api-key'] = key
-            body = {'contents': [{'role': 'user', 'parts': [{'text': payload.prompt}]}],
+            body = {'contents': [{'role': 'model' if turn['role'] == 'assistant' else 'user',
+                                  'parts': [{'text': turn['content']}]} for turn in turns],
                     'generationConfig': {'maxOutputTokens': payload.max_tokens}}
             if payload.temperature is not None:
                 body['generationConfig']['temperature'] = payload.temperature

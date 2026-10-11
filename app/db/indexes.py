@@ -35,6 +35,9 @@ def ensure_indexes(database) -> None:
     database.prompt_runs.create_index([('company_id', ASCENDING), ('status', ASCENDING), ('created_at', DESCENDING)], name='runs_company_status_recent')
     database.prompt_runs.create_index([('company_id', ASCENDING), ('user_id', ASCENDING), ('idempotency_key', ASCENDING)], unique=True, partialFilterExpression={'idempotency_key': {'$type': 'string'}}, name='runs_idempotency_unique')
     database.prompt_runs.create_index([('content_expires_at', ASCENDING)], name='runs_content_expiry')
+    database.prompt_runs.create_index([('company_id', ASCENDING), ('user_id', ASCENDING),
+        ('conversation_id', ASCENDING), ('created_at', DESCENDING), ('_id', DESCENDING)],
+        name='runs_owner_conversation_recent')
     database.violations.create_index([('company_id', ASCENDING), ('run_id', ASCENDING), ('policy_id', ASCENDING), ('stage', ASCENDING)], unique=True, name='violations_unique_match')
     database.violations.create_index([('company_id', ASCENDING), ('resolution_status', ASCENDING), ('created_at', DESCENDING)], name='violations_review_queue')
     database.violations.create_index([('company_id', ASCENDING), ('user_id', ASCENDING), ('created_at', DESCENDING)], name='violations_owner_recent')

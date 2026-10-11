@@ -20,6 +20,7 @@ class PromptRunExecuteRequest(BaseModel):
     integration_id: str = Field(min_length=12, max_length=64)
     model: str = Field(min_length=1, max_length=255)
     prompt: str = Field(min_length=1, max_length=24000)
+    conversation_id: str | None = Field(default=None, min_length=24, max_length=24)
     temperature: float | None = Field(default=0.2, ge=0, le=2)
     max_tokens: int | None = Field(default=1024, ge=1, le=8192)
 
