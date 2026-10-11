@@ -56,6 +56,13 @@ Import the real DLP/Guardrail catalogs using the existing import workflow, then 
 to groups and users. Do not seed production with synthetic demo accounts. Existing database
 migrations are deliberate backup-first operations; the Procfile does not run them automatically.
 
+Policy assignment is optional for administrator accounts in Prompt Studio. Both
+`org_admin` and `super_admin` can send messages without an applicable input policy;
+the organization's `require_active_policy` setting still applies to regular users.
+Any applicable policies continue to enforce their checks on administrator messages.
+Admins can optionally choose groups under **Users → My policy groups** to use their
+assigned policies. Creating a group alone does not assign the administrator to it.
+
 ## DLP, Guardrail and local models
 
 For managed remote catalogs set `REMOTE_DETECTION_ENABLED=true` and supply

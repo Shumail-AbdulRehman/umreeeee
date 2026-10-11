@@ -126,6 +126,7 @@ def test_invalid_ids_unknown_fields_and_filters_return_safe_422(http_environment
     ('patch', f'/api/integrations/{ObjectId()}/status', {'status': 'archived', 'version': 1}),
     ('patch', f'/api/policies/{ObjectId()}/status', {'status': 'archived', 'version': 1}),
     ('patch', f'/api/users/{ObjectId()}/status', {'is_active': False, 'version': 1}),
+    ('patch', '/api/users/me/groups', {'group_ids': [], 'version': 1}),
     ('patch', f'/api/platform/organizations/{ObjectId()}/status', {'status': 'suspended', 'version': 1}),
 ])
 def test_regular_user_is_denied_every_admin_mutation(http_environment, method, path, body):
@@ -140,3 +141,92 @@ def test_org_admin_cannot_use_platform_endpoint(http_environment):
                             headers=identities['a_org_admin']['headers'],
                             json={'status': 'suspended', 'version': 1})
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize('role', ['org_admin', 'super_admin'])
+def test_admin_can_assign_own_groups_without_other_account_changes(http_environment, role):
+    client, db, identities = http_environment
+    identity = identities['a_org_admin']
+    uid, cid = ObjectId(identity['id']), ObjectId(identity['company_id'])
+    db.users.update_one({'_id': uid}, {'$set': {'role': role}})
+    before = db.users.find_one({'_id': uid})
+    group = client.post('/api/groups', headers=identity['headers'], json={'name': 'Admin policy group'}).json()['group']['_id']
+    mine = client.get('/api/users/me/groups', headers=identity['headers'])
+    assert mine.status_code == 200 and mine.json()['user']['group_ids'] == []
+    response = client.patch('/api/users/me/groups', headers=identity['headers'], json={'group_ids': [group], 'version': 1})
+    assert response.status_code == 200
+    assert response.json()['user']['group_ids'] == [group]
+    assert response.json()['user']['version'] == 2
+    after = db.users.find_one({'_id': uid})
+    for key in ('role', 'email', 'password_hash', 'token_version', 'is_active', 'is_email_verified'):
+        assert after[key] == before[key]
+    assert db.users.find_one({'_id': ObjectId(identities['a_user']['id'])})['group_ids'] == []
+    event = db.audit_events.find_one({'action': 'user.groups_updated'})
+    assert event['actor_user_id'] == uid and event['resource_id'] == uid
+    assert event['before']['group_ids'] == [] and event['after']['group_ids'] == [ObjectId(group)]
+    stale = client.patch('/api/users/me/groups', headers=identity['headers'], json={'group_ids': [], 'version': 1})
+    assert stale.status_code == 409 and stale.json()['detail']['code'] == 'stale_version'
+    assert db.users.find_one({'_id': uid})['group_ids'] == [ObjectId(group)]
+
+
+def test_own_group_assignment_rejects_invalid_scope_and_extra_fields(http_environment):
+    client, db, identities = http_environment
+    identity = identities['a_org_admin']
+    group = client.post('/api/groups', headers=identity['headers'], json={'name': 'Active'}).json()['group']['_id']
+    foreign = client.post('/api/groups', headers=identities['b_org_admin']['headers'], json={'name': 'Foreign'}).json()['group']['_id']
+    archived = client.post('/api/groups', headers=identity['headers'], json={'name': 'Archived'}).json()['group']['_id']
+    db.groups.update_one({'_id': ObjectId(archived)}, {'$set': {'status': 'archived'}})
+    for ids in ([foreign], [archived], [group, group], [str(ObjectId())], ['invalid']):
+        assert client.patch('/api/users/me/groups', headers=identity['headers'], json={'group_ids': ids, 'version': 1}).status_code == 422
+    for field, value in {'role': 'user', 'is_active': False, 'user_id': identities['a_user']['id'], 'company_id': identities['b_org_admin']['company_id']}.items():
+        assert client.patch('/api/users/me/groups', headers=identity['headers'], json={'group_ids': [group], 'version': 1, field: value}).status_code == 422
+    assert client.get('/api/users/me/groups', headers=identities['a_user']['headers']).status_code == 403
+    assert db.users.find_one({'_id': ObjectId(identity['id'])})['group_ids'] == []
+    assert db.audit_events.count_documents({'action': 'user.groups_updated'}) == 0
+
+
+def test_admin_policy_assignment_is_optional_but_assigned_policies_apply(http_environment):
+    from uuid import uuid4
+    from app.api.routes.prompts import protected_service
+    from app.services.protected_prompt_service import ProtectedPromptService
+    from app.services.provider_service import ProviderResult
+
+    client, db, identities = http_environment
+    identity = identities['a_org_admin']
+    group = ObjectId()
+    integration = ObjectId()
+    cid = ObjectId(identity['company_id'])
+    db.groups.insert_one({'_id': group, 'company_id': cid, 'status': 'active', 'name': 'Admin checks'})
+    db.integrations.insert_one({'_id': integration, 'company_id': cid, 'status': 'active',
+        'account_name': 'Synthetic only', 'provider': 'ollama', 'models': ['fake-model'], 'system_prompt': ''})
+    db.policies.insert_one({'company_id': cid, 'name': 'Restricted terms', 'category': 'custom',
+        'assignment_mode': 'explicit_groups', 'action': 'BLOCK', 'severity': 'high', 'status': 'active',
+        'scope': {'group_ids': [group], 'integration_ids': []}, 'stages': ['input'], 'version': 1,
+        'rules': [{'rule_id': 'restricted', 'type': 'keyword', 'config': {'terms': ['restricted']}}]})
+
+    class Provider:
+        calls = 0
+        def execute(self, *args):
+            self.calls += 1
+            return ProviderResult('Synthetic reply', 1, 1, 2, 'fake', 'stop', 1)
+
+    provider = Provider()
+    app.dependency_overrides[protected_service] = lambda: ProtectedPromptService(db, provider)
+    context = client.get('/api/prompt-workspace/context', headers=identity['headers']).json()
+    assert context['groups'] == [] and context['enforcement_ready'] is True
+    assert context['require_active_policy'] is False
+    assert context['input_policy_coverage'][str(integration)] is False
+    body = {'integration_id': str(integration), 'model': 'fake-model', 'prompt': 'hello'}
+    def send(text):
+        return client.post('/api/prompt-workspace/run', headers={**identity['headers'], 'Idempotency-Key': str(uuid4())}, json={**body, 'prompt': text})
+    unassigned = send('hello')
+    assert unassigned.status_code == 200 and unassigned.json()['run']['status'] == 'allowed'
+    assert provider.calls == 1
+    assert client.patch('/api/users/me/groups', headers=identity['headers'], json={'group_ids': [str(group)], 'version': 1}).status_code == 200
+    context = client.get('/api/prompt-workspace/context', headers=identity['headers']).json()
+    assert context['groups'] == [{'id': str(group), 'name': 'Admin checks'}]
+    assert context['enforcement_ready'] is True and context['input_policy_coverage'][str(integration)] is True
+    assert send('hello').status_code == 200 and provider.calls == 2
+    blocked = send('restricted')
+    assert blocked.status_code == 403 and blocked.json()['run']['status'] == 'blocked_input'
+    assert provider.calls == 2

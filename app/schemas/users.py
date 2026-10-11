@@ -24,6 +24,12 @@ class ManagedUserStatusRequest(BaseModel):
     version: int = Field(ge=1)
 
 
+class OwnGroupsUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    group_ids: list[str] = Field(max_length=32)
+    version: int = Field(ge=1)
+
+
 class ManagedUserRead(BaseModel):
     id: str
     first_name: str

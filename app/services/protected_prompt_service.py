@@ -36,6 +36,12 @@ def _company(user):
     return object_id(user.company.id)
 
 
+def _workspace_policy_required(company, db_user):
+    # The authenticated database role owns the exemption, never a client claim.
+    return (company.get('settings', {}).get('require_active_policy', True)
+            and db_user.get('role') not in ADMIN_ROLES)
+
+
 def _safe_result(result):
     if result is None:
         return None
@@ -133,12 +139,20 @@ class ProtectedPromptService:
 
     def context(self, user):
         company = _company(user)
-        groups = list(self.db.groups.find({'_id': {'$in': [object_id(g) for g in user.group_ids]},
+        db_user = self.db.users.find_one({'_id': object_id(user.id), 'company_id': company})
+        groups = list(self.db.groups.find({'_id': {'$in': (db_user or {}).get('group_ids', [])},
             'company_id': company, 'status': 'active'}, {'name': 1}))
         integrations = list(self.db.integrations.find({'company_id': company, 'status': 'active'},
             {'provider': 1, 'account_name': 1, 'models': 1, 'system_prompt': 1}))
-        applicable = [policy for integration in integrations for policy in resolve_policies(
-            self.db, str(company), str(integration['_id']), [group['_id'] for group in groups])]
+        policies_by_integration = {str(integration['_id']): resolve_policies(
+            self.db, str(company), str(integration['_id']), [group['_id'] for group in groups])
+            for integration in integrations}
+        applicable = [policy for policies in policies_by_integration.values() for policy in policies]
+        org = self.db.companies.find_one({'_id': company})
+        require_policy = _workspace_policy_required(org or {}, db_user or {})
+        covered = {key: any('input' in policy.get('stages', []) for policy in policies)
+                   for key, policies in policies_by_integration.items()}
+        needs_setup = require_policy and not any(covered.values())
         active_types = {rule['type'] for policy in applicable for rule in policy['rules']}
         caps = registry.capabilities()
         missing = [kind for kind in active_types if not caps.get(kind, {}).get('ready')]
@@ -148,8 +162,11 @@ class ProtectedPromptService:
                 'account_name': i['account_name'], 'models': i.get('models', []),
                 'has_system_instruction': bool(i.get('system_prompt'))} for i in integrations],
                 'groups': [{'id': str(g['_id']), 'name': g['name']} for g in groups],
-                'enforcement_ready': not missing,
-                'readiness_reason': 'Unavailable active validators: ' + ', '.join(sorted(missing)) if missing else None,
+                'require_active_policy': require_policy,
+                'input_policy_coverage': covered,
+                'enforcement_ready': not missing and not needs_setup,
+                'readiness_reason': ('Assign your account to a group with an active input policy for the selected integration.'
+                    if needs_setup else 'Unavailable active validators: ' + ', '.join(sorted(missing)) if missing else None),
                 'max_prompt_length': 24000}
 
     def _admit(self, user, payload):
@@ -276,7 +293,7 @@ class ProtectedPromptService:
                     'user_email': db_user['email'], 'integration_id': integration['_id'],
                     'integration_account_name': integration['account_name'], 'provider': integration['provider'],
                     'model': payload.model, 'group_ids_snapshot': group_ids, 'policy_snapshots': policies,
-                    'require_active_policy': frozen['require_active_policy'] if frozen else org.get('settings', {}).get('require_active_policy', True),
+                    'require_active_policy': frozen['require_active_policy'] if frozen else _workspace_policy_required(org, db_user),
                     'prompt_ciphertext': encrypt(payload.prompt),
                     'system_prompt_ciphertext': encrypt(system_instruction),
                     'content_expires_at': now + timedelta(days=days), 'content_expired': False,
@@ -383,6 +400,11 @@ class ProtectedPromptService:
         if not active or not company or not live_integration or run['model'] not in live_integration.get('models', []):
             self._finish(run, {'status': 'configuration_error', 'error_code': 'configuration_unavailable',
                 'error_message': 'Account or integration became unavailable',
+                'cost_status': 'not_incurred', 'estimated_cost_usd': '0'})
+            return _http_outcome(run)
+        if source == 'workspace' and not input_policies and _workspace_policy_required(company, active):
+            self._finish(run, {'status': 'configuration_error', 'error_code': 'policy_required',
+                'error_message': 'An input policy is required for your current account.',
                 'cost_status': 'not_incurred', 'estimated_cost_usd': '0'})
             return _http_outcome(run)
         held_token = execution_identity.get('admission_token')

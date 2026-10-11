@@ -126,6 +126,7 @@ def test_log_alert_idempotency_and_cost(protected):
 
 def test_no_input_policy_fails_closed(protected):
     db, user, fake, service, policy, request = protected
+    db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'role': 'user'}})
     policy('secret', 'output')
     with pytest.raises(RunOutcome) as error:
         execute(service, user, request())
@@ -134,6 +135,88 @@ def test_no_input_policy_fails_closed(protected):
         {'$set': {'settings.require_active_policy': False}})
     allowed = execute(service, user, request())['run']
     assert allowed['input_evaluation']['state'] == 'not_evaluated'
+
+
+@pytest.mark.parametrize('role', ['org_admin', 'super_admin'])
+def test_admin_can_chat_without_policies_using_current_database_role(protected, role):
+    db, user, fake, service, _, request = protected
+    db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'role': role}})
+    user.role = 'user'  # A stale client-side role cannot remove the server exemption.
+    context = service.context(user)
+    assert context['groups'] == [] and context['require_active_policy'] is False
+    assert context['enforcement_ready'] is True
+    first = execute(service, user, request())['run']
+    followup = execute(service, user, request('follow-up').model_copy(update={'conversation_id': first['conversation_id']}))['run']
+    assert first['status'] == followup['status'] == 'allowed' and fake.calls == 2
+    assert first['conversation_id'] == followup['conversation_id']
+    assert first['input_evaluation']['state'] == 'not_evaluated'
+    assert db.prompt_runs.find_one({'_id': ObjectId(first['id'])})['require_active_policy'] is False
+    assert db.companies.find_one({'_id': ObjectId(user.company.id)})['settings']['require_active_policy'] is True
+
+
+def test_admin_without_input_policy_still_enforces_output_policy(protected):
+    _, user, fake, service, policy, request = protected
+    policy('restricted', 'output')
+    fake.output = 'restricted response'
+    with pytest.raises(RunOutcome) as error:
+        execute(service, user, request())
+    assert error.value.run['status'] == 'blocked_output' and fake.calls == 1
+    assert error.value.run['response_withheld'] is True and error.value.run['response_text'] is None
+
+
+def test_red_team_protected_snapshot_keeps_its_policy_requirement(protected):
+    _, user, fake, service, _, request = protected
+    snapshot = {'subject_group_ids': [], 'policy_snapshots': [],
+                'system_instruction': 'Synthetic only', 'require_active_policy': True}
+    with pytest.raises(RunOutcome) as error:
+        service.execute_protected(user, request(), {'source': 'red_team', 'key': str(uuid4()),
+            'request_id': 'synthetic', 'snapshot': snapshot, 'scenario_system': 'Synthetic scenario'})
+    assert error.value.code == 'policy_required' and fake.calls == 0
+
+
+def test_admin_demotion_before_provider_removes_missing_policy_exemption(protected, monkeypatch):
+    import app.services.protected_prompt_service as module
+    db, user, fake, service, _, request = protected
+    original = module.evaluate_stage
+    def demote(*args):
+        result = original(*args)
+        db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'role': 'user'}})
+        return result
+    monkeypatch.setattr(module, 'evaluate_stage', demote)
+    with pytest.raises(RunOutcome) as error:
+        execute(service, user, request())
+    assert error.value.code == 'policy_required' and fake.calls == 0
+    assert error.value.run['cost_status'] == 'not_incurred'
+
+
+def test_workspace_context_reports_current_database_policy_coverage(protected):
+    db, user, _, service, policy, request = protected
+    db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'role': 'user'}})
+    cid, own, stale, inactive, foreign = ObjectId(user.company.id), ObjectId(), ObjectId(), ObjectId(), ObjectId()
+    db.groups.insert_many([
+        {'_id': own, 'company_id': cid, 'status': 'active', 'name': 'Current', 'name_normalized': 'current'},
+        {'_id': stale, 'company_id': cid, 'status': 'active', 'name': 'Stale', 'name_normalized': 'stale'},
+        {'_id': inactive, 'company_id': cid, 'status': 'archived', 'name': 'Archived', 'name_normalized': 'archived'},
+        {'_id': foreign, 'company_id': ObjectId(), 'status': 'active', 'name': 'Foreign', 'name_normalized': 'foreign'},
+    ])
+    db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'group_ids': [own, inactive, foreign]}})
+    user.group_ids = [str(stale)]
+    pid = policy()
+    db.policies.update_one({'_id': pid}, {'$set': {'scope': {
+        'group_ids': [own], 'integration_ids': [ObjectId(request().integration_id)]}}})
+    second = ObjectId()
+    db.integrations.insert_one({'_id': second, 'company_id': cid, 'status': 'active',
+        'provider': 'ollama', 'account_name': 'Uncovered', 'account_name_normalized': 'uncovered', 'models': ['fake-model']})
+    context = service.context(user)
+    assert context['groups'] == [{'id': str(own), 'name': 'Current'}]
+    assert context['input_policy_coverage'] == {request().integration_id: True, str(second): False}
+    assert context['enforcement_ready'] is True and context['require_active_policy'] is True
+    db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'group_ids': []}})
+    context = service.context(user)
+    assert context['enforcement_ready'] is False
+    assert context['groups'] == [] and 'active input policy' in context['readiness_reason']
+    db.companies.update_one({'_id': cid}, {'$set': {'settings.require_active_policy': False}})
+    assert service.context(user)['enforcement_ready'] is True
 
 
 @pytest.mark.parametrize('kinds', [[], ['dlp'], ['guardrail'], ['dlp', 'guardrail']])
@@ -287,6 +370,7 @@ def test_block_wins_over_incomplete_validation_and_keeps_both_findings(protected
 
 def test_group_and_integration_scope_is_and_not_client_controlled(protected):
     db, user, fake, service, policy, request = protected
+    db.users.update_one({'_id': ObjectId(user.id)}, {'$set': {'role': 'user'}})
     blocked = policy('secret')
     other_group, actual_group, other_integration = ObjectId(), ObjectId(), ObjectId()
     db.groups.insert_one({'_id': actual_group, 'company_id': ObjectId(user.company.id),
