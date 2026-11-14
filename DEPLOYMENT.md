@@ -84,11 +84,20 @@ If an add-on provides a differently named variable, copy that value into `RABBIT
 Use the same MongoDB, encryption keys and broker for all processes. Then enable:
 
 ```sh
-heroku ps:scale web=1 worker=1 dispatcher=1 --app YOUR-APP
+heroku ps:scale web=1 worker=1 dispatcher=1 recovery=1 --app YOUR-APP
 ```
 
 `dispatcher` publishes persisted jobs; `worker` consumes them. Both are required for Red
 Team execution and use separate dynos. Without these processes, Red Team jobs remain pending.
+
+`recovery` runs `python -m app.queue.recovery` as its own dyno. A crashed worker can leave a
+job marked running; without this process, such jobs are recovered only when the web process
+restarts. The recovery loop reconciles durable job states every 15 seconds and prints a counts
+dictionary on each cycle (keys `dispatch_reset`, `pre_call_reset`, `response_resume`,
+`uncertain_finalized` and `parent_reconciled`). It shares the same MongoDB, broker and
+encryption keys as `worker` and `dispatcher`. It never replays an uncertain provider call: a
+job whose provider outcome cannot be confirmed is finalized as `execution_outcome_unknown`,
+because the original call may already have incurred cost.
 Normal Prompt Studio runs do not require RabbitMQ. The application also needs periodic
 content cleanup: schedule `python -m scripts.expire_content` through Heroku Scheduler
 (or `cd backend && python -m scripts.expire_content` for the complete repository).

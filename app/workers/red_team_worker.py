@@ -16,6 +16,9 @@ from app.core.config import RED_TEAM_EXECUTION_LEASE_SECONDS, RED_TEAM_MAX_ATTEM
 from app.db.mongo import get_database
 from app.queue.rabbit import connection, declare
 from app.red_team.evaluators import evaluate
+from app.red_team.evidence import grade
+from app.red_team.judge import build_request, parse_reply, RUBRIC_VERSION
+from app.services.red_team_report_v3 import build_report
 from app.schemas.prompts import PromptRunExecuteRequest
 from app.services.admin_common import utcnow
 from app.services.content_service import encrypt, decrypt
@@ -69,7 +72,7 @@ def _claim(db, job, generation):
         'state': {'$in': ['pending', 'queued', 'retry_wait']},
         '$or': [{'execution_lease_expires_at': {'$exists': False}},
                 {'execution_lease_expires_at': {'$lte': now}}]},
-        {'$set': {'state': 'running', 'execution_phase': 'response_persisted' if job.get('prepared_result') else 'claimed',
+        {'$set': {'state': 'running', 'execution_phase': ('judging' if job.get('execution_phase') == 'judging' else 'response_persisted') if job.get('prepared_result') else 'claimed',
             'execution_lease_token': token,
             'execution_lease_expires_at': now + timedelta(seconds=RED_TEAM_EXECUTION_LEASE_SECONDS),
             'started_at': job.get('started_at') or now}}, return_document=ReturnDocument.AFTER)
@@ -161,6 +164,7 @@ def _prepared(db, test, job, lease_token, result):
         'total_tokens': result.get('total_tokens'), 'estimated_cost_usd': result.get('estimated_cost_usd'),
         'cost_status': result.get('cost_status'), 'cost_source': result.get('cost_source'),
         'pricing_snapshot': result.get('pricing_snapshot'), 'provider_request_id': result.get('provider_request_id'),
+        'prevention_stage': result.get('prevention_stage') or ({'blocked_input': 'input', 'blocked_output': 'output'}.get(result.get('status'))),
         'protected_run_id': ObjectId(result['protected_run_id']) if result.get('protected_run_id') else None}
     if response is not None and not withheld:
         changes['response_ciphertext'] = encrypt(response)
@@ -172,7 +176,13 @@ def _prepared(db, test, job, lease_token, result):
     return {**job, **changes}
 
 
-def _finalize(db, test, job, lease_token, verdict, reason, explanation, error_code=None):
+def _below_threshold(test, jobs):
+    if test.get('format') == 'plugins':
+        return (build_report(test, jobs).get('threshold') or {}).get('verdict') == 'below_threshold'
+    return score(test, jobs)['threshold_verdict'] == 'below_threshold'
+
+
+def _finalize(db, test, job, lease_token, verdict, reason, explanation, error_code=None, grading=None):
     for attempt in range(3):
         try:
             with db.client.start_session() as session:
@@ -189,6 +199,10 @@ def _finalize(db, test, job, lease_token, verdict, reason, explanation, error_co
                         'error_code': error_code, 'finished_at': utcnow(), 'execution_phase': 'finished',
                         'possible_cost': error_code == 'execution_outcome_unknown',
                         'response_withheld': True if cancelled else job.get('response_withheld', False)}
+                    if test.get('format') == 'plugins':
+                        evidence = grading or grade(job, error_code=error_code or reason)
+                        changes.update({'verdict_source': 'none' if cancelled else evidence['verdict_source'],
+                                        'evidence_steps': evidence['steps']})
                     result = db.red_team_jobs.update_one({'_id': job['_id'], 'company_id': test['company_id'],
                         'test_id': test['_id'], 'state': 'running', 'execution_lease_token': lease_token},
                         {'$set': changes, '$unset': {'execution_lease_token': '',
@@ -207,7 +221,7 @@ def _finalize(db, test, job, lease_token, verdict, reason, explanation, error_co
                     db.red_team_tests.update_one({'_id': test['_id'], 'company_id': test['company_id'],
                         'execution_revision': parent['execution_revision']},
                         {'$set': parent_changes, '$inc': {'execution_revision': 1}}, session=session)
-                    if status and score({**parent, 'status': status}, jobs)['threshold_verdict'] == 'below_threshold':
+                    if status and _below_threshold({**parent, 'status': status}, jobs):
                         recipients = db.users.find({'company_id': test['company_id'],
                             'role': {'$in': ['org_admin', 'super_admin']}, 'is_active': True,
                             'is_email_verified': True}, {'_id': 1}, session=session)
@@ -234,9 +248,109 @@ def _retry(db, job, lease_token, seconds, reason):
         'state': 'running', 'execution_lease_token': lease_token},
         {'$set': {'state': 'retry_wait', 'dispatch_state': 'pending',
                   'next_attempt_at': utcnow() + timedelta(seconds=delay),
-                  'execution_phase': 'retry_wait', 'error_code': reason},
+                  'execution_phase': 'judging' if job.get('prepared_result') else 'retry_wait', 'error_code': reason},
          '$inc': {'dispatch_generation': 1},
          '$unset': {'execution_lease_token': '', 'execution_lease_expires_at': ''}})
+
+
+def _judge_grading(evidence, judge):
+    error = judge.get('error_code')
+    verdict = {'unsafe': 'fail', 'defended': 'pass'}.get(judge.get('verdict'), 'inconclusive')
+    decisive = verdict in {'pass', 'fail'} and not error
+    reason = error or 'judge_' + judge['verdict']
+    explanation = judge.get('reason') or 'The judge could not decide this result.'
+    steps = [dict(step) for step in evidence['steps']]
+    steps[-1] = {'step': 'judge', 'state': 'decisive' if decisive else 'undecided',
+                 'description': explanation if decisive else reason}
+    return {**evidence, 'verdict': verdict if decisive else 'inconclusive',
+            'verdict_source': 'judge' if decisive else 'none', 'reason': reason,
+            'explanation': explanation, 'steps': steps, 'needs_judge': False}
+
+
+def _judge(db, test, job, token, content, evidence, provider):
+    """Target response is durable. Only this bounded phase may be retried."""
+    snapshot = test['config_snapshot']['judge']
+    prior = job.get('judge') or {}
+    fence = {'_id': job['_id'], 'company_id': job['company_id'],
+             'state': 'running', 'execution_lease_token': token}
+
+    def store(judge):
+        if db.red_team_jobs.update_one(fence, {'$set': {'judge': judge}}).matched_count != 1:
+            raise RuntimeError('execution_lease_lost')
+        job['judge'] = judge
+        return _judge_grading(evidence, judge)
+
+    def unavailable(code):
+        return store({**prior, 'model': snapshot['model'], 'rubric_version': RUBRIC_VERSION,
+                      'verdict': 'inconclusive', 'reason': '', 'error_code': code,
+                      'attempts': prior.get('attempts', 0), 'completed': True})
+
+    if prior.get('completed'):
+        return _judge_grading(evidence, prior)
+    if prior.get('attempts', 0) >= 2:
+        return unavailable('judge_attempts_exhausted')
+    if db.red_team_jobs.update_one(fence, {'$set': {'execution_phase': 'judging',
+            'verdict_source': 'none', 'evidence_steps': evidence['steps']}}).matched_count != 1:
+        raise RuntimeError('execution_lease_lost')
+    judge_id = snapshot['integration_id']
+    def active_judge():
+        return db.integrations.find_one({'_id': judge_id, 'company_id': test['company_id'],
+            'status': 'active', 'models': snapshot['model']})
+    integration = active_judge()
+    if not integration:
+        return unavailable('judge_unavailable')
+    admission = IntegrationAdmission(db)
+    try:
+        admission_token = admission.acquire(test['company_id'], judge_id,
+            f'red_team_judge:{job["_id"]}', RED_TEAM_EXECUTION_LEASE_SECONDS)
+    except AdmissionUnavailable as exc:
+        _retry(db, job, token, exc.retry_after, 'judge_integration_busy')
+        return None
+    stop = Event()
+    keeper = Thread(target=_keep_alive, args=(db, {**job, 'integration_id': judge_id},
+        token, admission_token, stop), daemon=True)
+    keeper.start()
+    try:
+        latest = db.red_team_tests.find_one({'_id': test['_id'], 'company_id': test['company_id']})
+        if not latest or latest.get('cancel_requested_at'):
+            return evidence  # _finalize rechecks cancellation transactionally
+        if not all(_authority(db, latest)):
+            _system_cancel(db, test, 'authority_or_target_revoked')
+            return evidence
+        if not active_judge() or not admission.verify(test['company_id'], judge_id, admission_token):
+            return unavailable('judge_unavailable')
+        request = build_request(job['plugin_id'], job['scenario_system'], job['prompt'], content)
+        payload = PromptRunExecuteRequest(integration_id=str(judge_id), model=snapshot['model'],
+            prompt=request['prompt'], temperature=0, max_tokens=512)
+        prior = {**prior, 'attempts': prior.get('attempts', 0) + 1, 'model': snapshot['model'],
+                 'rubric_version': request['rubric_version'], 'completed': False}
+        if db.red_team_jobs.update_one(fence, {'$set': {'judge': prior}}).matched_count != 1:
+            raise RuntimeError('execution_lease_lost')
+        local = {**integration, 'provider': snapshot['provider'], 'system_prompt': request['system']}
+        try:
+            result = provider.execute(local, payload, str(job['_id']) + ':judge',
+                (db, test['company_id'], judge_id, admission_token)) if isinstance(provider, ProviderService) \
+                else provider.execute(local, payload, str(job['_id']) + ':judge')
+        except ProviderError as exc:
+            if exc.code == 'rate_limited' and prior['attempts'] < 2:
+                _retry(db, job, token, exc.retry_after or 2, 'judge_rate_limited')
+                return None
+            return unavailable('judge_' + exc.code)
+        except Exception:
+            return unavailable('judge_unavailable')
+        parsed = parse_reply(result.response_text)
+        cost = estimate_result_cost(snapshot['model'], snapshot.get('price_snapshot', []), snapshot['provider'], result)
+        judge = {**prior, 'verdict': parsed['verdict'], 'reason': parsed['reason'],
+                 'error_code': parsed['error'], 'latency_ms': result.provider_latency_ms,
+                 'cost': cost['estimated_cost_usd'], **cost, 'completed': True}
+        if not active_judge():
+            judge.update(verdict='inconclusive', reason='', error_code='judge_unavailable')
+        return store(judge)
+    finally:
+        stop.set()
+        keeper.join(timeout=1)
+        admission.release(test['company_id'], judge_id, admission_token)
+        heartbeat(db)
 
 
 def process_job(db, job_id, test_id, generation, provider=None):
@@ -248,39 +362,35 @@ def process_job(db, job_id, test_id, generation, provider=None):
     test = db.red_team_tests.find_one({'_id': job['test_id'], 'company_id': job['company_id']})
     if not test:
         return 'noop'
-    claimed = _claim(db, job, generation)
-    if not claimed:
+    job = _claim(db, job, generation)
+    if not job:
         return 'noop'
-    job = claimed
     token = job['execution_lease_token']
     if test.get('cancel_requested_at') or test['status'] in {'cancelling', 'cancelled'}:
         _finalize(db, test, job, token, 'error', 'cancelled', 'Test was cancelled.')
         return 'cancelled'
     company, creator, subject, target = _authority(db, test)
-    if not company or not creator or not subject or not target or test['model'] not in target.get('models', []):
+    if not all((company, creator, subject, target)) or test['model'] not in target.get('models', []):
         _system_cancel(db, test, 'authority_or_target_revoked')
         _finalize(db, test, job, token, 'error', 'cancelled', 'Test authority or target is unavailable.')
         return 'cancelled'
-    admission = IntegrationAdmission(db)
-    try:
-        admission_token = admission.acquire(test['company_id'], test['integration_id'],
-            f'red_team:{job["_id"]}', RED_TEAM_EXECUTION_LEASE_SECONDS)
-    except AdmissionUnavailable as exc:
-        _retry(db, job, token, exc.retry_after, 'integration_busy')
-        return 'rescheduled'
-    stop = Event()
-    keeper = Thread(target=_keep_alive, args=(db, {**job, 'integration_id': test['integration_id']},
-        token, admission_token, stop), daemon=True)
-    keeper.start()
-    try:
-        if job.get('execution_phase') == 'response_persisted' and job.get('prepared_result'):
-            prepared = job
-        else:
+    prepared = job if job.get('prepared_result') else None
+    if not prepared:
+        admission = IntegrationAdmission(db)
+        try:
+            admission_token = admission.acquire(test['company_id'], test['integration_id'],
+                f'red_team:{job["_id"]}', RED_TEAM_EXECUTION_LEASE_SECONDS)
+        except AdmissionUnavailable as exc:
+            _retry(db, job, token, exc.retry_after, 'integration_busy')
+            return 'rescheduled'
+        stop = Event()
+        keeper = Thread(target=_keep_alive, args=(db, {**job, 'integration_id': test['integration_id']},
+            token, admission_token, stop), daemon=True)
+        keeper.start()
+        try:
             try:
-                if test['mode'] == 'raw':
-                    response = _raw(db, test, job, target, admission_token, token, provider)
-                else:
-                    response = _protected(db, test, job, subject, admission_token, token, provider)
+                response = _raw(db, test, job, target, admission_token, token, provider) if test['mode'] == 'raw' \
+                    else _protected(db, test, job, subject, admission_token, token, provider)
             except ProviderError as exc:
                 if exc.code == 'rate_limited' and job.get('attempt_number', 0) + 1 < RED_TEAM_MAX_ATTEMPTS:
                     _retry(db, job, token, exc.retry_after or 2, 'rate_limited')
@@ -301,18 +411,29 @@ def process_job(db, job_id, test_id, generation, provider=None):
                 _retry(db, job, token, 2 ** (job.get('attempt_number', 0) + 1), 'rate_limited')
                 return 'rescheduled'
             prepared = _prepared(db, test, job, token, response)
-        content = None if prepared.get('response_withheld') else decrypt(prepared.get('response_ciphertext'))
-        verdict, reason, explanation = evaluate(prepared, response=content,
-            protected_run={**prepared['prepared_result'], 'response_text': content}
-            if test['mode'] == 'protected' else None)
-        _finalize(db, test, prepared, token, verdict, reason, explanation,
-                  prepared['prepared_result'].get('error_code') if verdict == 'error' else None)
-        return verdict
-    finally:
-        stop.set()
-        keeper.join(timeout=1)
-        admission.release(test['company_id'], test['integration_id'], admission_token)
-        heartbeat(db)
+        finally:
+            stop.set()
+            keeper.join(timeout=1)
+            admission.release(test['company_id'], test['integration_id'], admission_token)
+            heartbeat(db)
+    expired = prepared.get('content_expired') or (prepared.get('content_expires_at') and prepared['content_expires_at'] <= utcnow())
+    content = None if prepared.get('response_withheld') or expired else decrypt(prepared.get('response_ciphertext'))
+    protected = {**prepared['prepared_result'], 'response_text': content} if test['mode'] == 'protected' else None
+    if test.get('format') == 'plugins':
+        evidence = grade(prepared, response=content, protected_run=protected,
+                         error_code=prepared['prepared_result'].get('error_code'))
+        if evidence['needs_judge'] and test['config_snapshot'].get('judge') and content is not None:
+            evidence = _judge(db, test, prepared, token, content, evidence, provider)
+            if evidence is None:
+                return 'rescheduled'
+        verdict, reason, explanation = evidence['verdict'], evidence['reason'], evidence['explanation']
+    else:
+        evidence = None
+        verdict, reason, explanation = evaluate(prepared, response=content, protected_run=protected)
+    _finalize(db, test, prepared, token, verdict, reason, explanation,
+              prepared['prepared_result'].get('error_code') if verdict == 'error' else None, grading=evidence)
+    heartbeat(db)
+    return verdict
 
 
 def main():

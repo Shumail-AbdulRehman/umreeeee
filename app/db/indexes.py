@@ -56,3 +56,7 @@ def ensure_indexes(database) -> None:
     database.integration_execution_locks.create_index([('lease_expires_at', ASCENDING)], name='integration_execution_lease')
     database.worker_heartbeats.create_index([('kind', ASCENDING), ('updated_at', DESCENDING)], name='worker_heartbeats_recent')
     database.worker_heartbeats.create_index([('expires_at', ASCENDING)], expireAfterSeconds=0, name='worker_heartbeats_expiry')
+
+    for field in ('plugin_id', 'strategy_id', 'verdict_source'):
+        database.red_team_jobs.create_index([('company_id', ASCENDING), ('test_id', ASCENDING),
+            (field, ASCENDING)], name=f'red_team_jobs_{field}')
