@@ -1,5 +1,7 @@
 """Reconcile only durable job states; never replay an uncertain provider call."""
 from datetime import timedelta
+import logging
+import time
 from uuid import uuid4
 
 from pymongo import ReturnDocument
@@ -11,6 +13,9 @@ from app.services.admin_common import utcnow
 from app.services.red_team_report_service import score, terminal_status
 from app.workers.red_team_worker import _finalize, _below_threshold, _judge_grading
 from app.red_team.evidence import grade
+
+
+logger = logging.getLogger(__name__)
 
 
 def recover(db, now=None):
@@ -133,9 +138,23 @@ def recover(db, now=None):
     return counts
 
 
+def main(database=None, sleep=time.sleep, iterations=None):
+    if database is None:
+        database = get_database()
+    try:
+        while iterations is None or iterations > 0:
+            try:
+                print(recover(database), flush=True)
+            except Exception as exc:
+                logger.warning('Red-team recovery retrying (%s)', type(exc).__name__)
+            if iterations is not None:
+                iterations -= 1
+                if iterations == 0:
+                    break
+            sleep(15)
+    except KeyboardInterrupt:
+        pass
+
+
 if __name__ == '__main__':
-    from time import sleep
-    database = get_database()
-    while True:
-        print(recover(database), flush=True)
-        sleep(15)
+    main()

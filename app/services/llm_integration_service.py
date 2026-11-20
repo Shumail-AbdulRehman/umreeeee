@@ -28,6 +28,7 @@ from app.schemas.integrations import (
 
 
 SUPPORTED_PROVIDERS = ('openai', 'groq', 'ollama', 'gemini', 'deepseek', 'anthropic')
+DISCOVERY_USER_AGENT = 'Sentinel-LLM-Security/1.0'
 
 OPENAI_COMPATIBLE_PROVIDERS = {
     'openai': 'https://api.openai.com/v1/models',
@@ -194,6 +195,7 @@ class LLMIntegrationService:
             headers={
                 'Authorization': f'Bearer {api_key}',
                 'Content-Type': 'application/json',
+                'User-Agent': DISCOVERY_USER_AGENT,
             },
             method='GET',
         )
@@ -204,7 +206,7 @@ class LLMIntegrationService:
 
     def fetch_gemini_models(self, api_key: str) -> list[str]:
         endpoint = f'https://generativelanguage.googleapis.com/v1beta/models?{urlencode({"key": api_key})}'
-        request = Request(endpoint, method='GET')
+        request = Request(endpoint, headers={'User-Agent': DISCOVERY_USER_AGENT}, method='GET')
         payload = self.read_json_response(request)
         models: list[str] = []
         for item in self.model_rows(payload, 'models'):
@@ -223,6 +225,7 @@ class LLMIntegrationService:
                 'x-api-key': api_key,
                 'anthropic-version': '2023-06-01',
                 'Content-Type': 'application/json',
+                'User-Agent': DISCOVERY_USER_AGENT,
             },
             method='GET',
         )
@@ -232,7 +235,8 @@ class LLMIntegrationService:
         return self.normalize_remote_models(models)
 
     def fetch_ollama_models(self, base_url: str | None = None) -> list[str]:
-        request = Request(f'{self.validate_ollama_url(base_url)}/api/tags', method='GET')
+        request = Request(f'{self.validate_ollama_url(base_url)}/api/tags',
+                          headers={'User-Agent': DISCOVERY_USER_AGENT}, method='GET')
         payload = self.read_json_response(request)
         models = [item.get('model') or item.get('name') or ''
                   for item in self.model_rows(payload, 'models')

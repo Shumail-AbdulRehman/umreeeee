@@ -1,6 +1,7 @@
 """One bounded, non-retrying transport for all six providers. No raw payload logging."""
 from dataclasses import dataclass
 import json
+import re
 from time import monotonic
 from urllib.parse import quote
 
@@ -29,7 +30,7 @@ class ProviderResult:
 
 
 class ProviderError(Exception):
-    def __init__(self, code, provider_status=None, retry_after=None):
+    def __init__(self, code, provider_status=None, retry_after=None, *, detail=None):
         self.code = code
         self.provider_status = provider_status
         self.retryable = code in {'timeout', 'unavailable', 'rate_limited'}
@@ -38,11 +39,44 @@ class ProviderError(Exception):
             'rate_limited': 'Provider rate limit reached.', 'timeout': 'Provider timed out; generation may have incurred cost.',
             'unavailable': 'Provider is unavailable.', 'invalid_model': 'Model or generation settings are unsupported by the provider.',
             'invalid_response': 'Provider returned an unusable response.', 'unknown': 'Provider request failed.'}[code]
+        self.detail = None
+        if isinstance(detail, str):
+            self.detail = ' '.join(re.sub(r'[^A-Za-z0-9 _.:/()=-]', '', detail).split())[:120] or None
+        if self.detail:
+            self.message += f' ({self.detail})'
         super().__init__(self.message)
 
 
 def token(value):
     return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+def _provider_error_detail(provider, response):
+    if provider not in ENDPOINTS and provider not in {'gemini', 'anthropic'}:
+        return None
+    data = json.loads(next(response.iter_bytes(chunk_size=8192), b''))
+    error = data.get('error') if isinstance(data, dict) else None
+    if not isinstance(error, dict):
+        return None
+    if provider in ENDPOINTS:
+        return ': '.join(value for value in (error.get('type'), error.get('code')) if isinstance(value, str) and value)
+    if provider == 'anthropic':
+        error_type = error.get('type')
+        return error_type if isinstance(error_type, str) else None
+
+    status = error.get('status')
+    status = status if isinstance(status, str) else ''
+    details = error.get('details')
+    if isinstance(details, list):
+        for detail in details:
+            violations = detail.get('violations') if isinstance(detail, dict) else None
+            if not isinstance(violations, list):
+                continue
+            for violation in violations:
+                quota_id = violation.get('quotaId') if isinstance(violation, dict) else None
+                if isinstance(quota_id, str) and quota_id:
+                    return f'{status}: {quota_id}' if status else quota_id
+    return status
 
 
 class ProviderService:
@@ -114,7 +148,14 @@ class ProviderService:
                         code = {400: 'invalid_model', 401: 'authentication', 403: 'authentication',
                                 404: 'invalid_model', 429: 'rate_limited'}.get(response.status_code, 'unavailable')
                         retry = response.headers.get('retry-after', '')
-                        raise ProviderError(code, response.status_code, min(300, int(retry)) if retry.isdigit() else None)
+                        try:
+                            detail = _provider_error_detail(provider, response)
+                        except Exception:
+                            detail = None
+                        if key and detail and key in detail:
+                            detail = None
+                        raise ProviderError(code, response.status_code, min(300, int(retry)) if retry.isdigit() else None,
+                                            detail=detail)
                     raw = bytearray()
                     for chunk in response.iter_bytes():
                         if monotonic() - start > PROVIDER_TIMEOUT_SECONDS:
@@ -157,7 +198,10 @@ class ProviderService:
             text = data['message']['content']
             a, b, total = data.get('prompt_eval_count'), data.get('eval_count'), None
             finish, rid = data.get('done_reason'), None
-        if not isinstance(text, str) or not text or len(text) > 24000:
+        if not isinstance(text, str) or not text:
+            detail = f'empty reply, finish_reason={finish}' if isinstance(finish, str) and 0 < len(finish) <= 100 else None
+            raise ProviderError('invalid_response', detail=detail)
+        if len(text) > 24000:
             raise ProviderError('invalid_response')
         a, b, total = token(a), token(b), token(total)
         details = {}
