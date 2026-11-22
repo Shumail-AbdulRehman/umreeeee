@@ -12,3 +12,4 @@ phonenumbers==9.0.39
 httpx==0.28.1
 pika==1.4.4
 litellm==1.102.1
+PyYAML==6.0.3

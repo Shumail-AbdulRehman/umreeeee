@@ -9,9 +9,9 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 | 02 | Plugin and strategy catalog | Not started |
 | 03 | Framework compliance | Not started |
 | 04 | Config and environment builder | Not started |
-| 05 | Results parser | Not started |
+| 05 | Results parser | Done |
 | 06 | Report aggregation | Not started |
-| 07 | Frontend client service and labels | Not started |
+| 07 | Frontend client service and labels | Done |
 | 08 | Bridge provider | Not started |
 | 09 | Bridge server | Not started |
 | 10 | Runner | Not started |
@@ -33,3 +33,5 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 
 - **2026-11-22**: Planner (Claude) restored the live scope: rewrote specs 04, 08, 09, 10, 16, 17 and 21 and patched 01-03, 05, 07, 11, 18, 20, README and AGENT-GUIDE after the spec-writing Codex session had narrowed them to offline replay. Spec 10 now depends on 05; spec 16 on 01. Implementer split: Claude implements 04, 08, 09, 10, 16, 17, 21; Codex the rest. Validator: 0 errors, 31 warnings (justified in README Known gaps).
 - **2026-11-22**: Planner review of Codex-written specs 01-03, 05-07, 11-15, 18-20: removed remaining offline-only wording in 07, 11, 12, 13, 15, 18, 20 (editor Launch action, live progress phases, clone evaluates stored suite, worker pipeline e2e). Validator re-run: see docs/planning/promptfoo/validator.md.
+
+- **2026-11-22**: Specs 05 and 07 implemented by Codex (gpt-6.2-sol, high) and verified by Claude: parser tests 37, backend unit 522; frontend 227, lint clean. Codex declined specs 01 and 08 (live red-team execution path); they move to Claude with 04, 09, 10, 16, 17, 21.

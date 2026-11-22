@@ -1,0 +1,11 @@
+description: Placeholder suite
+tests:
+  - vars:
+      prompt: Placeholder input A
+    metadata:
+      pluginId: sample-plugin
+  - vars:
+      prompt: Placeholder input B
+    metadata:
+      pluginId: sample-plugin
+      strategyId: crescendo

@@ -1,6 +1,6 @@
 # Spec 05 — Results parser
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 00
 **Model:** Standard — `claude-sonnet-5-5` · `gpt-6.2-sol` · `gemini-3.8-flash`
 **Issue:** —
@@ -43,3 +43,17 @@ Convert promptfoo result rows and generated suites into stable report records wi
 - [ ] `cd backend && .venv/bin/python -m pytest -q tests/unit` passes; log the count. [unit]
 - [ ] `cd backend && .venv/bin/python -m compileall -q app` passes. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+### 2026-11-22
+
+- Inspected the installed `promptfoo` 0.126.0 package in the local probe's temporary `pf2/node_modules`. `dist/src/index.d.ts` and `transform-C_SO0-up.d.ts` confirmed the result envelope, row fields, optional repeat index, nullable grades, component grades, and provider output and measurement fields.
+- Checked `dist/src/evaluator-5tUcjTs8.js`, `evalResult-8T4cELEt.js`, `util-BoX1cZc_.js`, and `tables-DaSnT9dV.js`. The JSONL writer terminates each row with a newline and final JSON places rows under `results.results`. Assertion failures set `failureReason` to `1` and copy the reasoning to `error`. Execution errors use `2`, and `graderError: true` can appear in component metadata. Result measurements can appear on the row or response. Checked `tokenUsageUtils-DtQCFKFW.js` for aggregate usage initialization.
+- Checked `dist/src/main.js` and `strategies-BeuvBHPx.js` for the generated YAML's inline `tests` list and generated metadata, including multi-turn strategy labels. Confirmed the backend venv has PyYAML 6.0.3 and that its `safe_load` uses `SafeLoader`, whose constructor rejects undefined tags.
+- `cd backend && .venv/bin/python -m pytest -q tests/unit/test_results_parser.py` → 37 passed in 0.20s.
+- Inspected all three files in `backend/tests/fixtures/promptfoo/`. All content is synthetic placeholder data. The fixtures contain zero credentials, real dialogue, provider references or exploit payloads.
+- `cd backend && .venv/bin/python -m pytest -q tests/unit` → 522 passed, 8 deprecation warnings in 20.85s.
+- `cd backend && .venv/bin/python -m compileall -q app` → exit 0. Bytecode was directed to a temporary cache.
+- `cd Frontend && npm run build -- --outDir <temporary directory>` → exit 0, 2,941 modules transformed in 7.33s. Vite warned about the temporary output directory and the missing `compareRedTeamTests` export used by `RedTeamPage.jsx`. The export and its caller are outside spec 05 ownership.
+- Handoff for specs 10 and 17 is documented in `inventory/05-results-parser.md`. Spec 05 verification used synthetic inputs and has no MongoDB integration criterion.
