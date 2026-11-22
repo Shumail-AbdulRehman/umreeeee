@@ -29,10 +29,9 @@ class RabbitPublisher:
 
     def publish(self, message):
         body = json.dumps(message, separators=(',', ':')).encode()
-        if not self.channel.basic_publish(exchange='', routing_key=RED_TEAM_QUEUE_NAME,
+        self.channel.basic_publish(exchange='', routing_key=RED_TEAM_QUEUE_NAME,
                 body=body, mandatory=True, properties=pika.BasicProperties(
-                    delivery_mode=pika.DeliveryMode.Persistent, content_type='application/json')):
-            raise RuntimeError('Broker did not confirm publication')
+                    delivery_mode=pika.DeliveryMode.Persistent, content_type='application/json'))
 
     def close(self):
         if self.connection.is_open:

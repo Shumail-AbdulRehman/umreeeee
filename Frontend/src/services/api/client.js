@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+import { beginTrackedRequest } from './requestActivity'
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replace(/\/+$/, '')
 const TOKEN_STORAGE_KEY = 'centurion.auth.token'
 
 export class ApiError extends Error {
@@ -48,16 +50,20 @@ export function clearAuthToken() {
 }
 
 export async function apiRequest(path, options = {}) {
-  const { token: suppliedToken, headers: suppliedHeaders, ...fetchOptions } = options
+  const { token: suppliedToken, headers: suppliedHeaders, silent = false, ...fetchOptions } = options
   const token = suppliedToken ?? getAuthToken()
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...fetchOptions,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(suppliedHeaders || {}),
-    },
-  })
-
-  return parseResponse(response, Boolean(token) && !path.startsWith('/auth/login'))
+  const finish = silent || path.startsWith('/notifications') ? null : beginTrackedRequest()
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...fetchOptions,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(suppliedHeaders || {}),
+      },
+    })
+    return await parseResponse(response, Boolean(token) && !path.startsWith('/auth/login'))
+  } finally {
+    finish?.()
+  }
 }

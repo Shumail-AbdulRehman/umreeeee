@@ -4,7 +4,7 @@ Live detection was enabled in the local backend `.env` on September 27 at the us
 request, after a separate authorized smoke test (one prompt, two entries per service,
 one request per API). Both APIs returned HTTP 200. DLP found the synthetic card but not
 the example email; API detection accuracy remains a limitation outside this adapter.
-No additional external calls were made while enabling the client workflow. All automated
+No additional external calls were made during that enablement. All automated
 adapter tests use mocks. `REMOTE_DETECTION_ENABLED` still defaults to `false` for new
 installations; tests force it off unless an individual test replaces the transport.
 
@@ -36,29 +36,37 @@ protected execution service, bounded by the stage budget, without retries or red
 Both policy types are evaluated when applicable and budget permits; an incomplete check
 prevents release. A detector outage is never treated as a clean result.
 
-## Provisional response contract — confirm before enabling
+## Response contract
 
-The supplied example defines top-level `detections` and `results` arrays but does not
-provide their item schemas. The adapter currently requires findings-only responses:
+The adapter requires findings-only responses. DLP uses selected pattern IDs:
 
 ```json
 {"detections": [{"pattern_id": "selected-dlp-id"}]}
 ```
 
 ```json
-{"results": [{"pluginId": "selected-guardrail-id"}]}
+{"results": [{"pluginId": "selected-guardrail-id", "pass": false, "score": 0.0}],
+ "violations": {"Check name": 1},
+ "summary": {"total": 1, "passed": 0, "failed": 1}}
 ```
 
 An explicit empty array represents a completed clean check under this provisional contract.
 Missing arrays, unknown IDs, non-200 statuses, invalid JSON, explicit errors, partial or
-incomplete results, and unexpected result statuses fail closed. Finding objects containing
-`pass` or `passed` are rejected until the developers confirm their exact semantics.
+incomplete results, and unexpected result statuses fail closed. Guardrail's boolean
+`pass: false` is a policy match, not a detector failure. `pass: true` contradicts our
+findings-only request and is rejected, along with nonboolean flags, duplicate Guardrail
+IDs, explicit errors, and the unconfirmed `passed` alias. DLP pass flags remain rejected.
 Only entry IDs and finding counts are retained, never matched text or raw response bodies.
 
-Before enabling, obtain actual clean, violation, partial-failure, and error examples from
-both developers. Confirm that an empty array guarantees **all requested checks completed**,
-the exact ID/status fields, authentication needs, and plugin-specific config requirements.
-Then update the adapter and mocked contract tests accordingly. No plugin-specific settings
+On October 11, 2026, the public [Guardrail OpenAPI schema](https://centurion.cytex.io/openapi.json)
+confirmed that `includePassing: false` returns failing grades only. One harmless synthetic
+Unicode check confirmed an actual finding with `pluginId`, boolean `pass: false`, and
+consistent summary counts. The previous adapter incorrectly rejected that finding. Its
+`cytex-findings-v2` replacement accepts this confirmed format; legacy ID-only findings
+remain supported. Automated regression tests use mocks and exercise both blocked stages.
+
+New response shapes, partial-failure semantics, authentication needs, and plugin-specific
+configuration requirements still require confirmation from the API developers. No settings
 are inferred from catalog metadata; `config: {}` follows the user-provided request example.
 
 ## Configuration
@@ -87,6 +95,24 @@ timeouts, redirects, oversized/malformed/error responses, and preserved existing
 The browser distinguishes blocked input, withheld output, and failed security checks.
 Matched entry names come from the saved catalog, not untrusted remote descriptions.
 The observed Guardrail summary (`total`, `passed`, `failed`) is validated when present;
-missing checks or inconsistent counts fail closed. Unknown violation schemas still fail
-closed pending confirmation from API developers. No groups or policy selections were changed
-as part of enabling the app.
+missing checks or inconsistent counts fail closed. No groups or policy selections were
+changed by the adapter fix.
+
+## Diagnosing a checking error
+
+IBAN matching uses DLP, whereas harmful-content grading uses Guardrail. A working IBAN
+block does not confirm that Guardrail checks complete. A blocking match also takes
+precedence over another check's error in the overall run decision.
+
+`detector_invalid_response` can indicate an incompatible response contract. The adapter
+fix handles the observed Guardrail violation format. `detector_timeout` and `stage_timeout`
+are separate latency problems: the October 11 synthetic Guardrail check reported roughly
+15 seconds of server processing. It used LLM grading, while some checks are programmatic.
+Four-second production limits can therefore stop a healthy check before it completes.
+The UI opens error details automatically and shows the policy, stage, and reason code.
+
+The settings above are a local diagnostic example, not a guarantee that synchronous
+Heroku requests finish within its router deadline. Each stage can check several fields
+and policies, and allowed input adds provider execution plus output checking. Long runs
+require background execution and polling; increasing only a timeout does not solve the
+hosting deadline. See [backend deployment guidance](../backend/DEPLOYMENT.md).

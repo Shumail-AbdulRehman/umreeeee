@@ -18,4 +18,5 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  { files: ['src/components/ui/*.jsx', 'src/components/Surface.jsx', 'src/pages/pageRegistry.jsx'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

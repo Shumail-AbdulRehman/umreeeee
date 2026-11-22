@@ -24,6 +24,11 @@ export async function setManagedUserStatus(userId, isActive, version) {
   })
 }
 
+export const updateOwnGroups = (body) => apiRequest('/users/me/groups', {
+  method: 'PATCH', body: JSON.stringify(body),
+})
+export const fetchOwnGroups = () => apiRequest('/users/me/groups')
+
 export async function resendManagedInvitation(userId) {
   return apiRequest(`/users/${userId}/resend-invitation`, { method: 'POST' })
 }

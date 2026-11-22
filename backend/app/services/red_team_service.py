@@ -15,6 +15,8 @@ from app.core.errors import DomainError, object_id
 from app.core.permissions import ADMIN_ROLES, require_admin
 from app.db.mongo import get_database
 from app.red_team.catalog_schema import CATALOG_VERSION, EVALUATOR_VERSION, manifest, manifest_hash, CATEGORIES
+from app.red_team.manifest_v3 import build_manifest
+from app.red_team.plugins import PLUGINS, STRATEGIES, CATALOG_VERSION as V3_CATALOG_VERSION
 from app.services.admin_common import audit, serialize, utcnow
 from app.services.enforcement_service import resolve_policies
 from app.services.remote_detection import catalog_ready
@@ -83,6 +85,31 @@ class RedTeamService:
                     raise
                 sleep(min(0.02 * (2 ** attempt), 0.3))
 
+    def _judge_target(self, company, judge, session=None, *, launching=False):
+        if not judge:
+            return None
+        judge_id = judge['integration_id']
+        target = self.db.integrations.find_one({'_id': object_id(judge_id),
+            'company_id': company, 'status': 'active'}, session=session)
+        if not target or judge['model'] not in target.get('models', []):
+            raise DomainError(409 if launching else 422, 'judge_unavailable',
+                'Choose an active judge integration and enabled model in this organization',
+                {'judge.integration_id': ['Judge integration or model is unavailable']})
+        return target
+
+    @staticmethod
+    def _config_values(payload, rows):
+        data = payload.model_dump(exclude={'version'})
+        if payload.format == 'plugins':
+            data.pop('attack_categories', None)
+            data.update({'num_attacks': len(rows) - 5, 'strategies': list(dict.fromkeys(['basic', *payload.strategies])),
+                         'catalog_version': V3_CATALOG_VERSION, 'evaluator_version': 'exact-evidence-3'})
+        else:
+            for key in ('plugins', 'strategies', 'tests_per_plugin', 'judge'):
+                data.pop(key, None)
+            data.update({'catalog_version': CATALOG_VERSION, 'evaluator_version': EVALUATOR_VERSION})
+        return data
+
     def _validate_config(self, user, payload, session=None):
         company = self._tenant(user)
         target = self.db.integrations.find_one({'_id': object_id(payload.integration_id),
@@ -95,7 +122,9 @@ class RedTeamService:
         if not subject:
             raise DomainError(422, 'invalid_subject', 'Choose an active user in this organization')
         try:
-            rows = manifest(payload.attack_categories, payload.num_attacks, payload.seed)
+            rows = build_manifest(payload.plugins, payload.strategies, payload.tests_per_plugin, payload.seed) \
+                if payload.format == 'plugins' else manifest(payload.attack_categories, payload.num_attacks, payload.seed)
+            self._judge_target(company, payload.judge.model_dump() if payload.judge else None, session)
         except ValueError as exc:
             raise DomainError(422, 'invalid_manifest', str(exc)) from exc
         return target, subject, rows
@@ -103,12 +132,11 @@ class RedTeamService:
     def create(self, user, payload, request_id='', comparison_group_id=None):
         target, subject, rows = self._validate_config(user, payload)
         now = utcnow()
-        data = payload.model_dump()
+        data = self._config_values(payload, rows)
         data['subject_user_id'] = subject['_id']
         data['integration_id'] = target['_id']
         data.update({'company_id': self._tenant(user), 'created_by': object_id(user.id),
             'control_count': 5, 'minimum_evaluable_fraction': .8,
-            'catalog_version': CATALOG_VERSION, 'evaluator_version': EVALUATOR_VERSION,
             'manifest': rows, 'manifest_hash': manifest_hash(rows), 'status': 'draft',
             'version': 1, 'execution_revision': 0, 'comparison_group_id': comparison_group_id or ObjectId(),
             'created_at': now, 'updated_at': now})
@@ -127,7 +155,9 @@ class RedTeamService:
             if old['version'] != payload.version:
                 raise DomainError(409, 'stale_version', 'Test changed. Refresh and try again.')
             target, subject, rows = self._validate_config(user, payload, session)
-            data = payload.model_dump(exclude={'version'})
+            if payload.format != old.get('format', 'categories'):
+                raise DomainError(422, 'format_mismatch', 'A draft keeps its original format')
+            data = self._config_values(payload, rows)
             data.update({'integration_id': target['_id'], 'subject_user_id': subject['_id'],
                 'manifest': rows, 'manifest_hash': manifest_hash(rows), 'updated_at': utcnow()})
             result = db.red_team_tests.update_one({'_id': old['_id'], 'company_id': old['company_id'],
@@ -135,7 +165,8 @@ class RedTeamService:
             if result.matched_count != 1:
                 raise DomainError(409, 'stale_version', 'Test changed. Refresh and try again.')
             audit(db, session, user, 'red_team.edited', 'red_team_test', old['_id'], request_id)
-            return {'test': test_read(db.red_team_tests.find_one({'_id': old['_id']}, session=session), detail=True)}
+            return {'test': test_read(db.red_team_tests.find_one({'_id': old['_id'],
+                'company_id': old['company_id']}, session=session), detail=True)}
         return self._transaction(user, operation)
 
     def list(self, user, page=1, page_size=20, q=None, status=None, mode=None, integration_id=None,
@@ -167,6 +198,15 @@ class RedTeamService:
 
     def _with_progress(self, test, detail=False):
         jobs = self._jobs(test) if test['status'] != 'draft' else []
+        if test.get('format') == 'plugins':
+            from app.services.red_team_report_v3 import build_report
+            summary = build_report(test, jobs)
+            return {**test_read(test, detail=detail), 'progress': progress(jobs, test),
+                    'summary': {key: summary[key] for key in ('risk', 'attack_success', 'decided', 'threshold')},
+                    'model_calls': sum(j.get('attempt_number', 0) for j in jobs),
+                    'judge_calls': sum((j.get('judge') or {}).get('attempts', 0) for j in jobs),
+                    'dispatch_pending': any(j.get('dispatch_state') != 'published' and
+                        j['state'] not in {'finished', 'cancelled'} for j in jobs)}
         return {**test_read(test, detail=detail), 'progress': progress(jobs, test),
                 'score': score(test, jobs), 'dispatch_pending': any(
                     job.get('dispatch_state') != 'published' and job['state'] not in {'finished', 'cancelled'}
@@ -220,6 +260,12 @@ class RedTeamService:
                 'policy_snapshots': policies, 'temperature': test['temperature'], 'max_tokens': test['max_tokens'],
                 'price_snapshot': target.get('model_prices', []), 'require_active_policy': company.get(
                     'settings', {}).get('require_active_policy', True)}
+            if test.get('format') == 'plugins':
+                judge = self._judge_target(test['company_id'], test.get('judge'), session, launching=True)
+                snapshot.update({'plugin_severities': {pid: PLUGINS[pid]['severity'] for pid in test['plugins']},
+                    'strategies': {sid: dict(STRATEGIES[sid]) for sid in test['strategies']},
+                    'judge': {'integration_id': judge['_id'], 'model': test['judge']['model'],
+                              'provider': judge['provider'], 'price_snapshot': judge.get('model_prices', [])} if judge else None})
             changed = db.red_team_tests.update_one({'_id': test['_id'], 'company_id': test['company_id'],
                 'status': 'draft', 'version': version}, {'$set': {'status': 'queued', 'launch_key': key,
                 'launch_fingerprint': fingerprint, 'launched_at': now, 'updated_at': now,
@@ -232,7 +278,8 @@ class RedTeamService:
                     'catalog_version': test['catalog_version'], 'evaluator_version': test['evaluator_version'],
                     'state': 'pending', 'dispatch_state': 'pending', 'dispatch_generation': 1,
                     'next_attempt_at': now, 'attempt_number': 0, 'attempt_history': [],
-                    'verdict': None, 'created_at': now, 'response_withheld': False})
+                    'verdict': None, **({'verdict_source': None} if test.get('format') == 'plugins' else {}),
+                    'created_at': now, 'response_withheld': False})
             db.red_team_jobs.insert_many(jobs, ordered=True, session=session)
             audit(db, session, user, 'red_team.launched', 'red_team_test', test['_id'], request_id)
         self._transaction(user, operation)
@@ -269,15 +316,19 @@ class RedTeamService:
         from app.schemas.red_team import TestConfig
         fields = TestConfig.model_fields
         config = {key: str(old[key]) if key in {'integration_id', 'subject_user_id'} else old[key]
-                  for key in fields}
+                  for key in fields if key in old}
         if mode:
             config['mode'] = mode
         created = self.create(user, TestConfig(**config), request_id, old['comparison_group_id'])
         return self.detail(user, created['test']['id'])
 
     def results(self, user, test_id, page=1, page_size=20, category=None, case_kind=None,
-                verdict=None, state=None):
+                verdict=None, state=None, plugin=None, strategy=None, verdict_source=None):
         test = self._find(user, test_id)
+        if test.get('format') == 'plugins':
+            from app.services.red_team_queries_v3 import results
+            return results(self.db, test, page, page_size, {'plugin': plugin, 'strategy': strategy,
+                'verdict_source': verdict_source, 'case_kind': case_kind, 'verdict': verdict, 'state': state})
         query = {'company_id': test['company_id'], 'test_id': test['_id']}
         for name, value in [('category', category), ('case_kind', case_kind), ('verdict', verdict), ('state', state)]:
             if value:
@@ -292,10 +343,16 @@ class RedTeamService:
             'test_id': test['_id']})
         if not job:
             raise DomainError(404, 'not_found', 'Result not found')
+        if test.get('format') == 'plugins':
+            from app.services.red_team_queries_v3 import result_detail
+            return result_detail(self.db, test, job)
         return {'result': job_read(job, detail=True)}
 
     def report(self, user, test_id):
         test = self._find(user, test_id)
+        if test.get('format') == 'plugins':
+            from app.services.red_team_queries_v3 import report
+            return report(self.db, test)
         jobs = self._jobs(test)
         distinct_attacks = len({j['attack_id'] for j in jobs if j['case_kind'] == 'adversarial'})
         snapshot = test.get('config_snapshot') or {}
@@ -318,6 +375,18 @@ class RedTeamService:
     def export(self, user, test_id, format='json'):
         report = self.report(user, test_id)
         test = self._find(user, test_id)
+        if test.get('format') == 'plugins':
+            from app.services.red_team_queries_v3 import export_rows, CSV_COLUMNS
+            if format == 'json':
+                return json.dumps({'report': report, 'results': export_rows(self.db, test)},
+                                  ensure_ascii=False, indent=2), 'application/json'
+            if format != 'csv':
+                raise DomainError(422, 'invalid_format', 'Use json or csv')
+            stream = io.StringIO()
+            writer = csv.DictWriter(stream, fieldnames=CSV_COLUMNS)
+            writer.writeheader()
+            writer.writerows(export_rows(self.db, test, csv=True))
+            return stream.getvalue(), 'text/csv; charset=utf-8'
         rows = [job_read(job, detail=True) for job in self._jobs(test)]
         for row in rows:
             row.pop('scenario_system', None)  # report does not distribute full instruction snapshots
@@ -355,7 +424,7 @@ class RedTeamService:
         pairs = []
         for index in sorted(set(left) & set(right)):
             a, b = left[index], right[index]
-            pairs.append({'attack_index': index, 'attack_id': a['attack_id'], 'category': a['category'],
+            pairs.append({'attack_index': index, 'attack_id': a['attack_id'], 'category': a.get('category'),
                 'case_kind': a['case_kind'], 'raw_verdict': a.get('verdict'),
                 'protected_verdict': b.get('verdict'), 'prevention_stage': b.get('prevention_stage')})
         paired = [p for p in pairs if p['case_kind'] == 'adversarial' and p['raw_verdict'] in {'pass', 'fail'}

@@ -1,3 +1,5 @@
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
 import { useState } from 'react'
 
 import { requestPasswordReset, resetPassword } from '../../services/auth/authService'
@@ -64,12 +66,12 @@ export default function ForgotPasswordPage({ onGoToLogin }) {
 
   return (
     <AuthShell
-      eyebrow="Sentinel AI Recovery"
+      eyebrow="Averiq Recovery"
       title="Reset your password"
       subtitle="Request a one-time code by email, then choose a new password for the account."
       footer={(
         <p>
-          Remembered it? <button type="button" className="auth-link-button" onClick={onGoToLogin}>Back to sign in</button>
+          Remembered it? <Button type="button" className="auth-link-button" onClick={onGoToLogin}>Back to sign in</Button>
         </p>
       )}
     >
@@ -82,7 +84,7 @@ export default function ForgotPasswordPage({ onGoToLogin }) {
         <form className="auth-form" onSubmit={handleRequestCode}>
           <label className="field">
             <span>Email</span>
-            <input
+            <Input
               autoComplete="email"
               name="email"
               type="email"
@@ -93,18 +95,18 @@ export default function ForgotPasswordPage({ onGoToLogin }) {
             />
           </label>
 
-          {message ? <div className="auth-info">{message}</div> : null}
-          {error ? <div className="auth-error">{error}</div> : null}
+          {message ? <div className="auth-info" role="status">{message}</div> : null}
+          {error ? <div className="auth-error" role="alert">{error}</div> : null}
 
-          <button className="auth-submit" type="submit" disabled={requesting}>
+          <Button className="auth-submit" type="submit" disabled={requesting}>
             {requesting ? 'Sending code...' : 'Send reset code'}
-          </button>
+          </Button>
         </form>
       ) : (
         <form className="auth-form" onSubmit={handleResetPassword}>
           <label className="field">
             <span>Email</span>
-            <input
+            <Input
               autoComplete="email"
               name="email"
               type="email"
@@ -117,7 +119,7 @@ export default function ForgotPasswordPage({ onGoToLogin }) {
 
           <label className="field">
             <span>Reset code</span>
-            <input
+            <Input
               autoComplete="one-time-code"
               inputMode="numeric"
               maxLength={6}
@@ -136,7 +138,7 @@ export default function ForgotPasswordPage({ onGoToLogin }) {
 
           <label className="field">
             <span>New password</span>
-            <input
+            <Input
               autoComplete="new-password"
               name="password"
               type="password"
@@ -149,7 +151,7 @@ export default function ForgotPasswordPage({ onGoToLogin }) {
 
           <label className="field">
             <span>Confirm new password</span>
-            <input
+            <Input
               autoComplete="new-password"
               name="confirm_password"
               type="password"
@@ -160,21 +162,21 @@ export default function ForgotPasswordPage({ onGoToLogin }) {
             />
           </label>
 
-          {message ? <div className={complete ? 'auth-success' : 'auth-info'}>{message}</div> : null}
-          {error ? <div className="auth-error">{error}</div> : null}
+          {message ? <div className={complete ? 'auth-success' : 'auth-info'} role="status">{message}</div> : null}
+          {error ? <div className="auth-error" role="alert">{error}</div> : null}
 
           <div className="auth-actions">
-            <button className="auth-submit" type="submit" disabled={submitting || complete}>
+            <Button className="auth-submit" type="submit" disabled={submitting || complete}>
               {submitting ? 'Resetting password...' : 'Reset password'}
-            </button>
-            <button
+            </Button>
+            <Button
               className="btn auth-secondary"
               type="button"
               onClick={handleRequestCode}
               disabled={requesting}
             >
               {requesting ? 'Sending...' : 'Send another code'}
-            </button>
+            </Button>
           </div>
         </form>
       )}

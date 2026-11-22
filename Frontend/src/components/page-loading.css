@@ -1,0 +1,6 @@
+.page-loading-boundary { min-width:0; }
+.page-loading-content.is-pending { display:none; }
+.request-progress { position:fixed; top:0; right:0; left:0; z-index:150; pointer-events:none; }
+.request-progress .loading-progress { height:2px; background:transparent; }
+.request-progress-label { position:fixed; top:68px; right:24px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink-3); font-size:10px; }
+@media(max-width:600px) { .request-progress-label { top:auto; right:12px; bottom:16px; } }

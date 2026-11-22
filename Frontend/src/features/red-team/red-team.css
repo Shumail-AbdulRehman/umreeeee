@@ -1,0 +1,144 @@
+/* Red Team feature styles. Aliases resolve to incumbent app variables from
+   Frontend/src/index.css, so no colour value is written here. Light mode only. */
+
+:root {
+  /* Token aliases from specs-red-team/DESIGN-SYSTEM.md */
+  --rt-canvas: var(--bg);
+  --rt-surface: var(--panel);
+  --rt-surface-subtle: var(--panel-2);
+  --rt-line: var(--line);
+  --rt-line-subtle: var(--line-2);
+  --rt-ink: var(--ink);
+  --rt-ink-secondary: var(--ink-2);
+  --rt-ink-muted: var(--ink-3);
+  --rt-accent: var(--indigo);
+  --rt-accent-soft: var(--indigo-bg);
+  --rt-success: var(--green);
+  --rt-success-soft: var(--green-bg);
+  --rt-success-line: color-mix(in oklch, var(--green) 25%, var(--panel));
+  --rt-danger: var(--rose);
+  --rt-danger-soft: var(--rose-bg);
+  --rt-danger-line: color-mix(in oklch, var(--rose) 25%, var(--panel));
+  --rt-critical: color-mix(in oklch, var(--rose) 82%, var(--ink));
+  --rt-warning: var(--amber);
+  --rt-warning-soft: var(--amber-bg);
+  --rt-warning-line: color-mix(in oklch, var(--amber) 25%, var(--panel));
+  --rt-bar-track: var(--line-2);
+
+  /* Motion (not colours) */
+  --rt-motion-fast: 160ms;
+  --rt-motion-standard: 200ms;
+  --rt-ease-out: cubic-bezier(.23, 1, .32, 1);
+}
+
+/* Typography and utilities */
+.rt-page-title { font-size: 25px; font-weight: 650; letter-spacing: -.02em; line-height: 1.2; color: var(--rt-ink); }
+.rt-muted { color: var(--rt-ink-muted); }
+.rt-mono { font-family: var(--font-mono); }
+.rt-num { font-variant-numeric: tabular-nums; }
+.rt-nowrap { white-space: nowrap; }
+.rt-empty { padding: 18px; font-size: 13px; color: var(--rt-ink-muted); }
+.rt-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.rt-mark { padding: 0 2px; border-radius: 3px; color: var(--rt-critical); background: color-mix(in oklch, var(--rt-danger) 14%, var(--rt-surface)); }
+
+/* Panels */
+.rt-panel { min-width: 0; background: var(--rt-surface); border: 1px solid var(--rt-line); border-radius: 10px; }
+.rt-panel-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; padding: 16px 18px 12px; }
+.rt-panel-title { font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--rt-ink); }
+.rt-panel-body { padding: 16px 18px; }
+.rt-panel-note { font-size: 12px; color: var(--rt-ink-muted); }
+.rt-panel-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 12px 18px 14px; border-top: 1px solid var(--rt-line-subtle); font-size: 12px; color: var(--rt-ink-muted); }
+
+/* Badges: verdict, status, level, severity, mode and control status share one shape */
+.rt-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border: 1px solid var(--rt-line); border-radius: 4px; font-size: 12px; font-weight: 500; line-height: 1.4; white-space: nowrap; color: var(--rt-ink-secondary); background: var(--rt-surface-subtle); }
+.rt-badge-sm { padding: 1px 7px; font-size: 11px; }
+.rt-judged { border-style: dashed; }
+
+/* Banners and strips */
+.rt-banner { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border: 1px solid var(--rt-line); border-radius: 7px; background: var(--rt-surface); color: var(--rt-ink-secondary); font-size: 13px; line-height: 1.6; }
+
+/* Tones: colour pairs used by badges, banners and chips. Keep after base rules. */
+.rt-tone-pass { color: var(--rt-success); background: var(--rt-success-soft); border-color: var(--rt-success-line); }
+.rt-tone-fail { color: var(--rt-danger); background: var(--rt-danger-soft); border-color: var(--rt-danger-line); }
+.rt-tone-warn { color: var(--rt-warning); background: var(--rt-warning-soft); border-color: var(--rt-warning-line); }
+.rt-tone-accent { color: var(--rt-accent); background: var(--rt-accent-soft); border-color: color-mix(in oklch, var(--rt-accent) 20%, var(--rt-surface)); }
+.rt-tone-critical { color: var(--rt-surface); background: var(--rt-critical); border-color: var(--rt-critical); }
+.rt-tone-neutral { color: var(--rt-ink-muted); background: var(--rt-surface-subtle); border-color: var(--rt-line); }
+
+/* Bars and scales: width is set inline by the component */
+.rt-bar { display: inline-block; width: 72px; height: 6px; border-radius: 3px; background: var(--rt-bar-track); overflow: hidden; vertical-align: middle; }
+.rt-bar.rt-wide { display: block; width: 100%; }
+.rt-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--rt-accent); }
+.rt-bar-risk > span { background: var(--rt-danger); }
+.rt-scale { height: 6px; border-radius: 3px; background: var(--rt-bar-track); overflow: hidden; }
+.rt-scale > span { display: block; height: 100%; border-radius: 3px; background: var(--rt-critical); }
+.rt-progress { height: 8px; border-radius: 4px; background: var(--rt-bar-track); overflow: hidden; }
+.rt-progress > span { display: block; width: 100%; height: 100%; border-radius: 4px; background: var(--rt-accent); transform-origin: left center; transform: scaleX(var(--rt-progress, 0)); transition: transform 250ms linear; }
+
+/* KPI numbers */
+.rt-kpi-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.rt-kpi-value > strong { font-size: 30px; font-weight: 650; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--rt-ink); }
+.rt-kpi-of { font-size: 13px; color: var(--rt-ink-muted); }
+
+/* Filter chips */
+.rt-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 12px; border: 1px solid var(--rt-line); border-radius: 999px; background: var(--rt-surface); color: var(--rt-ink-secondary); font-size: 12px; font-weight: 500; transition: background-color var(--rt-motion-fast) ease, border-color var(--rt-motion-fast) ease, color var(--rt-motion-fast) ease; }
+.rt-chip:hover:not(:disabled) { border-color: var(--rt-ink-muted); color: var(--rt-ink); }
+.rt-chip[aria-pressed="true"] { color: var(--rt-accent); background: var(--rt-accent-soft); border-color: color-mix(in oklch, var(--rt-accent) 30%, var(--rt-surface)); }
+
+/* Focusable table region and table. Below 600px rows stack; each cell
+   needs data-label to show its heading. */
+.rt-table-region { position: relative; width: 100%; max-width: 100%; overflow-x: auto; border-top: 1px solid var(--rt-line-subtle); }
+.rt-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13px; }
+.rt-table th { padding: 10px 16px; text-align: left; font-size: 12px; font-weight: 500; white-space: nowrap; color: var(--rt-ink-muted); background: var(--rt-surface-subtle); }
+.rt-table td { padding: 12px 16px; border-top: 1px solid var(--rt-line-subtle); vertical-align: middle; color: var(--rt-ink-secondary); }
+.rt-table td strong { display: block; font-weight: 500; color: var(--rt-ink); }
+.rt-table td small { display: block; margin-top: 2px; font-size: 12px; color: var(--rt-ink-muted); }
+.rt-table th.rt-num, .rt-table td.rt-num { text-align: right; }
+.rt-table tbody tr { transition: background-color var(--rt-motion-fast) ease; }
+.rt-table tbody tr:hover { background: color-mix(in oklch, var(--rt-accent) 3%, var(--rt-surface)); }
+
+/* Dialogs: attack detail and cancel confirmation */
+.rt-dialog { width: min(760px, calc(100% - 32px)); max-height: calc(100dvh - 48px); padding: 0; border: 1px solid var(--rt-line); border-radius: 12px; background: var(--rt-surface); color: var(--rt-ink); box-shadow: 0 20px 50px color-mix(in oklch, var(--ink) 18%, transparent); opacity: 0; transform: scale(.96); transition: opacity var(--rt-motion-standard) var(--rt-ease-out), transform var(--rt-motion-standard) var(--rt-ease-out); }
+.rt-dialog[open], .rt-dialog[data-state="open"] { display: flex; flex-direction: column; opacity: 1; transform: scale(1); }
+.rt-dialog[data-input="keyboard"] { transition: none; }
+.rt-dialog::backdrop { background: color-mix(in oklch, var(--ink) 44%, transparent); }
+@starting-style { .rt-dialog[open][data-input="pointer"] { opacity: 0; transform: scale(.96); } }
+
+/* Press feedback for buttons */
+.rt-press { transition: transform var(--rt-motion-fast) var(--rt-ease-out); }
+.rt-press:active:not(:disabled) { transform: scale(.97); }
+
+/* Narrow screens: 44px targets, stacked tables, 22px page title */
+@media (max-width: 599px) {
+  .rt-page-title { font-size: 22px; }
+  .rt-chip { min-height: 44px; }
+  .rt-panel button, .rt-panel select { min-width: 44px; }
+  .rt-panel summary { min-height: 44px; padding-block: 12px; }
+  .rt-method > summary { padding-inline: 18px; }
+  .rt-panel button, .rt-panel select,
+  .rt-panel input:not([type="checkbox"]):not([type="radio"]),
+  .rt-panel label:has(> input[type="radio"]),
+  .rt-panel label:has(> input[type="checkbox"]) { min-height: 44px !important; }
+  .rt-compliance-control { grid-template-columns: 72px minmax(0, 1fr) !important; gap: 6px 12px !important; }
+  .rt-compliance-id { grid-column: 1; grid-row: 1; }
+  .rt-compliance-name { grid-column: 2; grid-row: 1; overflow-wrap: anywhere; }
+  .rt-compliance-status { grid-column: 2; grid-row: 2; justify-self: start; }
+  .rt-compliance-evidence { grid-column: 2; grid-row: 3; }
+  .rt-table { min-width: 0; }
+  .rt-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .rt-table, .rt-table tbody, .rt-table tr, .rt-table td { display: block; width: 100%; }
+  .rt-table tr { padding: 10px 14px; border-top: 1px solid var(--rt-line-subtle); }
+  .rt-table td { padding: 6px 0; border-top: 0; text-align: left; }
+  .rt-table td[data-label] { position: relative; display: block; padding: 6px 0 6px 114px; min-height: 32px; overflow-wrap: anywhere; }
+  .rt-table td[data-label]::before { position: absolute; left: 0; top: 6px; width: 104px; content: attr(data-label); font-size: 12px; color: var(--rt-ink-muted); }
+  .rt-table th.rt-num, .rt-table td.rt-num { text-align: left; }
+}
+
+/* Reduced motion: no transforms, no transitions on data or bars */
+@media (prefers-reduced-motion: reduce) {
+  .rt-press:active:not(:disabled) { transform: none; }
+  .rt-progress > span { transition: none; }
+  .rt-chip, .rt-table tbody tr { transition: none; }
+  .rt-dialog, .rt-dialog[open], .rt-dialog[data-state="open"] { transform: none; transition: opacity var(--rt-motion-fast) var(--rt-ease-out); }
+  @starting-style { .rt-dialog[open][data-input="pointer"] { transform: none; } }
+}

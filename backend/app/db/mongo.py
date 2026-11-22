@@ -3,7 +3,13 @@
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
+from app.db.diagnostics import log_failure
+
 from app.core.config import MONGODB_DB_NAME, MONGODB_SERVER_SELECTION_TIMEOUT_MS, MONGODB_URL
+
+class DatabaseTransactionError(RuntimeError):
+    """A transaction probe failed; inspect its chained exception for the actual cause."""
+
 
 _client: MongoClient | None = None
 
@@ -38,14 +44,15 @@ def verify_transactions() -> None:
             with session.start_transaction():
                 get_database().companies.find_one({}, session=session)
     except PyMongoError as exc:
-        raise RuntimeError('MongoDB transactions require a replica set or sharded cluster.') from exc
+        raise DatabaseTransactionError('MongoDB transaction check failed; see safe database diagnostics.') from exc
 
 
 def get_database_status() -> dict[str, str]:
     try:
         get_mongo_client().admin.command('ping')
         return {'mode': 'mongodb', 'database_name': MONGODB_DB_NAME, 'status': 'ready'}
-    except PyMongoError:
+    except (PyMongoError, ValueError) as exc:
+        log_failure('readiness_connection', exc)
         return {'mode': 'mongodb', 'database_name': MONGODB_DB_NAME, 'status': 'unavailable'}
 
 

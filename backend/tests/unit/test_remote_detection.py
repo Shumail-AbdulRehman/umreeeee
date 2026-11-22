@@ -69,6 +69,46 @@ def test_live_guardrail_summary_contract():
             remote.parse_response({**body, 'summary': summary}, 'guardrail', ['a', 'b'])
 
 
+@pytest.mark.parametrize('stage', ['input', 'output'])
+def test_guardrail_failed_grade_is_a_policy_match(monkeypatch, stage):
+    body = {'results': [{'pluginId': 'ascii-smuggling', 'pass': False,
+                         'score': 0.0, 'reason': 'PRIVATE text', 'gradingMethod': 'llm-rubric'}],
+            'violations': {'ASCII Smuggling': 1},
+            'summary': {'total': 1, 'passed': 0, 'failed': 1}}
+    monkeypatch.setattr(remote, 'post_detection', lambda *args: body)
+    evaluation, matched = evaluate_stage([policy('guardrail')], stage, {'user_prompt': 'synthetic'})
+    assert decision(evaluation, matched, stage) == 'blocked_' + stage
+    assert evaluation['evaluation_complete'] is True
+    assert evaluation['errors'] == []
+    assert evaluation['rule_results'][0]['evidence'] == [
+        {'kind': 'guardrail', 'entry_id': 'ascii-smuggling', 'entry_name': 'ascii-smuggling'}]
+    assert 'PRIVATE' not in str(evaluation)
+    assert 'llm-rubric' not in str(evaluation)
+
+
+@pytest.mark.parametrize('extra', [
+    {'pass': True}, {'pass': 'false'}, {'pass': 0}, {'pass': None},
+    {'passed': False}, {'pass': False, 'error': 'failed'},
+    {'pass': False, 'success': False}, {'pass': False, 'status': 'error'},
+])
+def test_guardrail_ambiguous_or_error_grade_remains_fail_closed(extra):
+    body = {'results': [{'pluginId': 'ascii-smuggling', **extra}]}
+    with pytest.raises(remote.DetectionError, match='detector_invalid_response'):
+        remote.parse_response(body, 'guardrail', ['ascii-smuggling'])
+
+
+def test_guardrail_duplicate_grade_cannot_hide_missing_check():
+    finding = {'pluginId': 'ascii-smuggling', 'pass': False}
+    body = {'results': [finding, finding], 'summary': {'total': 2, 'passed': 0, 'failed': 2}}
+    with pytest.raises(remote.DetectionError, match='detector_incomplete_response'):
+        remote.parse_response(body, 'guardrail', ['ascii-smuggling', 'overreliance'])
+
+
+def test_dlp_pass_flag_is_not_interpreted_as_guardrail_grade():
+    with pytest.raises(remote.DetectionError, match='detector_invalid_response'):
+        remote.parse_response({'detections': [{'pattern_id': 'email', 'pass': False}]}, 'dlp', ['email'])
+
+
 @pytest.mark.parametrize('body', [{}, {'detections': None}, {'detections': [], 'success': False},
     {'detections': [], 'errors': ['failed']}, {'detections': [{'pattern_id': 'unselected'}]},
     {'detections': [{'pattern_id': 'email', 'error': 'failed'}]},

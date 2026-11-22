@@ -1,14 +1,6 @@
 import { pageMeta } from '../config/navigation'
-
+import { PeriodLabel } from './Surface'
 export default function PageTitle({ page }) {
   const meta = pageMeta[page]
-
-  return (
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-      <div>
-        <h1 className="h1">{meta.title}</h1>
-        <p className="sub">{meta.subtitle}</p>
-      </div>
-    </div>
-  )
+  return <header className={`page-heading ${page === 'prompt-studio' ? 'page-heading-studio' : ''}`}><div><span className="eyebrow">{meta.section}</span><h1 className="h1">{meta.title}</h1><p className="sub">{meta.subtitle}</p></div>{['insights', 'catalog', 'latency', 'spend'].includes(page) && <PeriodLabel />}</header>
 }

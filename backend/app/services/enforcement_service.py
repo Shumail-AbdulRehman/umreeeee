@@ -22,7 +22,7 @@ def resolve_policies(db, company_id, integration_id, group_ids, session=None):
             continue
         if (not groups or groups & active_groups) and (not integrations or ObjectId(integration_id) in integrations):
             effective = deepcopy(policy)
-            if policy.get('managed_catalog'):
+            if policy.get('managed_catalog') or policy.get('policy_set'):
                 # Combine only this user's assigned groups, then call the detector once.
                 selected = {entry_id for group_id in groups & active_groups
                             for entry_id in selected_for_group(policy, group_id)}

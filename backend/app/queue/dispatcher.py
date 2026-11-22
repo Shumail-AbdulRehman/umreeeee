@@ -64,8 +64,8 @@ def main():
     db = get_database()
     publisher = None
     while True:
-        heartbeat(db)
         try:
+            heartbeat(db)
             if publisher is None:
                 publisher = RabbitPublisher()
             worked = dispatch_once(db, publisher)

@@ -8,7 +8,7 @@ from pymongo.errors import DuplicateKeyError
 
 from app.services.admin_common import audit, company_id, transaction, utcnow
 from app.core.errors import DomainError, object_id
-from app.core.permissions import require_admin
+from app.core.permissions import ADMIN_ROLES, require_admin
 from app.core.security import generate_invitation_token, hash_invitation_token
 from app.db.mongo import get_database
 from app.models.user import User
@@ -125,6 +125,38 @@ class UserManagementService:
         record['invitation_delivery_status'] = 'sent' if delivery.delivered else 'failed'
         return {'user': self.read(record), 'message': 'Invitation sent' if delivery.delivered else
                 'Account created; invitation delivery failed. Configure SMTP and resend.'}
+
+    def own_groups(self, user):
+        require_admin(user)
+        record = get_database().users.find_one({'_id': object_id(user.id), 'company_id': company_id(user),
+            'is_active': True, 'is_email_verified': True, 'role': {'$in': list(ADMIN_ROLES)}})
+        if not record:
+            raise DomainError(403, 'forbidden', 'An active administrator account is required')
+        return {'user': self.read(record)}
+
+    def update_own_groups(self, user, payload, request_id):
+        """An admin may assign their own policy groups without changing their role."""
+        require_admin(user)
+
+        def operation(db, session):
+            target = db.users.find_one({'_id': object_id(user.id), 'company_id': company_id(user),
+                'is_active': True, 'is_email_verified': True, 'role': {'$in': list(ADMIN_ROLES)}}, session=session)
+            if not target:
+                raise DomainError(403, 'forbidden', 'An active administrator account is required')
+            if target.get('version', 1) != payload.version:
+                raise DomainError(409, 'stale_version', 'Your account changed. Refresh and try again.')
+            ids = self.validate_groups(db, user, payload.group_ids, session)
+            query = {'_id': target['_id'], 'company_id': company_id(user)}
+            query['$or'] = [{'version': 1}, {'version': {'$exists': False}}] if payload.version == 1 else [{'version': payload.version}]
+            result = db.users.update_one(query,
+                {'$set': {'group_ids': ids, 'updated_at': utcnow(), 'version': payload.version + 1}}, session=session)
+            if result.modified_count != 1:
+                raise DomainError(409, 'stale_version', 'Your account changed. Refresh and try again.')
+            audit(db, session, user, 'user.groups_updated', 'user', target['_id'], request_id,
+                  before={'group_ids': target.get('group_ids', [])}, after={'group_ids': ids})
+            return self.read(db.users.find_one({'_id': target['_id']}, session=session))
+
+        return {'user': transaction(user, operation), 'message': 'Your policy groups were updated. Return to Prompt Studio to use their policies.'}
 
     def update_user(self, user, user_id, payload, request_id):
         require_admin(user)

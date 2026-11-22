@@ -1,3 +1,5 @@
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
 import { useEffect, useState } from 'react'
 
 import {
@@ -87,12 +89,12 @@ export default function AcceptInvitePage({ token, onGoToLogin }) {
 
   return (
     <AuthShell
-      eyebrow="Sentinel AI Invite"
+      eyebrow="Averiq Invite"
       title="Activate your invited account"
       subtitle="Set a password to join your company workspace and access the application."
       footer={(
         <p>
-          Already activated? <button type="button" className="auth-link-button" onClick={onGoToLogin}>Go to sign in</button>
+          Already activated? <Button type="button" className="auth-link-button" onClick={onGoToLogin}>Go to sign in</Button>
         </p>
       )}
     >
@@ -107,15 +109,15 @@ export default function AcceptInvitePage({ token, onGoToLogin }) {
 
       {loading ? (
         <div className="auth-form">
-          <div className="auth-info">Validating your invitation link…</div>
+          <div className="auth-info" role="status">Validating your invitation link…</div>
         </div>
       ) : null}
 
       {!loading && loadError ? (
         <div className="auth-form">
-          <div className="auth-error">{loadError}</div>
+          <div className="auth-error" role="alert">{loadError}</div>
           <p>If the invitation is expired or has already been used, ask your organization administrator to resend it.</p>
-          <button type="button" className="btn auth-secondary" onClick={onGoToLogin}>Back to sign in</button>
+          <Button type="button" className="btn auth-secondary" onClick={onGoToLogin}>Back to sign in</Button>
         </div>
       ) : null}
 
@@ -123,12 +125,12 @@ export default function AcceptInvitePage({ token, onGoToLogin }) {
         <form className="auth-form" onSubmit={handleSubmit}>
           <label className="field">
             <span>Email</span>
-            <input name="email" type="email" value={details?.email || ''} disabled />
+            <Input name="email" type="email" value={details?.email || ''} disabled />
           </label>
 
           <label className="field">
             <span>Password</span>
-            <input
+            <Input
               autoComplete="new-password"
               name="password"
               type="password"
@@ -141,7 +143,7 @@ export default function AcceptInvitePage({ token, onGoToLogin }) {
 
           <label className="field">
             <span>Confirm password</span>
-            <input
+            <Input
               autoComplete="new-password"
               name="confirm_password"
               type="password"
@@ -152,16 +154,16 @@ export default function AcceptInvitePage({ token, onGoToLogin }) {
             />
           </label>
 
-          {message ? <div className={complete ? 'auth-success' : 'auth-info'}>{message}</div> : null}
-          {error ? <div className="auth-error">{error}</div> : null}
+          {message ? <div className={complete ? 'auth-success' : 'auth-info'} role="status">{message}</div> : null}
+          {error ? <div className="auth-error" role="alert">{error}</div> : null}
 
           <div className="auth-actions">
-            <button className="auth-submit" type="submit" disabled={submitting || complete}>
+            <Button className="auth-submit" type="submit" disabled={submitting || complete}>
               {submitting ? 'Activating account...' : 'Set password'}
-            </button>
-            <button className="btn auth-secondary" type="button" onClick={onGoToLogin}>
+            </Button>
+            <Button className="btn auth-secondary" type="button" onClick={onGoToLogin}>
               Go to sign in
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}

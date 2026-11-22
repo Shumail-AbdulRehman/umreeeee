@@ -1,13 +1,32 @@
 # DLP and Guardrail catalogs
 
-The policy screen offers exactly two imported catalogs: **DLP policy** and
-**Guardrail policy**. Definitions are read-only; admins select any subset of entries
-(one, several, or all) independently for each user group in each catalog. There is no custom rule builder.
-Administrators assign groups independently on each policy; a group can receive either,
-both, or neither. Empty assignments mean **no groups**, not organization-wide scope.
-Group membership remains managed in Users. Only active, same-tenant groups are accepted.
+The imported DLP and Guardrail catalogs are read-only libraries of checks. Administrators
+create any number of named policies from either library, choosing all current checks or a
+specific subset. A new policy has no group assignments. Administrators then attach the
+same policy to one or more active groups and may edit its checks without changing those
+assignments. A group can have multiple DLP and Guardrail policies; matching checks are
+combined during evaluation. Empty assignments mean **no groups**, not organization-wide
+scope. Group membership remains managed in Users.
 
-## Current group-specific workflow — 27 September 2026
+## Named policy workflow — 1 October 2026
+
+The DLP and Guardrail pages show created policies, check counts, status, and assigned
+groups. **Create policy** saves a name, optional description, and selected catalog IDs.
+**Assign groups** separately selects the groups that use it. Editing a policy's checks
+updates every group assigned to that policy. Disable temporarily stops enforcement;
+archive removes its assignments and hides it from the active list. New checks added by
+a later catalog import are not automatically included in an existing policy.
+
+The new admin API is `GET/POST /api/policy-sets`, `PUT /api/policy-sets/{id}`,
+`PUT /api/policy-sets/{id}/groups`, and `PATCH /api/policy-sets/{id}/status`.
+Writes require the current version and create a version snapshot and audit event.
+Selections must contain unique IDs from the active catalog; assignments accept only
+active groups in the same organization. Imported catalogs remain available at
+`GET /api/policies`. Re-importing catalogs preserves named policies. Earlier direct
+catalog-to-group assignments continue to work; the old API remains available for
+removing or migrating those assignments.
+
+## Earlier group-specific workflow — 27 September 2026 (historical)
 
 Each DLP and Guardrail page shows the available check count and each group's saved
 assignment: **All checks**, **Custom selection**, or **Not assigned**, with its exact
@@ -44,7 +63,8 @@ installation commands. Source filename, SHA-256, and entry count are stored alon
 the complete entries in MongoDB `policies`. A unique partial index permits one managed
 policy of each kind per organization. Imports and group changes produce version snapshots
 and audit events. Re-importing identical content preserves IDs, versions, and assignments.
-Existing non-managed policies are archived, not deleted; their historical snapshots remain.
+Existing legacy non-managed policies are archived, not deleted; named policy sets are
+preserved, as are their historical snapshots.
 
 ## Import command
 

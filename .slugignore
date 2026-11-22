@@ -1,0 +1,11 @@
+Frontend/
+docs/
+backend/.env
+backend/.env.*
+backend/.venv/
+backend/.model-cache/
+backend/tests/
+backend/app.db
+**/__pycache__/
+**/.pytest_cache/
+*.log

@@ -1,0 +1,35 @@
+.violation-save-feedback { position:fixed; right:24px; bottom:24px; z-index:160; display:flex; align-items:center; gap:12px; width:min(390px,calc(100vw - 32px)); padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--panel); box-shadow:0 6px 24px oklch(25% .015 285 / .1); }
+.violation-save-feedback > svg { color:var(--green); flex-shrink:0; }
+.violation-save-feedback > div { display:grid; gap:3px; min-width:0; }
+.violation-save-feedback strong { font-size:13px; color:var(--ink); }
+.violation-save-feedback span { font-size:11px; color:var(--ink-3); }
+.violation-save-feedback > button { display:grid; place-items:center; flex-shrink:0; margin-left:auto; padding:6px; border:0; border-radius:5px; background:transparent; color:var(--ink-3); }
+.violation-save-feedback > button:hover { background:var(--panel-2); }
+.violation-save-spinner { animation:violation-save-spin 1s linear infinite; }
+.admin-modal.violation-detail-dialog { width:min(820px,calc(100% - 32px)) !important; display:flex !important; flex-direction:column; padding:0 !important; overflow:hidden; }
+.violation-detail-dialog > .admin-modal-heading { padding:18px 24px; margin:0; flex-shrink:0; }
+.violation-detail-dialog > .admin-stack { min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:24px; }
+.violation-action-footer { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; padding:16px 24px; border-top:1px solid var(--line); background:var(--panel); flex-shrink:0; }
+.violation-context { display:grid; gap:22px; }
+.violation-context-heading { display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--ink-2); }
+.violation-context-heading h3 { font-size:13px; font-weight:600; color:var(--ink); }
+.violation-explanation { padding:17px 18px; border:1px solid var(--line); background:var(--panel-2); border-radius:8px; }
+.violation-explanation > p { font-size:12px; line-height:1.7; color:var(--ink-2); }
+.violation-check-list { list-style:none; margin:14px 0 0; padding:0; }
+.violation-check-list > li { padding:12px 0 0; margin-top:12px; border-top:1px solid var(--line); }
+.violation-check-heading { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.violation-check-heading strong { font-size:12px; font-weight:500; }
+.violation-check-heading > span { font-size:10px; color:var(--ink-3); }
+.violation-check-list ul { margin:9px 0 0; padding-left:17px; display:grid; gap:6px; color:var(--ink-2); font-size:12px; }
+.violation-check-list li { overflow-wrap:anywhere; }
+.violation-reason-missing, .violation-recorded-reason { font-size:11px; line-height:1.6; color:var(--ink-3); margin-top:7px; }
+.violation-prompt-text { margin:0; padding:17px 18px; max-height:230px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; border:1px solid var(--line); border-radius:8px; background:var(--panel); font:12px/1.8 var(--font-mono); color:var(--ink); }
+.violation-context-loading { display:flex; align-items:center; gap:8px; min-height:75px; color:var(--ink-3); font-size:12px; }
+.violation-content-notice { font-size:12px; color:var(--ink-3); line-height:1.7; padding:12px 0; }
+.violation-run-error { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 15px; border:1px solid var(--line); border-radius:8px; font-size:12px; color:var(--ink-2); }
+.violation-run-context { display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:10px; color:var(--ink-3); font-size:10px; }
+@keyframes violation-save-spin { to { transform:rotate(360deg); } }
+@media(max-width:600px) { .violation-save-feedback { right:16px; bottom:16px; } }
+@media(max-width:600px) { .admin-modal.violation-detail-dialog { width:calc(100% - 20px) !important; } .violation-explanation { padding:15px; } .violation-check-heading { flex-wrap:wrap; gap:4px 10px; } .violation-run-error { align-items:flex-start; flex-direction:column; } }
+@media(max-width:600px) { .violation-detail-dialog > .admin-modal-heading { padding:15px 18px; } .violation-detail-dialog > .admin-stack { padding:20px 18px; } .violation-action-footer { padding:14px 18px; } }
+@media(prefers-reduced-motion:reduce) { .violation-save-spinner { animation:none; } }

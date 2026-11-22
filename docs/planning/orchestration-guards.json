@@ -1,0 +1,9 @@
+{
+  "submit": true,
+  "show": true,
+  "poll": true,
+  "loadOlder": true,
+  "newChat": true,
+  "refreshHistory": true,
+  "onComposerKeyDown": true
+}

@@ -1,3 +1,5 @@
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
 import { useState } from 'react'
 
 import { signupUser } from '../../services/auth/authService'
@@ -41,7 +43,7 @@ export default function SignupPage({ onVerificationRequired }) {
 
   return (
     <AuthShell
-      eyebrow="Sentinel AI Access"
+      eyebrow="Averiq Access"
       title="Create your organization"
       subtitle="Start a new workspace. If your organization already exists, ask an administrator for an invitation."
       footer={(
@@ -58,7 +60,7 @@ export default function SignupPage({ onVerificationRequired }) {
       <form className="auth-form" onSubmit={handleSubmit}>
         <label className="field">
           <span>First name</span>
-          <input
+          <Input
             autoComplete="given-name"
             name="first_name"
             type="text"
@@ -71,7 +73,7 @@ export default function SignupPage({ onVerificationRequired }) {
 
         <label className="field">
           <span>Last name</span>
-          <input
+          <Input
             autoComplete="family-name"
             name="last_name"
             type="text"
@@ -84,20 +86,20 @@ export default function SignupPage({ onVerificationRequired }) {
 
         <label className="field">
           <span>Company</span>
-          <input
+          <Input
             autoComplete="organization"
             name="company_name"
             type="text"
             value={form.company_name}
             onChange={updateField}
-            placeholder="Sentinel AI Security"
+            placeholder="Averiq Security"
             required
           />
         </label>
 
         <label className="field">
           <span>Email</span>
-          <input
+          <Input
             autoComplete="email"
             name="email"
             type="email"
@@ -110,7 +112,7 @@ export default function SignupPage({ onVerificationRequired }) {
 
         <label className="field">
           <span>Password</span>
-          <input
+          <Input
             autoComplete="new-password"
             name="password"
             type="password"
@@ -123,7 +125,7 @@ export default function SignupPage({ onVerificationRequired }) {
 
         <label className="field">
           <span>Confirm password</span>
-          <input
+          <Input
             autoComplete="new-password"
             name="confirm_password"
             type="password"
@@ -134,11 +136,11 @@ export default function SignupPage({ onVerificationRequired }) {
           />
         </label>
 
-        {error ? <div className="auth-error">{error}</div> : null}
+        {error ? <div className="auth-error" role="alert">{error}</div> : null}
 
-        <button className="auth-submit" type="submit" disabled={loading}>
+        <Button className="auth-submit" type="submit" disabled={loading}>
           {loading ? 'Creating account...' : 'Create account'}
-        </button>
+        </Button>
       </form>
     </AuthShell>
   )

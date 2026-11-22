@@ -1,0 +1,2 @@
+# Heroku entry point when deploying the whole repository.
+-r backend/requirements.txt

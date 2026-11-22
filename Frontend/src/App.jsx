@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
-import { ErrorState, LoadingState } from './components/DataState'
+import { Suspense, useEffect, useState } from 'react'
+import { ErrorState } from './components/DataState'
+import LoadingSurface from './components/LoadingSurface'
+import PageLoadingBoundary, { RequestProgress } from './components/PageLoadingBoundary'
 import PageTitle from './components/PageTitle'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
-import { isValidPage } from './config/navigation'
+import { isValidPage, pageMeta } from './config/navigation'
 import { canOpenPage, isAdmin } from './utils/permissions'
 import { useDashboardData } from './hooks/useDashboardData'
 import AcceptInvitePage from './pages/auth/AcceptInvitePage'
@@ -34,6 +36,7 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [verificationState, setVerificationState] = useState(getPendingVerificationState)
+  const [navCollapsed, setNavCollapsed] = useState(() => window.localStorage.getItem('sentinel.nav.collapsed') === 'true')
   const route = hashState.route
   const isInvitationRoute = route === 'accept-invite'
   const invitationToken = hashState.params.get('token') || ''
@@ -41,7 +44,7 @@ export default function App() {
   const openCreateIntegration = hashState.params.get('modal') === 'add'
   const filterGroupId = hashState.params.get('group_id') || ''
   const filterIntegrationId = hashState.params.get('integration_id') || ''
-  const page = isValidPage(route) && canOpenPage(user, route) ? route : isAdmin(user) ? 'insights' : 'prompt-studio'
+  const page = isValidPage(route) && canOpenPage(user, route) ? route : isAdmin(user) ? 'insights' : 'my-activity'
   const ActivePage = pageRegistry[page] || pageRegistry['prompt-studio']
   const isStandalonePage =
     page !== 'insights'
@@ -111,7 +114,7 @@ export default function App() {
     setUser(nextUser)
     setPendingVerificationState(null)
     setVerificationState({ email: '', message: '' })
-    window.location.hash = isAdmin(nextUser) ? 'insights' : 'prompt-studio'
+    window.location.hash = isAdmin(nextUser) ? 'insights' : 'my-activity'
     setHashState(getHashState())
   }
 
@@ -162,9 +165,9 @@ export default function App() {
     }
 
     return (
-      <div className="auth-loading">
-        <LoadingState />
-      </div>
+      <main className="auth-loading">
+        <LoadingSurface kind="session" label="Restoring your session…" />
+      </main>
     )
   }
 
@@ -199,22 +202,29 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar page={page} onNavigate={navigate} user={user} onLogout={handleLogout} />
+    <div className={`app-shell ${navCollapsed ? 'nav-collapsed' : ''}`}>
+      <a className="skip-link" href="#main-content" onClick={(event) => { event.preventDefault(); document.getElementById('main-content')?.focus() }}>Skip to content</a>
+      <RequestProgress />
+      <Sidebar page={page} onNavigate={navigate} user={user} onLogout={handleLogout}
+        collapsed={navCollapsed} onToggleCollapse={() => setNavCollapsed((current) => {
+          window.localStorage.setItem('sentinel.nav.collapsed', String(!current))
+          return !current
+        })} />
 
-      <main className="min-w-0">
-        <Topbar page={page} user={user} />
+      <main className="min-w-0" id="main-content" tabIndex={-1}>
+        <Topbar page={page} user={user} onNavigate={navigate} onLogout={handleLogout} />
 
         <div className="content">
           <PageTitle page={page} />
-          {isStandalonePage ? <ActivePage key={`${page}:${filterGroupId}:${filterIntegrationId}:${hashState.params.get('run_id') || ''}:${hashState.params.get('status') || ''}`} currentUser={user}
+          {isStandalonePage ? <PageLoadingBoundary key={`${page}:${filterGroupId}:${filterIntegrationId}:${hashState.params.get('run_id') || ''}:${hashState.params.get('status') || ''}`} label={pageMeta[page].title} kind={page}><Suspense fallback={<LoadingSurface kind={page} label={`Opening ${pageMeta[page].title}…`} />}><ActivePage currentUser={user}
             openCreateUser={openCreateUser} openCreateIntegration={openCreateIntegration}
             filterGroupId={filterGroupId} filterIntegrationId={filterIntegrationId}
             runId={hashState.params.get('run_id') || ''} filterStatus={hashState.params.get('status') || ''}
-            testId={hashState.params.get('test') || ''} /> : null}
-          {!isStandalonePage && loading ? <LoadingState /> : null}
+            conversationId={hashState.params.get('chat') || ''}
+            testId={hashState.params.get('test') || ''} /></Suspense></PageLoadingBoundary> : null}
+          {!isStandalonePage && loading ? <LoadingSurface kind="insights" label="Loading overview…" /> : null}
           {!isStandalonePage && !loading && error ? <ErrorState error={error} /> : null}
-          {!isStandalonePage && !loading && !error && data ? <ActivePage data={data} currentUser={user} /> : null}
+          {!isStandalonePage && !loading && !error && data ? <Suspense fallback={<LoadingSurface label="Opening overview…" />}><ActivePage data={data} currentUser={user} /></Suspense> : null}
         </div>
       </main>
     </div>

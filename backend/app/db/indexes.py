@@ -35,6 +35,9 @@ def ensure_indexes(database) -> None:
     database.prompt_runs.create_index([('company_id', ASCENDING), ('status', ASCENDING), ('created_at', DESCENDING)], name='runs_company_status_recent')
     database.prompt_runs.create_index([('company_id', ASCENDING), ('user_id', ASCENDING), ('idempotency_key', ASCENDING)], unique=True, partialFilterExpression={'idempotency_key': {'$type': 'string'}}, name='runs_idempotency_unique')
     database.prompt_runs.create_index([('content_expires_at', ASCENDING)], name='runs_content_expiry')
+    database.prompt_runs.create_index([('company_id', ASCENDING), ('user_id', ASCENDING),
+        ('conversation_id', ASCENDING), ('created_at', DESCENDING), ('_id', DESCENDING)],
+        name='runs_owner_conversation_recent')
     database.violations.create_index([('company_id', ASCENDING), ('run_id', ASCENDING), ('policy_id', ASCENDING), ('stage', ASCENDING)], unique=True, name='violations_unique_match')
     database.violations.create_index([('company_id', ASCENDING), ('resolution_status', ASCENDING), ('created_at', DESCENDING)], name='violations_review_queue')
     database.violations.create_index([('company_id', ASCENDING), ('user_id', ASCENDING), ('created_at', DESCENDING)], name='violations_owner_recent')
@@ -53,3 +56,7 @@ def ensure_indexes(database) -> None:
     database.integration_execution_locks.create_index([('lease_expires_at', ASCENDING)], name='integration_execution_lease')
     database.worker_heartbeats.create_index([('kind', ASCENDING), ('updated_at', DESCENDING)], name='worker_heartbeats_recent')
     database.worker_heartbeats.create_index([('expires_at', ASCENDING)], expireAfterSeconds=0, name='worker_heartbeats_expiry')
+
+    for field in ('plugin_id', 'strategy_id', 'verdict_source'):
+        database.red_team_jobs.create_index([('company_id', ASCENDING), ('test_id', ASCENDING),
+            (field, ASCENDING)], name=f'red_team_jobs_{field}')

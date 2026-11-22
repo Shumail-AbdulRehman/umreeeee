@@ -1,3 +1,6 @@
+import DataTable from '../components/DataTable'
+import StatusBadge from '../components/StatusBadge'
+import { Pagination, SearchInput } from '../components/Surface'
 import { useEffect, useRef, useState } from 'react'
 import { createGroup, listGroups, setGroupStatus, updateGroup } from '../services/groups/groupService'
 import Modal from '../components/Modal'
@@ -54,14 +57,18 @@ export default function InventoryPage() {
   }
 
   return <div className="admin-stack">
-    <div className="admin-toolbar"><input aria-label="Search groups" placeholder="Search groups" value={query} onChange={(event) => { setPage(1); setQuery(event.target.value) }} />
+    <div className="admin-toolbar"><SearchInput label="Search groups" placeholder="Search groups…" value={query} onChange={(event) => { setPage(1); setQuery(event.target.value) }} />
       <button className="btn primary" onClick={() => open()}>New group</button></div>
     {error && <div className="admin-error" role="alert">{error}</div>}
-    {loading ? <p>Loading groups…</p> : result.items.length === 0 ? <p className="admin-panel">No groups found. Create one to organize people.</p> :
-      <div className="admin-panel admin-scroll"><table className="admin-table"><thead><tr><th>Name</th><th>Members</th><th>Policies</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>
-        {result.items.map((group) => <tr key={group._id}><td><strong>{group.name}</strong><small>{group.description}</small></td><td>{group.member_count}</td><td><span>{group.policy_count || 0} assigned</span>{group.status === 'active' && <small><a href={`#dlp-policy?group_id=${encodeURIComponent(group._id)}`}>Edit DLP</a> · <a href={`#guardrail-policy?group_id=${encodeURIComponent(group._id)}`}>Edit Guardrail</a></small>}</td><td>{group.status}</td><td>{new Date(group.updated_at).toLocaleDateString()}</td><td><button className="btn" onClick={() => open(group)}>Edit</button> <button className="btn" disabled={busy} onClick={() => toggle(group)}>{group.status === 'active' ? 'Archive' : 'Restore'}</button></td></tr>)}
-      </tbody></table></div>}
-    <div className="admin-pagination"><span>{result.total} groups</span><button className="btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><span>Page {page}</span><button className="btn" disabled={page * result.page_size >= result.total} onClick={() => setPage(page + 1)}>Next</button></div>
+    {loading ? <div className="table-loading-state" role="status">Loading groups…</div> : <DataTable title="Groups & policy coverage" description="Organize people into teams and manage the policies assigned to each group." rows={result.items} rowKey="_id" emptyTitle="No groups found" emptyDescription="Create a group to organize people and assign their policies." columns={[
+      { id: 'name', label: 'Group', value: (group) => group.name, render: (group) => <div className="person-cell"><span className="person-monogram">{group.name?.[0]}</span><div><strong>{group.name}</strong><small>{group.description}</small></div></div> },
+      { id: 'members', label: 'Members', value: (group) => group.member_count },
+      { id: 'policies', label: 'Policy assignments', value: (group) => group.policy_count || 0, render: (group) => <><span>{group.policy_count || 0} assigned</span>{group.status === 'active' && <small><a href={`#dlp-policy?group_id=${encodeURIComponent(group._id)}`}>Edit DLP</a> · <a href={`#guardrail-policy?group_id=${encodeURIComponent(group._id)}`}>Edit Guardrail</a></small>}</> },
+      { id: 'status', label: 'Status', value: (group) => group.status, render: (group) => <StatusBadge status={group.status} /> },
+      { id: 'updated', label: 'Updated', value: (group) => group.updated_at, render: (group) => new Date(group.updated_at).toLocaleDateString() },
+      { id: 'actions', label: 'Actions', required: true, render: (group) => <div className="table-actions"><button className="btn" onClick={() => open(group)}>Edit</button><button className="btn" disabled={busy} onClick={() => toggle(group)}>{group.status === 'active' ? 'Archive' : 'Restore'}</button></div> },
+    ]} />}
+    <Pagination page={page} pageSize={result.page_size} total={result.total} onPageChange={setPage} noun="groups" />
     {editing && <Modal title={editing._id ? 'Edit group' : 'New group'} onClose={() => setEditing(null)} dirty={Boolean(form.name || form.description)}><form onSubmit={save} className="admin-stack"><label>Name<input autoFocus required minLength="2" maxLength="80" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /><FieldErrors errors={fieldErrors} field="name" /></label><label>Description<textarea maxLength="1000" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /><FieldErrors errors={fieldErrors} field="description" /></label>
       {error && <div className="admin-error" role="alert">{error}</div>}
       <div className="admin-actions"><button type="button" className="btn" onClick={() => setEditing(null)} disabled={busy}>Cancel</button><button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Save group'}</button></div></form></Modal>}

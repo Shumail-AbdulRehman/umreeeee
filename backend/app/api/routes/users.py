@@ -11,6 +11,7 @@ from app.schemas.users import (
     ManagedUsersResponse,
     ManagedUserUpdateRequest,
     ManagedUserStatusRequest,
+    OwnGroupsUpdateRequest,
 )
 from app.services.user_management_service import UserManagementService
 
@@ -40,6 +41,24 @@ def create_user(
     user_management_service: UserManagementService = Depends(get_user_management_service),
 ) -> ManagedUserMutationResponse:
     return user_management_service.create_user(current_user, payload, request.state.request_id)
+
+
+@router.get('/me/groups')
+def own_groups(
+    current_user: User = Depends(get_current_user),
+    user_management_service: UserManagementService = Depends(get_user_management_service),
+):
+    return user_management_service.own_groups(current_user)
+
+
+@router.patch('/me/groups', response_model=ManagedUserMutationResponse)
+def update_own_groups(
+    payload: OwnGroupsUpdateRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    user_management_service: UserManagementService = Depends(get_user_management_service),
+) -> ManagedUserMutationResponse:
+    return user_management_service.update_own_groups(current_user, payload, request.state.request_id)
 
 
 @router.put('/{user_id}', response_model=ManagedUserMutationResponse)

@@ -1,0 +1,2799 @@
+{
+  "generatedAt": "2026-11-11T09:13:06.812Z",
+  "tooling": {
+    "browser": "google-chrome 150.0.7871.124",
+    "playwright": "1.64.0",
+    "axeTags": [
+      "wcag2a",
+      "wcag2aa",
+      "wcag21a",
+      "wcag21aa",
+      "wcag22aa"
+    ],
+    "loadedVia": "file://"
+  },
+  "pages": {
+    "tests.html@1440x900": {
+      "title": "[Human] Averiq · Red Team design preview",
+      "docOverflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "overflowX": false,
+        "bodyScrollWidth": 1440
+      },
+      "mainOverflow": {
+        "scrollWidth": 1218,
+        "clientWidth": 1218,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "div > strong",
+          "fontSize": 11,
+          "text": "Alex Morgan"
+        },
+        {
+          "selector": "div > small",
+          "fontSize": 11,
+          "text": "Administrator"
+        },
+        {
+          "selector": "nav > p.nav-section",
+          "fontSize": 11,
+          "text": "Evaluate"
+        },
+        {
+          "selector": "div.profile > span",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "div.account > small",
+          "fontSize": 11,
+          "text": "Design preview · sample data"
+        },
+        {
+          "selector": "div > span.breadcrumb",
+          "fontSize": 11,
+          "text": "Evaluate"
+        },
+        {
+          "selector": "span.breadcrumb > strong",
+          "fontSize": 11,
+          "text": "Red Team"
+        },
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "nav > a.nav-link[href=\"tests.html\"]",
+          "count": 10,
+          "width": 198,
+          "height": 38,
+          "effectiveWidth": 198,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Prompt Studio"
+        },
+        {
+          "selector": "div.account > a.nav-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 198,
+          "height": 38,
+          "effectiveWidth": 198,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Settings"
+        },
+        {
+          "selector": "div.page-heading > a.btn.btn-primary[href=\"new-test.html\"]",
+          "count": 1,
+          "width": 105.9,
+          "height": 36,
+          "effectiveWidth": 105.9,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "New test"
+        },
+        {
+          "selector": "label.search > input[type=\"search\"]",
+          "count": 1,
+          "width": 220,
+          "height": 34,
+          "effectiveWidth": 220,
+          "effectiveHeight": 34,
+          "viaLabel": true,
+          "under24": false,
+          "text": ""
+        },
+        {
+          "selector": "label > select",
+          "count": 2,
+          "width": 108,
+          "height": 34,
+          "effectiveWidth": 108,
+          "effectiveHeight": 34,
+          "viaLabel": false,
+          "under24": false,
+          "text": "All statuses\nCompleted\nRunning"
+        },
+        {
+          "selector": "td > a.row-link[href=\"report.html\"]",
+          "count": 4,
+          "width": 184.1,
+          "height": 16,
+          "effectiveWidth": 184.1,
+          "effectiveHeight": 16,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Support bot · weekly baseline"
+        },
+        {
+          "selector": "td > a.row-link[href=\"running.html\"]",
+          "count": 1,
+          "width": 181.7,
+          "height": 16,
+          "effectiveWidth": 181.7,
+          "effectiveHeight": 16,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Gemini pilot · injection sweep"
+        },
+        {
+          "selector": "td > a.row-link[href=\"new-test.html\"]",
+          "count": 1,
+          "width": 156.3,
+          "height": 16,
+          "effectiveWidth": 156.3,
+          "effectiveHeight": 16,
+          "viaLabel": false,
+          "under24": true,
+          "text": "HR assistant · pre-launch"
+        }
+      ],
+      "contrastBelowAA": []
+    },
+    "new-test.html@1440x900": {
+      "title": "[Human] Averiq · New Red Team test design preview",
+      "docOverflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "overflowX": false,
+        "bodyScrollWidth": 1440
+      },
+      "mainOverflow": {
+        "scrollWidth": 1218,
+        "clientWidth": 1218,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "div > strong",
+          "fontSize": 11,
+          "text": "Alex Morgan"
+        },
+        {
+          "selector": "div > small",
+          "fontSize": 11,
+          "text": "Administrator"
+        },
+        {
+          "selector": "nav > p.nav-section",
+          "fontSize": 11,
+          "text": "Evaluate"
+        },
+        {
+          "selector": "div.profile > span",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "div.account > small",
+          "fontSize": 11,
+          "text": "Design preview · sample data"
+        },
+        {
+          "selector": "div > span.breadcrumb",
+          "fontSize": 11,
+          "text": "Red Team"
+        },
+        {
+          "selector": "span.breadcrumb > strong",
+          "fontSize": 11,
+          "text": "New test"
+        },
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "span.pick-meta > span.sev.sev-high",
+          "fontSize": 11,
+          "text": "High"
+        },
+        {
+          "selector": "span.pick-meta > span.fw-tag",
+          "fontSize": 11,
+          "text": "OWASP LLM06"
+        },
+        {
+          "selector": "span.pick-meta > span.sev.sev-medium",
+          "fontSize": 11,
+          "text": "Medium"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "nav > a.nav-link[href=\"tests.html\"]",
+          "count": 10,
+          "width": 198,
+          "height": 38,
+          "effectiveWidth": 198,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Prompt Studio"
+        },
+        {
+          "selector": "div.account > a.nav-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 198,
+          "height": 38,
+          "effectiveWidth": 198,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Settings"
+        },
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        },
+        {
+          "selector": "label.field > select",
+          "count": 5,
+          "width": 396,
+          "height": 38,
+          "effectiveWidth": 396,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "DeepSeek · HR workspace\nGroq ·"
+        },
+        {
+          "selector": "label > input[type=\"radio\"][name=\"mode\"]",
+          "count": 2,
+          "width": 194,
+          "height": 38,
+          "effectiveWidth": 194,
+          "effectiveHeight": 38,
+          "viaLabel": true,
+          "under24": false,
+          "text": "raw"
+        },
+        {
+          "selector": "div.quick > button.link-button[type=\"button\"][data-select=\"all\"]",
+          "count": 1,
+          "width": 56,
+          "height": 28,
+          "effectiveWidth": 56,
+          "effectiveHeight": 28,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Select all"
+        },
+        {
+          "selector": "div.quick > button.link-button[type=\"button\"][data-select=\"none\"]",
+          "count": 1,
+          "width": 34.5,
+          "height": 28,
+          "effectiveWidth": 34.5,
+          "effectiveHeight": 28,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Clear"
+        },
+        {
+          "selector": "input#judge-toggle",
+          "count": 1,
+          "width": 16,
+          "height": 16,
+          "effectiveWidth": 808,
+          "effectiveHeight": 39.5,
+          "viaLabel": true,
+          "under24": false,
+          "text": "on"
+        },
+        {
+          "selector": "div.sum-actions > button.btn.btn-secondary[type=\"button\"]",
+          "count": 1,
+          "width": 127,
+          "height": 36,
+          "effectiveWidth": 127,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Save draft"
+        },
+        {
+          "selector": "div.sum-actions > button.btn.btn-primary[type=\"submit\"]",
+          "count": 1,
+          "width": 127,
+          "height": 36,
+          "effectiveWidth": 127,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Save and launch"
+        }
+      ],
+      "contrastBelowAA": []
+    },
+    "running.html@1440x900": {
+      "title": "[Human] Averiq · Red Team test running design preview",
+      "docOverflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "overflowX": false,
+        "bodyScrollWidth": 1440
+      },
+      "mainOverflow": {
+        "scrollWidth": 1218,
+        "clientWidth": 1218,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "div > strong",
+          "fontSize": 11,
+          "text": "Alex Morgan"
+        },
+        {
+          "selector": "div > small",
+          "fontSize": 11,
+          "text": "Administrator"
+        },
+        {
+          "selector": "nav > p.nav-section",
+          "fontSize": 11,
+          "text": "Evaluate"
+        },
+        {
+          "selector": "div.profile > span",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "div.account > small",
+          "fontSize": 11,
+          "text": "Design preview · sample data"
+        },
+        {
+          "selector": "div > span.breadcrumb",
+          "fontSize": 11,
+          "text": "Red Team"
+        },
+        {
+          "selector": "span.breadcrumb > strong",
+          "fontSize": 11,
+          "text": "Running test"
+        },
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "p > span.provisional",
+          "fontSize": 11,
+          "text": "Provisional"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "nav > a.nav-link[href=\"tests.html\"]",
+          "count": 10,
+          "width": 198,
+          "height": 38,
+          "effectiveWidth": 198,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Prompt Studio"
+        },
+        {
+          "selector": "div.account > a.nav-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 198,
+          "height": 38,
+          "effectiveWidth": 198,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Settings"
+        },
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        },
+        {
+          "selector": "div.heading-actions > button.btn.btn-danger-quiet[type=\"button\"]",
+          "count": 1,
+          "width": 122,
+          "height": 36,
+          "effectiveWidth": 122,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Cancel test"
+        }
+      ],
+      "contrastBelowAA": []
+    },
+    "report.html@1440x900": {
+      "title": "[Human] Averiq · Red Team report design preview",
+      "docOverflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "overflowX": false,
+        "bodyScrollWidth": 1440
+      },
+      "mainOverflow": {
+        "scrollWidth": 1218,
+        "clientWidth": 1218,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [
+        {
+          "selector": "section.panel > div.table-wrap",
+          "scrollWidth": 814,
+          "clientWidth": 778
+        }
+      ],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "div > strong",
+          "fontSize": 11,
+          "text": "Alex Morgan"
+        },
+        {
+          "selector": "div > small",
+          "fontSize": 11,
+          "text": "Administrator"
+        },
+        {
+          "selector": "nav > p.nav-section",
+          "fontSize": 11,
+          "text": "Evaluate"
+        },
+        {
+          "selector": "div.profile > span",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "div.account > small",
+          "fontSize": 11,
+          "text": "Design preview · sample data"
+        },
+        {
+          "selector": "div > span.breadcrumb",
+          "fontSize": 11,
+          "text": "Red Team"
+        },
+        {
+          "selector": "span.breadcrumb > strong",
+          "fontSize": 11,
+          "text": "Report"
+        },
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "td > span.sev.sev-high",
+          "fontSize": 11,
+          "text": "High"
+        },
+        {
+          "selector": "td > span.sev.sev-medium",
+          "fontSize": 11,
+          "text": "Medium"
+        },
+        {
+          "selector": "span.strat-num > small",
+          "fontSize": 11,
+          "text": "2 of 22"
+        },
+        {
+          "selector": "button#t-owasp > span",
+          "fontSize": 11,
+          "text": "4 failed · 1 passed · 5 not tested"
+        },
+        {
+          "selector": "button#t-atlas > span",
+          "fontSize": 11,
+          "text": "4 failed · 1 passed · 1 not tested"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "nav > a.nav-link[href=\"tests.html\"]",
+          "count": 10,
+          "width": 198,
+          "height": 38,
+          "effectiveWidth": 198,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Prompt Studio"
+        },
+        {
+          "selector": "div.account > a.nav-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 198,
+          "height": 38,
+          "effectiveWidth": 198,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Settings"
+        },
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        },
+        {
+          "selector": "div.heading-actions > button.btn.btn-secondary[type=\"button\"]",
+          "count": 2,
+          "width": 169.5,
+          "height": 36,
+          "effectiveWidth": 169.5,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Clone as protected"
+        },
+        {
+          "selector": "article.panel.kpi.kpi-compare > a[href=\"report.html\"]",
+          "count": 1,
+          "width": 243,
+          "height": 18,
+          "effectiveWidth": 243,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Compare attack pairs"
+        },
+        {
+          "selector": "label > select",
+          "count": 4,
+          "width": 101,
+          "height": 34,
+          "effectiveWidth": 101,
+          "effectiveHeight": 34,
+          "viaLabel": false,
+          "under24": false,
+          "text": "All plugins"
+        },
+        {
+          "selector": "td > button.link-button[type=\"button\"][data-open-attack=\"leak\"]",
+          "count": 7,
+          "width": 32.3,
+          "height": 28,
+          "effectiveWidth": 32.3,
+          "effectiveHeight": 28,
+          "viaLabel": false,
+          "under24": false,
+          "text": "View"
+        },
+        {
+          "selector": "td > button.link-button[type=\"button\"][data-open-attack=\"judge\"]",
+          "count": 1,
+          "width": 32.3,
+          "height": 28,
+          "effectiveWidth": 32.3,
+          "effectiveHeight": 28,
+          "viaLabel": false,
+          "under24": false,
+          "text": "View"
+        },
+        {
+          "selector": "span > button.btn.btn-secondary.btn-small[type=\"button\"]",
+          "count": 2,
+          "width": 71.8,
+          "height": 30,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 30,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Previous"
+        }
+      ],
+      "contrastBelowAA": [
+        {
+          "selector": "span > button.btn.btn-secondary.btn-small[type=\"button\"]",
+          "ratio": 2.28,
+          "need": 4.5,
+          "fontSize": 12,
+          "color": "rgb(87, 87, 99)",
+          "background": "rgb(254, 254, 255)",
+          "opacity": 0.5,
+          "disabledContext": true,
+          "text": "Previous"
+        }
+      ]
+    },
+    "tests.html@768x1024": {
+      "title": "[Human] Averiq · Red Team design preview",
+      "docOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false,
+        "bodyScrollWidth": 768
+      },
+      "mainOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [
+        {
+          "selector": "section.panel > div.table-wrap",
+          "scrollWidth": 796,
+          "clientWidth": 726
+        }
+      ],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "div.page-heading > a.btn.btn-primary[href=\"new-test.html\"]",
+          "count": 1,
+          "width": 105.9,
+          "height": 36,
+          "effectiveWidth": 105.9,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "New test"
+        },
+        {
+          "selector": "label.search > input[type=\"search\"]",
+          "count": 1,
+          "width": 220,
+          "height": 34,
+          "effectiveWidth": 220,
+          "effectiveHeight": 34,
+          "viaLabel": true,
+          "under24": false,
+          "text": ""
+        },
+        {
+          "selector": "label > select",
+          "count": 2,
+          "width": 108,
+          "height": 34,
+          "effectiveWidth": 108,
+          "effectiveHeight": 34,
+          "viaLabel": false,
+          "under24": false,
+          "text": "All statuses\nCompleted\nRunning"
+        }
+      ],
+      "contrastBelowAA": []
+    },
+    "new-test.html@768x1024": {
+      "title": "[Human] Averiq · New Red Team test design preview",
+      "docOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false,
+        "bodyScrollWidth": 768
+      },
+      "mainOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "span.pick-meta > span.sev.sev-high",
+          "fontSize": 11,
+          "text": "High"
+        },
+        {
+          "selector": "span.pick-meta > span.fw-tag",
+          "fontSize": 11,
+          "text": "OWASP LLM06"
+        },
+        {
+          "selector": "span.pick-meta > span.sev.sev-medium",
+          "fontSize": 11,
+          "text": "Medium"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        },
+        {
+          "selector": "label.field > select",
+          "count": 5,
+          "width": 335,
+          "height": 38,
+          "effectiveWidth": 335,
+          "effectiveHeight": 38,
+          "viaLabel": false,
+          "under24": false,
+          "text": "DeepSeek · HR workspace\nGroq ·"
+        },
+        {
+          "selector": "label > input[type=\"radio\"][name=\"mode\"]",
+          "count": 2,
+          "width": 163.5,
+          "height": 38,
+          "effectiveWidth": 163.5,
+          "effectiveHeight": 38,
+          "viaLabel": true,
+          "under24": false,
+          "text": "raw"
+        },
+        {
+          "selector": "div.quick > button.link-button[type=\"button\"][data-select=\"all\"]",
+          "count": 1,
+          "width": 56,
+          "height": 28,
+          "effectiveWidth": 56,
+          "effectiveHeight": 28,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Select all"
+        },
+        {
+          "selector": "div.quick > button.link-button[type=\"button\"][data-select=\"none\"]",
+          "count": 1,
+          "width": 34.5,
+          "height": 28,
+          "effectiveWidth": 34.5,
+          "effectiveHeight": 28,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Clear"
+        },
+        {
+          "selector": "input#judge-toggle",
+          "count": 1,
+          "width": 16,
+          "height": 16,
+          "effectiveWidth": 686,
+          "effectiveHeight": 39.5,
+          "viaLabel": true,
+          "under24": false,
+          "text": "on"
+        },
+        {
+          "selector": "div.sum-actions > button.btn.btn-secondary[type=\"button\"]",
+          "count": 1,
+          "width": 341,
+          "height": 36,
+          "effectiveWidth": 341,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Save draft"
+        },
+        {
+          "selector": "div.sum-actions > button.btn.btn-primary[type=\"submit\"]",
+          "count": 1,
+          "width": 341,
+          "height": 36,
+          "effectiveWidth": 341,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Save and launch"
+        }
+      ],
+      "contrastBelowAA": []
+    },
+    "running.html@768x1024": {
+      "title": "[Human] Averiq · Red Team test running design preview",
+      "docOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false,
+        "bodyScrollWidth": 768
+      },
+      "mainOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "p > span.provisional",
+          "fontSize": 11,
+          "text": "Provisional"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        },
+        {
+          "selector": "div.heading-actions > button.btn.btn-danger-quiet[type=\"button\"]",
+          "count": 1,
+          "width": 122,
+          "height": 36,
+          "effectiveWidth": 122,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Cancel test"
+        }
+      ],
+      "contrastBelowAA": []
+    },
+    "report.html@768x1024": {
+      "title": "[Human] Averiq · Red Team report design preview",
+      "docOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false,
+        "bodyScrollWidth": 768
+      },
+      "mainOverflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [
+        {
+          "selector": "section.panel > div.table-wrap",
+          "scrollWidth": 814,
+          "clientWidth": 726
+        }
+      ],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "td > span.sev.sev-high",
+          "fontSize": 11,
+          "text": "High"
+        },
+        {
+          "selector": "td > span.sev.sev-medium",
+          "fontSize": 11,
+          "text": "Medium"
+        },
+        {
+          "selector": "span.strat-num > small",
+          "fontSize": 11,
+          "text": "2 of 22"
+        },
+        {
+          "selector": "button#t-owasp > span",
+          "fontSize": 11,
+          "text": "4 failed · 1 passed · 5 not tested"
+        },
+        {
+          "selector": "button#t-atlas > span",
+          "fontSize": 11,
+          "text": "4 failed · 1 passed · 1 not tested"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        },
+        {
+          "selector": "div.heading-actions > button.btn.btn-secondary[type=\"button\"]",
+          "count": 2,
+          "width": 169.5,
+          "height": 36,
+          "effectiveWidth": 169.5,
+          "effectiveHeight": 36,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Clone as protected"
+        },
+        {
+          "selector": "article.panel.kpi.kpi-compare > a[href=\"report.html\"]",
+          "count": 1,
+          "width": 319,
+          "height": 18,
+          "effectiveWidth": 319,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Compare attack pairs"
+        },
+        {
+          "selector": "label > select",
+          "count": 4,
+          "width": 101,
+          "height": 34,
+          "effectiveWidth": 101,
+          "effectiveHeight": 34,
+          "viaLabel": false,
+          "under24": false,
+          "text": "All plugins"
+        },
+        {
+          "selector": "td > button.link-button[type=\"button\"][data-open-attack=\"leak\"]",
+          "count": 7,
+          "width": 32.3,
+          "height": 28,
+          "effectiveWidth": 32.3,
+          "effectiveHeight": 28,
+          "viaLabel": false,
+          "under24": false,
+          "text": "View"
+        },
+        {
+          "selector": "td > button.link-button[type=\"button\"][data-open-attack=\"judge\"]",
+          "count": 1,
+          "width": 32.3,
+          "height": 28,
+          "effectiveWidth": 32.3,
+          "effectiveHeight": 28,
+          "viaLabel": false,
+          "under24": false,
+          "text": "View"
+        },
+        {
+          "selector": "span > button.btn.btn-secondary.btn-small[type=\"button\"]",
+          "count": 2,
+          "width": 71.8,
+          "height": 30,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 30,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Previous"
+        }
+      ],
+      "contrastBelowAA": [
+        {
+          "selector": "span > button.btn.btn-secondary.btn-small[type=\"button\"]",
+          "ratio": 2.28,
+          "need": 4.5,
+          "fontSize": 12,
+          "color": "rgb(87, 87, 99)",
+          "background": "rgb(254, 254, 255)",
+          "opacity": 0.5,
+          "disabledContext": true,
+          "text": "Previous"
+        }
+      ]
+    },
+    "tests.html@390x844": {
+      "title": "[Human] Averiq · Red Team design preview",
+      "docOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false,
+        "bodyScrollWidth": 390
+      },
+      "mainOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [
+        {
+          "selector": "section.panel > div.table-wrap",
+          "scrollWidth": 796,
+          "clientWidth": 364
+        }
+      ],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "div > p",
+          "fontSize": 11,
+          "text": "Attack a connected model with synthetic "
+        }
+      ],
+      "targetsUnder44": [],
+      "contrastBelowAA": []
+    },
+    "new-test.html@390x844": {
+      "title": "[Human] Averiq · New Red Team test design preview",
+      "docOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false,
+        "bodyScrollWidth": 390
+      },
+      "mainOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "div > p",
+          "fontSize": 11,
+          "text": "Choose a target, what to attack and how "
+        },
+        {
+          "selector": "span.pick-meta > span.sev.sev-high",
+          "fontSize": 11,
+          "text": "High"
+        },
+        {
+          "selector": "span.pick-meta > span.fw-tag",
+          "fontSize": 11,
+          "text": "OWASP LLM06"
+        },
+        {
+          "selector": "span.pick-meta > span.sev.sev-medium",
+          "fontSize": 11,
+          "text": "Medium"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        },
+        {
+          "selector": "div.quick > button.link-button[type=\"button\"][data-select=\"all\"]",
+          "count": 1,
+          "width": 56,
+          "height": 40,
+          "effectiveWidth": 56,
+          "effectiveHeight": 40,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Select all"
+        },
+        {
+          "selector": "div.quick > button.link-button[type=\"button\"][data-select=\"none\"]",
+          "count": 1,
+          "width": 34.5,
+          "height": 40,
+          "effectiveWidth": 34.5,
+          "effectiveHeight": 40,
+          "viaLabel": false,
+          "under24": false,
+          "text": "Clear"
+        }
+      ],
+      "contrastBelowAA": []
+    },
+    "running.html@390x844": {
+      "title": "[Human] Averiq · Red Team test running design preview",
+      "docOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false,
+        "bodyScrollWidth": 390
+      },
+      "mainOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [
+        {
+          "selector": "section.panel > div.table-wrap",
+          "scrollWidth": 720,
+          "clientWidth": 364
+        }
+      ],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "p.report-meta > span",
+          "fontSize": 11,
+          "text": "Launched Nov 11, 2026, 09:05 UTC"
+        },
+        {
+          "selector": "p > span.provisional",
+          "fontSize": 11,
+          "text": "Provisional"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        }
+      ],
+      "contrastBelowAA": []
+    },
+    "report.html@390x844": {
+      "title": "[Human] Averiq · Red Team report design preview",
+      "docOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false,
+        "bodyScrollWidth": 390
+      },
+      "mainOverflow": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowX": false
+      },
+      "offViewport": [],
+      "horizontalScrollers": [
+        {
+          "selector": "section.panel > div.table-wrap",
+          "scrollWidth": 814,
+          "clientWidth": 364
+        },
+        {
+          "selector": "section.panel > div.tabs[role=\"tablist\"][aria-label=\"Framework\"]",
+          "scrollWidth": 599,
+          "clientWidth": 364
+        },
+        {
+          "selector": "section.panel > div.table-wrap",
+          "scrollWidth": 720,
+          "clientWidth": 364
+        }
+      ],
+      "textUnder11px": [],
+      "text11px": [
+        {
+          "selector": "header.topbar > span.preview-label",
+          "fontSize": 11,
+          "text": "Sample data · preview"
+        },
+        {
+          "selector": "header.topbar > span.profile-avatar[aria-label=\"Alex Morgan\"]",
+          "fontSize": 11,
+          "text": "AM"
+        },
+        {
+          "selector": "p.report-meta > span",
+          "fontSize": 11,
+          "text": "101 model calls · 23 judge calls"
+        },
+        {
+          "selector": "td > span.sev.sev-high",
+          "fontSize": 11,
+          "text": "High"
+        },
+        {
+          "selector": "td > span.sev.sev-medium",
+          "fontSize": 11,
+          "text": "Medium"
+        },
+        {
+          "selector": "span.strat-num > small",
+          "fontSize": 11,
+          "text": "2 of 22"
+        },
+        {
+          "selector": "button#t-owasp > span",
+          "fontSize": 11,
+          "text": "4 failed · 1 passed · 5 not tested"
+        },
+        {
+          "selector": "button#t-atlas > span",
+          "fontSize": 11,
+          "text": "4 failed · 1 passed · 1 not tested"
+        }
+      ],
+      "targetsUnder44": [
+        {
+          "selector": "div > a.back-link[href=\"tests.html\"]",
+          "count": 1,
+          "width": 71.8,
+          "height": 18,
+          "effectiveWidth": 71.8,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Red Team"
+        },
+        {
+          "selector": "article.panel.kpi.kpi-compare > a[href=\"report.html\"]",
+          "count": 1,
+          "width": 328,
+          "height": 18,
+          "effectiveWidth": 328,
+          "effectiveHeight": 18,
+          "viaLabel": false,
+          "under24": true,
+          "text": "Compare attack pairs"
+        },
+        {
+          "selector": "td > button.link-button[type=\"button\"][data-open-attack=\"leak\"]",
+          "count": 7,
+          "width": 32.3,
+          "height": 40,
+          "effectiveWidth": 32.3,
+          "effectiveHeight": 40,
+          "viaLabel": false,
+          "under24": false,
+          "text": "View"
+        },
+        {
+          "selector": "td > button.link-button[type=\"button\"][data-open-attack=\"judge\"]",
+          "count": 1,
+          "width": 32.3,
+          "height": 40,
+          "effectiveWidth": 32.3,
+          "effectiveHeight": 40,
+          "viaLabel": false,
+          "under24": false,
+          "text": "View"
+        }
+      ],
+      "contrastBelowAA": [
+        {
+          "selector": "span > button.btn.btn-secondary.btn-small[type=\"button\"]",
+          "ratio": 2.28,
+          "need": 4.5,
+          "fontSize": 12,
+          "color": "rgb(87, 87, 99)",
+          "background": "rgb(254, 254, 255)",
+          "opacity": 0.5,
+          "disabledContext": true,
+          "text": "Previous"
+        }
+      ]
+    },
+    "report.html@1440 dialog-open(leak)": {
+      "contrastBelowAA": []
+    }
+  },
+  "axe": {
+    "tests.html@1440": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "new-test.html@1440": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "running.html@1440": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "report.html@1440": {
+      "violations": [
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "help": "Scrollable region must have keyboard access",
+          "tags": [
+            "wcag2a",
+            "wcag211",
+            "wcag213"
+          ],
+          "nodes": [
+            {
+              "target": "section[aria-labelledby=\"by-plugin\"] > .table-wrap",
+              "summary": "Fix any of the following: |   Element should have focusable content |   Element should be focusable"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 2,
+          "nodes": [
+            ".limitations",
+            ".limitations > strong"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "tests.html@390": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 13,
+          "nodes": [
+            "tr:nth-child(1) > td:nth-child(5) > .risk-cell > strong",
+            "tbody > tr:nth-child(1) > .num",
+            "tr:nth-child(1) > .nowrap",
+            "tr:nth-child(2) > td:nth-child(5) > .risk-cell > strong",
+            "tr:nth-child(2) > .num",
+            "tr:nth-child(2) > .nowrap"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "new-test.html@390": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "running.html@390": {
+      "violations": [
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "help": "Scrollable region must have keyboard access",
+          "tags": [
+            "wcag2a",
+            "wcag211",
+            "wcag213"
+          ],
+          "nodes": [
+            {
+              "target": ".table-wrap",
+              "summary": "Fix any of the following: |   Element should have focusable content |   Element should be focusable"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 4,
+          "nodes": [
+            "tr:nth-child(1) > td:nth-child(5)",
+            "tr:nth-child(2) > td:nth-child(5)",
+            "tr:nth-child(3) > td:nth-child(5)",
+            "tr:nth-child(4) > td:nth-child(5)"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "report.html@390": {
+      "violations": [
+        {
+          "id": "scrollable-region-focusable",
+          "impact": "serious",
+          "help": "Scrollable region must have keyboard access",
+          "tags": [
+            "wcag2a",
+            "wcag211",
+            "wcag213"
+          ],
+          "nodes": [
+            {
+              "target": "section[aria-labelledby=\"by-plugin\"] > .table-wrap",
+              "summary": "Fix any of the following: |   Element should have focusable content |   Element should be focusable"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 53,
+          "nodes": [
+            "tbody > tr:nth-child(1) > .num:nth-child(4)",
+            "tr:nth-child(1) > td:nth-child(5) > .asr-cell",
+            "tr:nth-child(1) > td:nth-child(6) > .risk-cell > strong",
+            "tr:nth-child(1) > td:nth-child(7)",
+            "tr:nth-child(2) > .num:nth-child(4)",
+            "tr:nth-child(2) > td:nth-child(5) > .asr-cell"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "report.html@1440 dialog-open(leak)": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 3,
+          "nodes": [
+            ".text-block:nth-child(3) > pre",
+            ".text-block:nth-child(4) > pre",
+            "mark"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "report.html@1440 dialog-open(judge)": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 2,
+          "nodes": [
+            ".judge-note",
+            ".text-block:nth-child(3) > pre"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    },
+    "new-test.html@1440 warning-visible": {
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "count": 1,
+          "nodes": [
+            ".profile-avatar"
+          ]
+        }
+      ],
+      "testEngine": "4.13.0"
+    }
+  },
+  "interactions": [
+    {
+      "name": "dialog opens from keyboard (Enter on View)",
+      "pass": true,
+      "detail": {
+        "open": true,
+        "active": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+        "inside": true,
+        "input": "keyboard",
+        "title": "Unsafe: the hidden marker leaked"
+      }
+    },
+    {
+      "name": "initial focus lands inside dialog",
+      "pass": true,
+      "detail": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]"
+    },
+    {
+      "name": "focus stays in dialog over 12 Tab + 6 Shift+Tab",
+      "pass": false,
+      "detail": {
+        "sequence": [
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "shift:div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "shift:html > body",
+            "inside": false
+          },
+          {
+            "el": "shift:div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "shift:div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          },
+          {
+            "el": "shift:html > body",
+            "inside": false
+          },
+          {
+            "el": "shift:div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]",
+            "inside": true
+          }
+        ],
+        "escapedTo": [
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "html > body",
+            "inside": false
+          },
+          {
+            "el": "shift:html > body",
+            "inside": false
+          },
+          {
+            "el": "shift:html > body",
+            "inside": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "Escape closes dialog",
+      "pass": true,
+      "detail": {
+        "open": false,
+        "active": "td > button.link-button[type=\"button\"][data-open-attack=\"leak\"]",
+        "isOpener": true
+      }
+    },
+    {
+      "name": "focus returns to opener after Escape",
+      "pass": true,
+      "detail": "td > button.link-button[type=\"button\"][data-open-attack=\"leak\"]"
+    },
+    {
+      "name": "dialog opens on click with judge content",
+      "pass": true,
+      "detail": {
+        "open": true,
+        "title": "Unsafe: decided by the LLM judge",
+        "input": "pointer",
+        "active": "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]"
+      }
+    },
+    {
+      "name": "close button closes and returns focus to judge opener",
+      "pass": true,
+      "detail": {
+        "open": false,
+        "isOpener": true,
+        "active": "<button type=\"button\" class=\"link-button\" data-open-attack=\"judge\">View</button>"
+      }
+    },
+    {
+      "name": "backdrop click closes and returns focus",
+      "pass": true,
+      "detail": {
+        "open": false,
+        "isOpener": true
+      }
+    },
+    {
+      "name": "tab click selects MITRE ATLAS and shows its panel only",
+      "pass": true,
+      "detail": [
+        {
+          "id": "t-owasp",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-atlas",
+          "selected": "true",
+          "tabIndex": 0,
+          "panelHidden": false,
+          "panelDisplay": "block",
+          "focused": true
+        },
+        {
+          "id": "t-nist",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-eu",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        }
+      ]
+    },
+    {
+      "name": "ArrowRight moves to NIST, focused, consistent",
+      "pass": true,
+      "detail": [
+        {
+          "id": "t-owasp",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-atlas",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-nist",
+          "selected": "true",
+          "tabIndex": 0,
+          "panelHidden": false,
+          "panelDisplay": "block",
+          "focused": true
+        },
+        {
+          "id": "t-eu",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        }
+      ]
+    },
+    {
+      "name": "ArrowRight wraps from EU AI Act to OWASP",
+      "pass": true,
+      "detail": [
+        {
+          "id": "t-owasp",
+          "selected": "true",
+          "tabIndex": 0,
+          "panelHidden": false,
+          "panelDisplay": "block",
+          "focused": true
+        },
+        {
+          "id": "t-atlas",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-nist",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-eu",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        }
+      ]
+    },
+    {
+      "name": "ArrowLeft wraps from OWASP to EU AI Act",
+      "pass": true,
+      "detail": [
+        {
+          "id": "t-owasp",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-atlas",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-nist",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-eu",
+          "selected": "true",
+          "tabIndex": 0,
+          "panelHidden": false,
+          "panelDisplay": "block",
+          "focused": true
+        }
+      ]
+    },
+    {
+      "name": "ArrowLeft moves to NIST",
+      "pass": true,
+      "detail": [
+        {
+          "id": "t-owasp",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-atlas",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        },
+        {
+          "id": "t-nist",
+          "selected": "true",
+          "tabIndex": 0,
+          "panelHidden": false,
+          "panelDisplay": "block",
+          "focused": true
+        },
+        {
+          "id": "t-eu",
+          "selected": "false",
+          "tabIndex": -1,
+          "panelHidden": true,
+          "panelDisplay": "none",
+          "focused": false
+        }
+      ]
+    },
+    {
+      "name": "editor initial summary is 96 attacks / 101 calls, launch enabled",
+      "pass": true,
+      "detail": {
+        "attacks": "96",
+        "total": "101",
+        "judge": "up to 24",
+        "time": "about 21 min",
+        "warningHidden": true,
+        "warningDisplay": "none",
+        "warningText": "Reduce to 100 attacks or fewer. Lower attacks per plugin, or choose fewer plugins or strategies.",
+        "warningLive": null,
+        "submitDisabled": false,
+        "judgeSelectsDisabled": [
+          false,
+          false
+        ],
+        "judgeAriaDisabled": "false",
+        "subjectHiddenAttr": false,
+        "subjectDisplay": "grid",
+        "subjectRect": 86,
+        "modeHelp": "Attacks pass through the policies assigned to the ",
+        "perValue": "3"
+      }
+    },
+    {
+      "name": "Clear plugins: Save and launch disabled",
+      "pass": true,
+      "detail": {
+        "attacks": "0",
+        "total": "5",
+        "judge": "up to 0",
+        "time": "about 1 min",
+        "warningHidden": false,
+        "warningDisplay": "block",
+        "warningText": "Choose at least one plugin.",
+        "warningLive": null,
+        "submitDisabled": true,
+        "judgeSelectsDisabled": [
+          false,
+          false
+        ],
+        "judgeAriaDisabled": "false",
+        "subjectHiddenAttr": false,
+        "subjectDisplay": "grid",
+        "subjectRect": 86,
+        "modeHelp": "Attacks pass through the policies assigned to the ",
+        "perValue": "3"
+      }
+    },
+    {
+      "name": "Clear plugins: warning visible with \"Choose at least one plugin.\"",
+      "pass": true,
+      "detail": {
+        "attacks": "0",
+        "total": "5",
+        "judge": "up to 0",
+        "time": "about 1 min",
+        "warningHidden": false,
+        "warningDisplay": "block",
+        "warningText": "Choose at least one plugin.",
+        "warningLive": null,
+        "submitDisabled": true,
+        "judgeSelectsDisabled": [
+          false,
+          false
+        ],
+        "judgeAriaDisabled": "false",
+        "subjectHiddenAttr": false,
+        "subjectDisplay": "grid",
+        "subjectRect": 86,
+        "modeHelp": "Attacks pass through the policies assigned to the ",
+        "perValue": "3"
+      }
+    },
+    {
+      "name": "All plugins x all 8 strategies x 10: over-100 warning shown and launch disabled",
+      "pass": true,
+      "detail": {
+        "attacks": "640",
+        "total": "645",
+        "judge": "up to 160",
+        "time": "about 135 min",
+        "warningHidden": false,
+        "warningDisplay": "block",
+        "warningText": "Reduce to 100 attacks or fewer. Lower attacks per plugin, or choose fewer plugins or strategies.",
+        "warningLive": null,
+        "submitDisabled": true,
+        "judgeSelectsDisabled": [
+          false,
+          false
+        ],
+        "judgeAriaDisabled": "false",
+        "subjectHiddenAttr": false,
+        "subjectDisplay": "grid",
+        "subjectRect": 86,
+        "modeHelp": "Attacks pass through the policies assigned to the ",
+        "perValue": "10"
+      }
+    },
+    {
+      "name": "Unchecking judge disables both judge selects",
+      "pass": true,
+      "detail": {
+        "attacks": "192",
+        "total": "197",
+        "judge": "None",
+        "time": "about 33 min",
+        "warningHidden": false,
+        "warningDisplay": "block",
+        "warningText": "Reduce to 100 attacks or fewer. Lower attacks per plugin, or choose fewer plugins or strategies.",
+        "warningLive": null,
+        "submitDisabled": true,
+        "judgeSelectsDisabled": [
+          true,
+          true
+        ],
+        "judgeAriaDisabled": "true",
+        "subjectHiddenAttr": false,
+        "subjectDisplay": "grid",
+        "subjectRect": 86,
+        "modeHelp": "Attacks pass through the policies assigned to the ",
+        "perValue": "3"
+      }
+    },
+    {
+      "name": "Re-checking judge re-enables selects",
+      "pass": true,
+      "detail": [
+        false,
+        false
+      ]
+    },
+    {
+      "name": "Mode Raw sets hidden on \"Run as\"",
+      "pass": true,
+      "detail": {
+        "attacks": "192",
+        "total": "197",
+        "judge": "up to 48",
+        "time": "about 41 min",
+        "warningHidden": false,
+        "warningDisplay": "block",
+        "warningText": "Reduce to 100 attacks or fewer. Lower attacks per plugin, or choose fewer plugins or strategies.",
+        "warningLive": null,
+        "submitDisabled": true,
+        "judgeSelectsDisabled": [
+          false,
+          false
+        ],
+        "judgeAriaDisabled": "false",
+        "subjectHiddenAttr": true,
+        "subjectDisplay": "grid",
+        "subjectRect": 86,
+        "modeHelp": "Attacks go straight to the model with no organizat",
+        "perValue": "3"
+      }
+    },
+    {
+      "name": "Mode Raw visually hides \"Run as\" (computed display none)",
+      "pass": false,
+      "detail": {
+        "display": "grid",
+        "height": 86
+      }
+    },
+    {
+      "name": "Mode Raw updates mode help text",
+      "pass": true,
+      "detail": "Attacks go straight to the model with no organizat"
+    },
+    {
+      "name": "Mode radiogroup responds to arrow keys with visible focus on the span",
+      "pass": true,
+      "detail": {
+        "checked": "protected",
+        "outline": "solid"
+      }
+    },
+    {
+      "name": "reduced motion: dialog has no scale transform when closed, opening or open",
+      "pass": true,
+      "detail": {
+        "closedTransform": "none",
+        "openingSamples": [
+          "none",
+          "none",
+          "none",
+          "none",
+          "none"
+        ],
+        "settledTransform": "none",
+        "transitionsSeen": []
+      }
+    },
+    {
+      "name": "default motion: dialog scale transition present (control)",
+      "pass": true,
+      "detail": {
+        "closedTransform": "none",
+        "openingSamples": [
+          "matrix(0.96, 0, 0, 0.96, 0, 0)",
+          "matrix(0.973541, 0, 0, 0.973541, 0, 0)",
+          "matrix(0.991019, 0, 0, 0.991019, 0, 0)",
+          "matrix(0.997358, 0, 0, 0.997358, 0, 0)",
+          "matrix(0.99934, 0, 0, 0.99934, 0, 0)"
+        ],
+        "settledTransform": "matrix(1, 0, 0, 1, 0, 0)",
+        "transitionsSeen": []
+      }
+    }
+  ],
+  "reducedMotion": {
+    "no-preference": {
+      "closedTransform": "none",
+      "openingSamples": [
+        "matrix(0.96, 0, 0, 0.96, 0, 0)",
+        "matrix(0.973541, 0, 0, 0.973541, 0, 0)",
+        "matrix(0.991019, 0, 0, 0.991019, 0, 0)",
+        "matrix(0.997358, 0, 0, 0.997358, 0, 0)",
+        "matrix(0.99934, 0, 0, 0.99934, 0, 0)"
+      ],
+      "settledTransform": "matrix(1, 0, 0, 1, 0, 0)",
+      "transitionsSeen": []
+    },
+    "reduce": {
+      "closedTransform": "none",
+      "openingSamples": [
+        "none",
+        "none",
+        "none",
+        "none",
+        "none"
+      ],
+      "settledTransform": "none",
+      "transitionsSeen": []
+    }
+  },
+  "consoleErrors": [
+    {
+      "page": "tests.html",
+      "viewport": [
+        1440,
+        900
+      ],
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "new-test.html",
+      "viewport": [
+        1440,
+        900
+      ],
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "running.html",
+      "viewport": [
+        1440,
+        900
+      ],
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "report.html",
+      "viewport": [
+        1440,
+        900
+      ],
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "tests.html",
+      "viewport": [
+        390,
+        844
+      ],
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "new-test.html",
+      "viewport": [
+        390,
+        844
+      ],
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "running.html",
+      "viewport": [
+        390,
+        844
+      ],
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "report.html",
+      "viewport": [
+        390,
+        844
+      ],
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "report.html interactions",
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    {
+      "page": "new-test.html interactions",
+      "errors": [
+        "Access to XMLHttpRequest at 'file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app.",
+        "requestfailed: file:///home/shumail/umer-FYP/FYP_Part_1/design/red-team/v3/styles.css net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ]
+    }
+  ],
+  "impeccableOverlay": {
+    "tests.html": {
+      "consoleLines": [
+        {
+          "type": "startGroup",
+          "text": "%c[impeccable] 3 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold"
+        }
+      ],
+      "overlayNodes": 5
+    },
+    "new-test.html": {
+      "consoleLines": [
+        {
+          "type": "startGroup",
+          "text": "%c[impeccable] 4 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold"
+        }
+      ],
+      "overlayNodes": 7
+    },
+    "running.html": {
+      "consoleLines": [
+        {
+          "type": "startGroup",
+          "text": "%c[impeccable] 3 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold"
+        }
+      ],
+      "overlayNodes": 5
+    },
+    "report.html": {
+      "consoleLines": [
+        {
+          "type": "startGroup",
+          "text": "%c[impeccable] 3 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold"
+        }
+      ],
+      "overlayNodes": 5
+    }
+  },
+  "dialogFocusables": [
+    "div.dialog-head > button.icon-button[type=\"button\"][data-close-attack][aria-label=\"Close\"]"
+  ],
+  "tabsHomeKey": {
+    "note": "Optional per APG; recorded, not asserted",
+    "ownerAfterHome": "t-nist"
+  },
+  "tabpanelTabindex": [
+    {
+      "id": "fw-owasp",
+      "tabindex": null
+    },
+    {
+      "id": "fw-atlas",
+      "tabindex": null
+    },
+    {
+      "id": "fw-nist",
+      "tabindex": null
+    },
+    {
+      "id": "fw-eu",
+      "tabindex": null
+    }
+  ],
+  "editorPerOutOfRange": {
+    "typed": "50",
+    "attacks": "3200",
+    "note": "max=10 is not enforced by the script; number input accepts typed 50 (validity:true)"
+  },
+  "followup": {
+    "impeccableOverlay": {
+      "tests.html": [
+        {
+          "type": "startGroup",
+          "text": "[impeccable] 3 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold"
+        },
+        {
+          "type": "log",
+          "text": "tiny-text 11px body text color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "tiny-text 11px body text color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "overused-font Primary font: inter (100% of text) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "endGroup",
+          "text": "console.groupEnd"
+        }
+      ],
+      "new-test.html": [
+        {
+          "type": "startGroup",
+          "text": "[impeccable] 4 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold"
+        },
+        {
+          "type": "log",
+          "text": "tiny-text 11px body text color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "tiny-text 11px body text color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "straggler \"cost.\" alone on the last of 3 lines (11% of the measure) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "overused-font Primary font: inter (90% of text) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "endGroup",
+          "text": "console.groupEnd"
+        }
+      ],
+      "running.html": [
+        {
+          "type": "startGroup",
+          "text": "[impeccable] 3 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold"
+        },
+        {
+          "type": "log",
+          "text": "tiny-text 11px body text color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "tiny-text 11px body text color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "overused-font Primary font: inter (100% of text) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "endGroup",
+          "text": "console.groupEnd"
+        }
+      ],
+      "report.html": [
+        {
+          "type": "startGroup",
+          "text": "[impeccable] 3 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold"
+        },
+        {
+          "type": "log",
+          "text": "tiny-text 11px body text color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "tiny-text 11px body text color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "log",
+          "text": "overused-font Primary font: inter (93% of text) color: oklch(84% 0.19 80.46); font-weight: bold color: inherit JSHandle@node"
+        },
+        {
+          "type": "endGroup",
+          "text": "console.groupEnd"
+        }
+      ]
+    },
+    "reportTableWraps1440": [
+      {
+        "section": "by-plugin",
+        "scrollWidth": 814,
+        "clientWidth": 778,
+        "scrolls": true,
+        "tabindex": null,
+        "focusableChildren": 0
+      },
+      {
+        "section": "results-title",
+        "scrollWidth": 1164,
+        "clientWidth": 1164,
+        "scrolls": false,
+        "tabindex": null,
+        "focusableChildren": 8
+      }
+    ],
+    "contrastIncomplete1440": [
+      {
+        "target": ".limitations",
+        "messages": [
+          "Element's background color could not be determined because it's partially obscured by another element {\"ratio\":0,\"reason\":\"elmPartiallyObscured\"}"
+        ]
+      },
+      {
+        "target": ".limitations > strong",
+        "messages": [
+          "Element's background color could not be determined because it's partially obscured by another element {\"ratio\":0,\"reason\":\"elmPartiallyObscured\"}"
+        ]
+      }
+    ],
+    "contrastIncompleteDialog": [
+      {
+        "target": ".text-block:nth-child(3) > pre",
+        "messages": [
+          "Element's background color could not be determined because it partially overlaps other elements {\"ratio\":0,\"reason\":\"elmPartiallyObscuring\"}"
+        ]
+      },
+      {
+        "target": ".text-block:nth-child(4) > pre",
+        "messages": [
+          "Element's background color could not be determined because it partially overlaps other elements {\"ratio\":0,\"reason\":\"elmPartiallyObscuring\"}"
+        ]
+      },
+      {
+        "target": "mark",
+        "messages": [
+          "Element's background color could not be determined because it partially overlaps other elements {\"ratio\":0,\"reason\":\"elmPartiallyObscuring\"}"
+        ]
+      }
+    ],
+    "contrastIncompleteTests390": [
+      {
+        "target": "tr:nth-child(1) > td:nth-child(5) > .risk-cell > strong",
+        "reason": [
+          "elmPartiallyObscured"
+        ]
+      },
+      {
+        "target": "tbody > tr:nth-child(1) > .num",
+        "reason": [
+          "elmPartiallyObscured"
+        ]
+      },
+      {
+        "target": "tr:nth-child(1) > .nowrap",
+        "reason": [
+          "elmPartiallyObscured"
+        ]
+      }
+    ],
+    "dialog390": {
+      "rect": {
+        "x": 16,
+        "y": 24,
+        "w": 358,
+        "h": 796
+      },
+      "bodyScrolls": true,
+      "bodyScrollH": 693,
+      "bodyClientH": 671,
+      "dialogScrollW": 356,
+      "dialogClientW": 356,
+      "pres": [
+        {
+          "scrollH": 87,
+          "clientH": 87,
+          "scrollW": 314,
+          "clientW": 314
+        },
+        {
+          "scrollH": 108,
+          "clientH": 108,
+          "scrollW": 314,
+          "clientW": 314
+        },
+        {
+          "scrollH": 108,
+          "clientH": 108,
+          "scrollW": 314,
+          "clientW": 314
+        }
+      ],
+      "closeSize": [
+        36,
+        36
+      ],
+      "evidenceRows": [
+        {
+          "w": 316,
+          "sw": 314
+        },
+        {
+          "w": 316,
+          "sw": 314
+        },
+        {
+          "w": 316,
+          "sw": 314
+        }
+      ],
+      "tabSequence": [
+        "DIV.dialog-body (inside)",
+        "BODY. (outside)",
+        "BUTTON.icon-button (inside)",
+        "DIV.dialog-body (inside)"
+      ],
+      "bodyScrollTopAfterKeys": 0
+    },
+    "modalTabReach": [
+      "BODY(browser chrome / document)",
+      "inside:BUTTON.icon-button"
+    ],
+    "outsideInert": false,
+    "runAsRaw390": {
+      "hidden": true,
+      "display": "grid",
+      "visibleHeight": 92
+    },
+    "sumWarningSemantics": {
+      "role": null,
+      "ariaLive": null,
+      "describedBy": null
+    },
+    "segmentedTargets390": [
+      [
+        162,
+        34
+      ],
+      [
+        162,
+        34
+      ]
+    ],
+    "checkboxRows390": [
+      {
+        "s": ".pick-row",
+        "w": 332,
+        "h": 114
+      },
+      {
+        "s": ".chip-check",
+        "w": 332,
+        "h": 62
+      },
+      {
+        "s": ".toggle-row",
+        "w": 332,
+        "h": 58
+      }
+    ],
+    "fieldHeights390": [
+      ":44",
+      "btn btn-secondary:44",
+      "btn btn-primary:44"
+    ],
+    "desktopSmallTargets": [
+      {
+        "s": ".back-link",
+        "w": 71.8,
+        "h": 18
+      },
+      {
+        "s": ".kpi-compare a",
+        "w": 243,
+        "h": 18
+      },
+      {
+        "s": ".link-button",
+        "w": 32.3,
+        "h": 28
+      },
+      {
+        "s": ".btn-small",
+        "w": 71.8,
+        "h": 30
+      },
+      {
+        "s": ".toolbar select",
+        "w": 101,
+        "h": 34
+      },
+      {
+        "s": "[role=tab]",
+        "w": 188.6,
+        "h": 61
+      },
+      {
+        "s": ".nav-link",
+        "w": 198,
+        "h": 38
+      }
+    ],
+    "sidebarActiveNav1440x900": {
+      "activeTop": 728,
+      "activeBottom": 766,
+      "navBottom": 730.5,
+      "navOverflowY": "auto",
+      "navScrollH": 607,
+      "navClientH": 569,
+      "note": "Active Red Team nav link is clipped by the nav scroller; 2.5px visible"
+    },
+    "segmentedRadio390": {
+      "labelVisual": "162x33.5",
+      "radioInputHitArea": "162x44",
+      "note": ".field input{min-height:44px} at <=600px also matches the opacity:0 radio, so the hit area is 44px but the visible pill is 33.5px"
+    }
+  },
+  "notes": {
+    "consoleErrors": "All console errors recorded are axe-core XHR preloads of styles.css blocked under file:// (CORS); they appear only on runs where axe was injected (none at 768, where axe was not run). The prototype itself logged no errors or page exceptions.",
+    "focusTrap": "Native <dialog>.showModal(): Tab cycles close button -> document/browser chrome -> close button. No page element outside the dialog was ever reachable; background is inert (programmatic focus on a tab failed). Raw assertion fails because activeElement becomes <body>; interpreted as expected native behaviour, not a defect.",
+    "impeccableLive": "impeccable live was not run: it requires creating .impeccable/live/config.json and injecting a script tag into project files. The same browser detector bundle (detect-antipatterns-browser.js from the installed impeccable plugin) was injected via Playwright addScriptTag instead; no server was started."
+  }
+}

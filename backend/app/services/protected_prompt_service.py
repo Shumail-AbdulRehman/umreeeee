@@ -36,6 +36,12 @@ def _company(user):
     return object_id(user.company.id)
 
 
+def _workspace_policy_required(company, db_user):
+    # The authenticated database role owns the exemption, never a client claim.
+    return (company.get('settings', {}).get('require_active_policy', True)
+            and db_user.get('role') not in ADMIN_ROLES)
+
+
 def _safe_result(result):
     if result is None:
         return None
@@ -58,6 +64,7 @@ def serialize_run(doc, *, detail=False, retention_days=7):
                 'total_latency_ms', 'provider_request_id', 'finish_reason', 'retry_after'):
         data[key] = doc.get(key)
     data['status'] = status
+    data['conversation_id'] = str(doc.get('conversation_id') or doc['_id'])
     data['content_expired'] = expired
     data['created_at'] = doc['created_at'].isoformat()
     data['finished_at'] = doc['finished_at'].isoformat() if doc.get('finished_at') else None
@@ -132,23 +139,34 @@ class ProtectedPromptService:
 
     def context(self, user):
         company = _company(user)
-        groups = list(self.db.groups.find({'_id': {'$in': [object_id(g) for g in user.group_ids]},
+        db_user = self.db.users.find_one({'_id': object_id(user.id), 'company_id': company})
+        groups = list(self.db.groups.find({'_id': {'$in': (db_user or {}).get('group_ids', [])},
             'company_id': company, 'status': 'active'}, {'name': 1}))
         integrations = list(self.db.integrations.find({'company_id': company, 'status': 'active'},
             {'provider': 1, 'account_name': 1, 'models': 1, 'system_prompt': 1}))
-        applicable = [policy for integration in integrations for policy in resolve_policies(
-            self.db, str(company), str(integration['_id']), [group['_id'] for group in groups])]
+        policies_by_integration = {str(integration['_id']): resolve_policies(
+            self.db, str(company), str(integration['_id']), [group['_id'] for group in groups])
+            for integration in integrations}
+        applicable = [policy for policies in policies_by_integration.values() for policy in policies]
+        org = self.db.companies.find_one({'_id': company})
+        require_policy = _workspace_policy_required(org or {}, db_user or {})
+        covered = {key: any('input' in policy.get('stages', []) for policy in policies)
+                   for key, policies in policies_by_integration.items()}
+        needs_setup = require_policy and not any(covered.values())
         active_types = {rule['type'] for policy in applicable for rule in policy['rules']}
         caps = registry.capabilities()
         missing = [kind for kind in active_types if not caps.get(kind, {}).get('ready')]
-        if any(p.get('managed_catalog') and not catalog_ready(p) for p in applicable) and 'catalog' not in missing:
+        if any((p.get('managed_catalog') or p.get('policy_set')) and not catalog_ready(p) for p in applicable) and 'catalog' not in missing:
             missing.append('catalog')
         return {'integrations': [{'id': str(i['_id']), 'provider': i['provider'],
                 'account_name': i['account_name'], 'models': i.get('models', []),
                 'has_system_instruction': bool(i.get('system_prompt'))} for i in integrations],
                 'groups': [{'id': str(g['_id']), 'name': g['name']} for g in groups],
-                'enforcement_ready': not missing,
-                'readiness_reason': 'Unavailable active validators: ' + ', '.join(sorted(missing)) if missing else None,
+                'require_active_policy': require_policy,
+                'input_policy_coverage': covered,
+                'enforcement_ready': not missing and not needs_setup,
+                'readiness_reason': ('Assign your account to a group with an active input policy for the selected integration.'
+                    if needs_setup else 'Unavailable active validators: ' + ', '.join(sorted(missing)) if missing else None),
                 'max_prompt_length': 24000}
 
     def _admit(self, user, payload):
@@ -161,6 +179,68 @@ class ProtectedPromptService:
         if payload.model not in integration.get('models', []):
             raise DomainError(422, 'invalid_model', 'Selected model is not enabled')
         return integration
+
+    def _conversation_root(self, user, conversation_id, session=None):
+        root = self.db.prompt_runs.find_one({'_id': object_id(conversation_id),
+            'company_id': _company(user), 'user_id': object_id(user.id),
+            'source': {'$in': ['workspace', 'legacy']}}, session=session)
+        if not root or root.get('conversation_id', root['_id']) != root['_id']:
+            raise DomainError(404, 'not_found', 'Conversation not found')
+        return root
+
+    @staticmethod
+    def _conversation_title(root):
+        expired = root.get('content_expired') or (root.get('content_expires_at') and
+                                                  root['content_expires_at'] <= utcnow())
+        prompt = None if expired else decrypt(root.get('prompt_ciphertext'))
+        return ' '.join(prompt.split())[:80] if prompt else 'Earlier conversation'
+
+    def list_conversations(self, user, page=1, page_size=20):
+        query = {'company_id': _company(user), 'user_id': object_id(user.id),
+                 'source': {'$in': ['workspace', 'legacy']}}
+        pipeline = [{'$match': query}, {'$sort': {'created_at': 1, '_id': 1}},
+            {'$group': {'_id': {'$ifNull': ['$conversation_id', '$_id']},
+                'root': {'$first': '$$ROOT'}, 'updated_at': {'$max': '$created_at'},
+                'message_count': {'$sum': 1}, 'model': {'$last': '$model'}}},
+            {'$sort': {'updated_at': -1, '_id': -1}},
+            {'$facet': {'items': [{'$skip': (page - 1) * page_size}, {'$limit': page_size}],
+                        'total': [{'$count': 'count'}]}}]
+        result = list(self.db.prompt_runs.aggregate(pipeline))[0]
+        return {'items': [{'id': str(row['_id']), 'title': self._conversation_title(row['root']),
+            'created_at': row['root']['created_at'].isoformat(), 'updated_at': row['updated_at'].isoformat(),
+            'message_count': row['message_count'], 'model': row.get('model')} for row in result['items']],
+            'total': result['total'][0]['count'] if result['total'] else 0,
+            'page': page, 'page_size': page_size}
+
+    def conversation(self, user, conversation_id, page=1, page_size=50):
+        root = self._conversation_root(user, conversation_id)
+        query = {'company_id': _company(user), 'user_id': object_id(user.id),
+            'source': {'$in': ['workspace', 'legacy']},
+            '$or': [{'conversation_id': root['_id']}, {'_id': root['_id']}]}
+        rows = list(self.db.prompt_runs.find(query).sort([('created_at', -1), ('_id', -1)])
+                    .skip((page - 1) * page_size).limit(page_size))
+        return {'conversation': {'id': str(root['_id']), 'title': self._conversation_title(root)},
+                'items': [serialize_run(row, detail=True) for row in reversed(rows)],
+                'total': self.db.prompt_runs.count_documents(query), 'page': page, 'page_size': page_size,
+                'context_note': 'Follow-ups use up to 20 recent allowed exchanges within a 24,000-character context budget. Expired, blocked and failed messages are excluded.'}
+
+    def _conversation_messages(self, user, root_id, session):
+        rows = list(self.db.prompt_runs.find({'company_id': _company(user),
+            'user_id': object_id(user.id), 'source': 'workspace', 'status': 'allowed',
+            'response_withheld': {'$ne': True}, 'content_expired': {'$ne': True},
+            'content_expires_at': {'$gt': utcnow()},
+            '$or': [{'conversation_id': root_id}, {'_id': root_id}]}, session=session)
+            .sort([('created_at', -1), ('_id', -1)]).limit(20))
+        pairs, size = [], 0
+        for row in rows:
+            prompt, response = decrypt(row.get('prompt_ciphertext')), decrypt(row.get('response_ciphertext'))
+            if prompt is None or response is None:
+                continue
+            if size + len(prompt) + len(response) > 24000:
+                break
+            size += len(prompt) + len(response)
+            pairs.append([{'role': 'user', 'content': prompt}, {'role': 'assistant', 'content': response}])
+        return [turn for pair in reversed(pairs) for turn in pair]
 
     def _create(self, user, payload, key, fingerprint, source, execution_identity):
         company, user_id = _company(user), object_id(user.id)
@@ -187,6 +267,23 @@ class ProtectedPromptService:
                     policies = resolve_policies(self.db, str(company), str(integration['_id']), group_ids, session=session)
                     system_instruction = integration.get('system_prompt', '')
                 integration = {**integration, 'system_prompt': system_instruction}
+                conversation_id = None
+                if source == 'workspace':
+                    requested = getattr(payload, 'conversation_id', None)
+                    if requested:
+                        root = self._conversation_root(user, requested, session)
+                        # Serialize concurrent sends in a chat through its root record.
+                        self.db.prompt_runs.update_one({'_id': root['_id'], 'company_id': company,
+                            'user_id': user_id}, {'$inc': {'conversation_revision': 1}}, session=session)
+                        pending = self.db.prompt_runs.find_one({'company_id': company, 'user_id': user_id,
+                            'source': 'workspace', 'status': 'processing', '$or': [
+                                {'conversation_id': root['_id']}, {'_id': root['_id']}]}, session=session)
+                        if pending:
+                            raise DomainError(409, 'conversation_busy', 'Wait for the current reply before sending another message.')
+                        conversation_id = root['_id']
+                        integration['_conversation_messages'] = self._conversation_messages(user, conversation_id, session)
+                    else:
+                        conversation_id = ObjectId()
                 now = utcnow()
                 days = org.get('settings', {}).get('content_retention_days', 7)
                 run = {'company_id': company, 'user_id': user_id, 'source': source,
@@ -196,12 +293,16 @@ class ProtectedPromptService:
                     'user_email': db_user['email'], 'integration_id': integration['_id'],
                     'integration_account_name': integration['account_name'], 'provider': integration['provider'],
                     'model': payload.model, 'group_ids_snapshot': group_ids, 'policy_snapshots': policies,
-                    'require_active_policy': frozen['require_active_policy'] if frozen else org.get('settings', {}).get('require_active_policy', True),
+                    'require_active_policy': frozen['require_active_policy'] if frozen else _workspace_policy_required(org, db_user),
                     'prompt_ciphertext': encrypt(payload.prompt),
                     'system_prompt_ciphertext': encrypt(system_instruction),
                     'content_expires_at': now + timedelta(days=days), 'content_expired': False,
                     'input_length': len(payload.prompt), 'output_length': None, 'response_withheld': False,
                     'estimated_cost_usd': None, 'cost_status': 'unknown'}
+                if conversation_id:
+                    run['conversation_id'] = conversation_id
+                    if not getattr(payload, 'conversation_id', None):
+                        run['_id'] = conversation_id
                 self.db.prompt_runs.insert_one(run, session=session)
                 return run, integration
 
@@ -251,6 +352,8 @@ class ProtectedPromptService:
         if not payload.prompt.strip():
             raise DomainError(422, 'invalid_prompt', 'Prompt cannot be blank')
         canonical = payload.model_dump(include={'integration_id', 'model', 'prompt', 'temperature', 'max_tokens'})
+        if getattr(payload, 'conversation_id', None):
+            canonical['conversation_id'] = payload.conversation_id
         if source == 'red_team':
             canonical['scenario_system'] = execution_identity.get('scenario_system')
         fingerprint = sha256(json.dumps(canonical, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
@@ -278,8 +381,11 @@ class ProtectedPromptService:
                 'error_message': 'No applicable input policy is active', 'cost_status': 'not_incurred',
                 'estimated_cost_usd': '0'})
             return _http_outcome(run)
-        input_eval, matched = evaluate_stage(policies, 'input', {'user_prompt': payload.prompt,
-            'system_prompt': integration.get('system_prompt', '')})
+        conversation_messages = integration.pop('_conversation_messages', [])
+        input_fields = {'user_prompt': payload.prompt, 'system_prompt': integration.get('system_prompt', '')}
+        if conversation_messages:
+            input_fields['conversation_history'] = json.dumps(conversation_messages, ensure_ascii=False)
+        input_eval, matched = evaluate_stage(policies, 'input', input_fields)
         outcome = decision(input_eval, matched, 'input')
         self._persist_stage(run, input_eval, matched, 'input', outcome,
             {'enforcement_latency_ms': input_eval['duration_ms']})
@@ -294,6 +400,11 @@ class ProtectedPromptService:
         if not active or not company or not live_integration or run['model'] not in live_integration.get('models', []):
             self._finish(run, {'status': 'configuration_error', 'error_code': 'configuration_unavailable',
                 'error_message': 'Account or integration became unavailable',
+                'cost_status': 'not_incurred', 'estimated_cost_usd': '0'})
+            return _http_outcome(run)
+        if source == 'workspace' and not input_policies and _workspace_policy_required(company, active):
+            self._finish(run, {'status': 'configuration_error', 'error_code': 'policy_required',
+                'error_message': 'An input policy is required for your current account.',
                 'cost_status': 'not_incurred', 'estimated_cost_usd': '0'})
             return _http_outcome(run)
         held_token = execution_identity.get('admission_token')
@@ -315,8 +426,10 @@ class ProtectedPromptService:
                     'error_message': 'Integration is busy. Retry after the advised interval.',
                     'retry_after': exc.retry_after, 'cost_status': 'not_incurred', 'estimated_cost_usd': '0'})
                 return _http_outcome(run)
-        if source == 'red_team':
-            live_integration = {**live_integration, 'system_prompt': integration.get('system_prompt', '')}
+        # Every dispatched instruction and prior turn must be the content evaluated above.
+        live_integration = {**live_integration, 'system_prompt': integration.get('system_prompt', '')}
+        if conversation_messages:
+            payload = payload.model_copy(update={'conversation_messages': conversation_messages})
         if execution_identity.get('on_provider_dispatch'):
             try:
                 execution_identity['on_provider_dispatch']()

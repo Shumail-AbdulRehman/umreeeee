@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-04",
+  "target": "design/v3",
+  "checks": [
+    {
+      "name": "conversation",
+      "width": 1440,
+      "height": 900,
+      "axe": [],
+      "transcriptHeight": 470
+    },
+    {
+      "name": "new-chat",
+      "width": 1440,
+      "height": 900,
+      "axe": [],
+      "transcriptHeight": 470
+    },
+    {
+      "name": "blocked",
+      "width": 1440,
+      "height": 900,
+      "axe": [],
+      "transcriptHeight": 470
+    },
+    {
+      "name": "conversation",
+      "width": 1280,
+      "height": 800,
+      "axe": [],
+      "transcriptHeight": 370
+    },
+    {
+      "name": "new-chat",
+      "width": 1280,
+      "height": 800,
+      "axe": [],
+      "transcriptHeight": 370
+    },
+    {
+      "name": "blocked",
+      "width": 1280,
+      "height": 800,
+      "axe": [],
+      "transcriptHeight": 370
+    },
+    {
+      "name": "conversation",
+      "width": 768,
+      "height": 1024,
+      "axe": [],
+      "transcriptHeight": 593
+    },
+    {
+      "name": "new-chat",
+      "width": 768,
+      "height": 1024,
+      "axe": [],
+      "transcriptHeight": 593
+    },
+    {
+      "name": "blocked",
+      "width": 768,
+      "height": 1024,
+      "axe": [],
+      "transcriptHeight": 593
+    },
+    {
+      "name": "conversation",
+      "width": 390,
+      "height": 844,
+      "axe": [],
+      "transcriptHeight": 368
+    },
+    {
+      "name": "new-chat",
+      "width": 390,
+      "height": 844,
+      "axe": [],
+      "transcriptHeight": 368
+    },
+    {
+      "name": "blocked",
+      "width": 390,
+      "height": 844,
+      "axe": [],
+      "transcriptHeight": 368
+    }
+  ],
+  "errors": [],
+  "clipboard": "raw Markdown and exact code; rejection has stable labels",
+  "mobile": "44px targets, native dialog/Escape/focus, options named",
+  "limits": "Prototype only: no real API, Markdown parser, auth, policy enforcement or physical keyboard test"
+}

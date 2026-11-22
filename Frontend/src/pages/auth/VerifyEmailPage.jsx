@@ -1,3 +1,5 @@
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
 import { useState } from 'react'
 
 import { resendVerificationCode, verifyEmailCode } from '../../services/auth/authService'
@@ -55,12 +57,12 @@ export default function VerifyEmailPage({
 
   return (
     <AuthShell
-      eyebrow="Sentinel AI Verify"
+      eyebrow="Averiq Verify"
       title="Confirm your email"
       subtitle="Enter the verification code from your inbox before the account can sign in."
       footer={(
         <p>
-          Wrong address? <button type="button" className="auth-link-button" onClick={onGoToLogin}>Back to sign in</button>
+          Wrong address? <Button type="button" className="auth-link-button" onClick={onGoToLogin}>Back to sign in</Button>
         </p>
       )}
     >
@@ -72,7 +74,7 @@ export default function VerifyEmailPage({
       <form className="auth-form" onSubmit={handleSubmit}>
         <label className="field">
           <span>Email</span>
-          <input
+          <Input
             autoComplete="email"
             name="email"
             type="email"
@@ -88,7 +90,7 @@ export default function VerifyEmailPage({
 
         <label className="field">
           <span>Verification code</span>
-          <input
+          <Input
             autoComplete="one-time-code"
             inputMode="numeric"
             maxLength={6}
@@ -101,15 +103,15 @@ export default function VerifyEmailPage({
           />
         </label>
 
-        {error ? <div className="auth-error">{error}</div> : null}
+        {error ? <div className="auth-error" role="alert">{error}</div> : null}
 
         <div className="auth-actions">
-          <button className="auth-submit" type="submit" disabled={submitting}>
+          <Button className="auth-submit" type="submit" disabled={submitting}>
             {submitting ? 'Verifying...' : 'Verify email'}
-          </button>
-          <button className="btn auth-secondary" type="button" onClick={handleResend} disabled={resending}>
+          </Button>
+          <Button className="btn auth-secondary" type="button" onClick={handleResend} disabled={resending}>
             {resending ? 'Sending...' : 'Resend code'}
-          </button>
+          </Button>
         </div>
       </form>
     </AuthShell>

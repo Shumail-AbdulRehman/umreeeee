@@ -70,7 +70,7 @@ export default function PolicyCheckPicker({ entries, selected, onChange, disable
         </div>
       })}
       {!visible.length && <div className="policy-empty"><strong>{filter === 'selected' && !selected.length ? 'Your selection starts here' : 'No matching checks'}</strong>
-        <p>{filter === 'selected' && !selected.length ? 'Open All checks to choose the ones this group needs.' : 'Try another search or category. Your selections are kept.'}</p>
+        <p>{filter === 'selected' && !selected.length ? 'Open All checks to choose the ones this policy needs.' : 'Try another search or category. Your selections are kept.'}</p>
         <button className="btn" type="button" onClick={resetFilters}>Show all checks</button>
       </div>}
     </div>

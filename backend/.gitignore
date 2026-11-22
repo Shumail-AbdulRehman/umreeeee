@@ -3,3 +3,9 @@
 __pycache__/
 app.db
 .model-cache/
+.env.*
+!.env.example
+!.env.production.example
+.pytest_cache/
+*.py[cod]
+*.log

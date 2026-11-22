@@ -1,31 +1,21 @@
-import ActivityLogPage from './ActivityLogPage'
-import CatalogPage from './CatalogPage'
-import IntegrationsPage from './IntegrationsPage'
-import InventoryPage from './InventoryPage'
-import InsightsPage from './InsightsPage'
-import LatencyPage from './LatencyPage'
-import PoliciesPage, { DlpPolicyPage, GuardrailPolicyPage } from './PoliciesPage'
-import PromptStudioPage from './PromptStudioPage'
-import SettingsPage from './SettingsPage'
-import SpendPage from './SpendPage'
-import UsersPage from './UsersPage'
-import ViolationsPage from './ViolationsPage'
-import RedTeamPage from './RedTeamPage'
-
+import { lazy } from 'react'
+const PoliciesPage = lazy(() => import('./PoliciesPage'))
 export const pageRegistry = {
-  insights: InsightsPage,
-  integrations: IntegrationsPage,
-  inventory: InventoryPage,
+  insights: lazy(() => import('./InsightsPage')),
+  integrations: lazy(() => import('./IntegrationsPage')),
+  inventory: lazy(() => import('./InventoryPage')),
   policies: PoliciesPage,
-  'dlp-policy': DlpPolicyPage,
-  'guardrail-policy': GuardrailPolicyPage,
-  'prompt-studio': PromptStudioPage,
-  violations: ViolationsPage,
-  users: UsersPage,
-  'activity-log': ActivityLogPage,
-  catalog: CatalogPage,
-  latency: LatencyPage,
-  spend: SpendPage,
-  settings: SettingsPage,
-  'red-team': RedTeamPage,
+  'dlp-policy': lazy(() => import('./PoliciesPage').then((module) => ({ default: module.DlpPolicyPage }))),
+  'guardrail-policy': lazy(() => import('./PoliciesPage').then((module) => ({ default: module.GuardrailPolicyPage }))),
+  'prompt-studio': lazy(() => import('./PromptStudioPage')),
+  violations: lazy(() => import('./ViolationsPage')),
+  'user-insights': lazy(() => import('./UserInsightsPage')),
+  'my-activity': lazy(() => import('./MyActivityPage')),
+  users: lazy(() => import('./UsersPage')),
+  'activity-log': lazy(() => import('./ActivityLogPage')),
+  catalog: lazy(() => import('./CatalogPage')),
+  latency: lazy(() => import('./LatencyPage')),
+  spend: lazy(() => import('./SpendPage')),
+  settings: lazy(() => import('./SettingsPage')),
+  'red-team': lazy(() => import('./RedTeamPage')),
 }

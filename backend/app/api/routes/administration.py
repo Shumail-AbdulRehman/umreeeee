@@ -361,6 +361,71 @@ def snapshot(db, session, item):
                                    'created_at': utcnow()}, session=session)
 
 
+class PolicySetInput(StrictModel):
+    category: Literal['dlp', 'guardrail']
+    name: str = Field(min_length=2, max_length=120)
+    description: str = Field(default='', max_length=2000)
+    selected_entry_ids: list[str] = Field(min_length=1, max_length=10000)
+
+
+class PolicySetUpdate(StrictModel):
+    version: int = Field(ge=1)
+    name: str = Field(min_length=2, max_length=120)
+    description: str = Field(default='', max_length=2000)
+    selected_entry_ids: list[str] = Field(min_length=1, max_length=10000)
+
+
+class PolicySetGroups(StrictModel):
+    version: int = Field(ge=1)
+    group_ids: list[str] = Field(max_length=500)
+
+
+class PolicySetStatus(StrictModel):
+    version: int = Field(ge=1)
+    status: Literal['active', 'disabled', 'archived']
+
+
+@router.get('/policy-sets')
+def list_policy_sets(category: Literal['dlp', 'guardrail'], page: int = Query(1, ge=1),
+                     page_size: int = Query(50, ge=1, le=100),
+                     user: User = Depends(get_current_user)):
+    require_admin(user)
+    return page_result(get_database().policies, {'company_id': company_id(user),
+        'policy_set': True, 'category': category}, page, page_size)
+
+
+@router.post('/policy-sets', status_code=201)
+def create_policy_set(payload: PolicySetInput, request: Request,
+                      user: User = Depends(get_current_user)):
+    require_admin(user)
+    from app.services import policy_sets
+    return {'policy': serialize(policy_sets.create(user, payload, request.state.request_id))}
+
+
+@router.put('/policy-sets/{policy_id}')
+def update_policy_set(policy_id: str, payload: PolicySetUpdate, request: Request,
+                      user: User = Depends(get_current_user)):
+    require_admin(user)
+    from app.services import policy_sets
+    return {'policy': serialize(policy_sets.update(user, policy_id, payload, request.state.request_id))}
+
+
+@router.put('/policy-sets/{policy_id}/groups')
+def assign_policy_set(policy_id: str, payload: PolicySetGroups, request: Request,
+                      user: User = Depends(get_current_user)):
+    require_admin(user)
+    from app.services import policy_sets
+    return {'policy': serialize(policy_sets.assign(user, policy_id, payload, request.state.request_id))}
+
+
+@router.patch('/policy-sets/{policy_id}/status')
+def change_policy_set_status(policy_id: str, payload: PolicySetStatus, request: Request,
+                      user: User = Depends(get_current_user)):
+    require_admin(user)
+    from app.services import policy_sets
+    return {'policy': serialize(policy_sets.set_status(user, policy_id, payload, request.state.request_id))}
+
+
 @router.get('/policies/capabilities')
 def policy_capabilities(user: User = Depends(get_current_user)):
     require_admin(user)

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Bell, CheckCheck } from 'lucide-react'
 import { listNotifications, markNotificationRead } from '../services/observability'
-
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
+import { Button } from './ui/button'
+import { EmptyState } from './Surface'
 export default function NotificationPanel() {
   const [items, setItems] = useState([])
   const [open, setOpen] = useState(false)
@@ -21,5 +24,5 @@ export default function NotificationPanel() {
     try { await markNotificationRead(item._id); setItems((current) => current.filter((entry) => entry._id !== item._id)); setError(''); window.location.assign(item.resource_type === 'red_team_test' ? `#red-team?test=${encodeURIComponent(item.resource_id)}` : '#violations') }
     catch (problem) { setError(problem.message) }
   }
-  return <div className="notification-panel"><button className="btn" aria-expanded={open} onClick={() => setOpen(!open)}>Alerts {items.length ? `(${items.length})` : ''}</button>{open && <div className="notification-popover"><strong>Unread alerts</strong>{error && <p className="admin-error" role="alert">{error}</p>}{items.length === 0 ? <p>No unread alerts.</p> : items.map((item) => <div key={item._id}><p>{item.title}: {item.summary}</p><button className="btn" onClick={() => read(item)}>Open and mark read</button></div>)}</div>}</div>
+  return <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button variant="ghost" size="icon" className="notification-trigger" aria-label={`Alerts${items.length ? ` (${items.length} unread)` : ''}`}><Bell size={17} />{items.length > 0 && <span className="notification-count">{items.length}</span>}</Button></PopoverTrigger><PopoverContent align="end" className="notification-popover"><div className="notification-heading"><strong>Notifications</strong><span>{items.length} unread</span></div>{error && <p className="admin-error" role="alert">{error}</p>}{items.length === 0 ? <EmptyState icon={CheckCheck} title="You're all caught up" description="New policy and evaluation alerts will appear here." /> : items.map((item) => <div className="notification-item" key={item._id}><strong>{item.title}</strong><p>{item.summary}</p><Button variant="outline" size="sm" onClick={() => read(item)}>Open and mark read</Button></div>)}</PopoverContent></Popover>
 }

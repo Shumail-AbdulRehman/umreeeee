@@ -1,3 +1,5 @@
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
 import { useState } from 'react'
 
 import { loginUser } from '../../services/auth/authService'
@@ -34,7 +36,7 @@ export default function LoginPage({ onAuthenticated, onVerificationRequired }) {
 
   return (
     <AuthShell
-      eyebrow="Sentinel AI Control"
+      eyebrow="Averiq Control"
       title="Sign in to the workspace"
       subtitle="Use your account to access your organization workspace and its policy-protected prompts."
       footer={(
@@ -51,7 +53,7 @@ export default function LoginPage({ onAuthenticated, onVerificationRequired }) {
       <form className="auth-form" onSubmit={handleSubmit}>
         <label className="field">
           <span>Email</span>
-          <input
+          <Input
             autoComplete="email"
             name="email"
             type="email"
@@ -64,7 +66,7 @@ export default function LoginPage({ onAuthenticated, onVerificationRequired }) {
 
         <label className="field">
           <span>Password</span>
-          <input
+          <Input
             autoComplete="current-password"
             name="password"
             type="password"
@@ -76,16 +78,16 @@ export default function LoginPage({ onAuthenticated, onVerificationRequired }) {
         </label>
 
         <div className="auth-inline-actions">
-          <button type="button" className="auth-link-button" onClick={() => { window.location.hash = 'forgot-password' }}>
+          <Button type="button" className="auth-link-button" onClick={() => { window.location.hash = 'forgot-password' }}>
             Forgot password?
-          </button>
+          </Button>
         </div>
 
-        {error ? <div className="auth-error">{error}</div> : null}
+        {error ? <div className="auth-error" role="alert">{error}</div> : null}
 
-        <button className="auth-submit" type="submit" disabled={loading}>
+        <Button className="auth-submit" type="submit" disabled={loading}>
           {loading ? 'Signing in...' : 'Sign in'}
-        </button>
+        </Button>
       </form>
     </AuthShell>
   )

@@ -17,3 +17,8 @@ Super Admin promotion is a local command: `.venv/bin/python -m scripts.bootstrap
 Active policies now evaluate ordinary Prompt Studio requests. The application blocks matching input before contacting the provider, withholds matching or unchecked output, and persists safe decisions, incidents, and analytics. A submitted prompt needs a UUID `Idempotency-Key` header. Actual security accuracy depends on selected rules and local model readiness; review [VALIDATORS.md](../docs/VALIDATORS.md) and [EVALUATION_RESULTS.md](../docs/EVALUATION_RESULTS.md).
 
 For Phase 3 Red Team local processes, synthetic demo setup, broker troubleshooting, and the current verification boundary, use [LOCAL_DEVELOPMENT.md](../docs/LOCAL_DEVELOPMENT.md) and [TEST_RESULTS.md](../docs/TEST_RESULTS.md). RabbitMQ delivery has not yet been exercised on a live broker in this workspace.
+
+## Heroku deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) and `.env.production.example` for GitHub deployment,
+production configuration, encryption-key continuity, background processes and platform limits.

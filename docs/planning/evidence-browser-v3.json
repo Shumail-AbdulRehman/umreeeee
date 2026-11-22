@@ -1,0 +1,313 @@
+{
+  "geometry": [
+    {
+      "width": 1440,
+      "view": "conversation",
+      "overflow": false,
+      "composerVisible": true,
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Product workspace · Gemini",
+          "w": 170,
+          "h": 31
+        },
+        {
+          "tag": "SELECT",
+          "text": "gemini-2.5-flash",
+          "w": 115,
+          "h": 31
+        },
+        {
+          "tag": "SUMMARY",
+          "text": "Options",
+          "w": 75,
+          "h": 31
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send",
+          "w": 73,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "view": "new-chat",
+      "overflow": false,
+      "composerVisible": true,
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Product workspace · Gemini",
+          "w": 170,
+          "h": 31
+        },
+        {
+          "tag": "SELECT",
+          "text": "gemini-2.5-flash",
+          "w": 115,
+          "h": 31
+        },
+        {
+          "tag": "SUMMARY",
+          "text": "Options",
+          "w": 75,
+          "h": 31
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send",
+          "w": 73,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "view": "blocked",
+      "overflow": false,
+      "composerVisible": true,
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Product workspace · Gemini",
+          "w": 170,
+          "h": 31
+        },
+        {
+          "tag": "SELECT",
+          "text": "gemini-2.5-flash",
+          "w": 115,
+          "h": 31
+        },
+        {
+          "tag": "SUMMARY",
+          "text": "Options",
+          "w": 75,
+          "h": 31
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send",
+          "w": 73,
+          "h": 32
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "view": "conversation",
+      "overflow": false,
+      "composerVisible": true,
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Product workspace · Gemini",
+          "w": 120,
+          "h": 36
+        },
+        {
+          "tag": "SELECT",
+          "text": "gemini-2.5-flash",
+          "w": 120,
+          "h": 36
+        },
+        {
+          "tag": "SUMMARY",
+          "text": "Options",
+          "w": 35,
+          "h": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send",
+          "w": 35,
+          "h": 36
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "view": "new-chat",
+      "overflow": false,
+      "composerVisible": true,
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Product workspace · Gemini",
+          "w": 120,
+          "h": 36
+        },
+        {
+          "tag": "SELECT",
+          "text": "gemini-2.5-flash",
+          "w": 120,
+          "h": 36
+        },
+        {
+          "tag": "SUMMARY",
+          "text": "Options",
+          "w": 35,
+          "h": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send",
+          "w": 35,
+          "h": 36
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "view": "blocked",
+      "overflow": false,
+      "composerVisible": true,
+      "controls": [
+        {
+          "tag": "SELECT",
+          "text": "Product workspace · Gemini",
+          "w": 120,
+          "h": 36
+        },
+        {
+          "tag": "SELECT",
+          "text": "gemini-2.5-flash",
+          "w": 120,
+          "h": 36
+        },
+        {
+          "tag": "SUMMARY",
+          "text": "Options",
+          "w": 35,
+          "h": 36
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Send",
+          "w": 35,
+          "h": 36
+        }
+      ]
+    }
+  ],
+  "a11y": [
+    {
+      "width": 1440,
+      "view": "conversation",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "view": "new-chat",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "view": "blocked",
+      "violations": []
+    },
+    {
+      "width": 390,
+      "view": "conversation",
+      "violations": [
+        {
+          "id": "summary-name",
+          "impact": "serious",
+          "nodes": [
+            {
+              "target": [
+                ".generation-options > summary"
+              ],
+              "summary": "Fix any of the following:\n  Element does not have text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "view": "new-chat",
+      "violations": [
+        {
+          "id": "summary-name",
+          "impact": "serious",
+          "nodes": [
+            {
+              "target": [
+                ".generation-options > summary"
+              ],
+              "summary": "Fix any of the following:\n  Element does not have text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "view": "blocked",
+      "violations": [
+        {
+          "id": "summary-name",
+          "impact": "serious",
+          "nodes": [
+            {
+              "target": [
+                ".generation-options > summary"
+              ],
+              "summary": "Fix any of the following:\n  Element does not have text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "view": "options-open",
+      "violations": [
+        {
+          "id": "summary-name",
+          "impact": "serious",
+          "nodes": [
+            {
+              "target": [
+                ".generation-options > summary"
+              ],
+              "summary": "Fix any of the following:\n  Element does not have text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "interactions": {
+    "drawerFocusInside": true,
+    "drawerTabTrapped": true,
+    "drawerFocusReturned": true,
+    "copyCodeSuccess": "Copied",
+    "copyCodeExact": true,
+    "copyFailure": "Copy is unavailable in this preview. Select the text to copy it.",
+    "localCodeScroll": {
+      "client": 317,
+      "scroll": 2151,
+      "pageOverflow": false
+    },
+    "localTableScroll": {
+      "client": 317,
+      "scroll": 390,
+      "pageOverflow": false
+    },
+    "codeScrollMoved": true
+  },
+  "errors": [],
+  "overlay": [
+    "%c[impeccable] 35 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold",
+    "conversation: injection completed; mutable=true",
+    "%c[impeccable] 30 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold",
+    "new-chat: injection completed; mutable=true",
+    "%c[impeccable] 33 anti-patterns found color: oklch(84% 0.19 80.46); font-weight: bold",
+    "blocked: injection completed; mutable=true"
+  ]
+}

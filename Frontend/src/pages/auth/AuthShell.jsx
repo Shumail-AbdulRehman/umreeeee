@@ -1,42 +1,5 @@
-export default function AuthShell({
-  eyebrow,
-  title,
-  subtitle,
-  children,
-  footer,
-}) {
-  return (
-    <div className="auth-root">
-      <section className="auth-hero">
-        <div className="auth-badge">{eyebrow}</div>
-        <h1>{title}</h1>
-        <p>{subtitle}</p>
-        <div className="auth-hero-grid">
-          <div>
-            <span className="auth-stat-label">Security</span>
-            <strong>JWT sessions</strong>
-          </div>
-          <div>
-            <span className="auth-stat-label">Storage</span>
-            <strong>Hashed credentials</strong>
-          </div>
-          <div>
-            <span className="auth-stat-label">Access</span>
-            <strong>FastAPI REST</strong>
-          </div>
-          <div>
-            <span className="auth-stat-label">State</span>
-            <strong>Persistent login</strong>
-          </div>
-        </div>
-      </section>
-
-      <section className="auth-panel">
-        <div className="auth-card">
-          {children}
-          <div className="auth-footer">{footer}</div>
-        </div>
-      </section>
-    </div>
-  )
+import BrandMark from '../../components/BrandMark'
+import { ArrowRight, Check, LockKeyhole, MessageSquare, ShieldCheck } from 'lucide-react'
+export default function AuthShell({ eyebrow, title, subtitle, children, footer }) {
+  return <main className="auth-root"><section className="auth-hero"><a className="auth-brand" href="#login"><span className="brand-mark"><BrandMark size={21} /></span>Averiq</a><div className="auth-hero-content"><span className="auth-badge">{eyebrow}</span><h1>{title}</h1><p>{subtitle}</p><div className="auth-workflow" aria-label="The protected prompt workflow"><div><span><MessageSquare size={17} /></span><strong>Your prompt</strong><small>Start with an idea</small></div><ArrowRight size={17} aria-hidden="true" /><div><span><ShieldCheck size={17} /></span><strong>Policy checks</strong><small>Organization rules</small></div><ArrowRight size={17} aria-hidden="true" /><div><span><Check size={17} /></span><strong>Permitted reply</strong><small>After output checks</small></div></div><div className="auth-value"><LockKeyhole size={15} /><span>A workspace for thoughtful AI use.<br /><strong>Clear policies. Traceable decisions.</strong></span></div></div><footer className="auth-hero-footer"><span>Averiq workspace</span><span>Built around your organization</span></footer></section><section className="auth-panel"><a className="auth-mobile-brand" href="#login"><BrandMark size={23} />Averiq</a><div className="auth-card">{children}<div className="auth-footer">{footer}</div></div><p className="auth-panel-note">Your organization manages your access and applicable policies.</p></section></main>
 }

@@ -242,3 +242,62 @@ def test_legacy_group_only_edits_preserve_specific_check_sets(catalogs):
     assign(user, policy, [group, second])
     assert resolve_policies(db, cid, ObjectId(), [group])[0]['selected_entry_ids'] == ['example-3']
     assert len(resolve_policies(db, cid, ObjectId(), [second])[0]['selected_entry_ids']) == 5
+
+
+def test_named_policy_created_then_reused_across_groups(catalogs):
+    db, user, group, _, source = catalogs
+    cid = ObjectId(user.company.id)
+    another = ObjectId()
+    db.groups.insert_one({'_id': another, 'company_id': cid, 'status': 'active', 'name_normalized': 'another'})
+    request = SimpleNamespace(state=SimpleNamespace(request_id='named-policy-test'))
+    created = admin.create_policy_set(admin.PolicySetInput(category='dlp', name='Customer data',
+        description='Protect customer details', selected_entry_ids=['example-1', 'example-3']), request, user)['policy']
+    pid = created['_id']
+    assert created['scope']['group_ids'] == [] and created['selected_entry_ids'] == ['example-1', 'example-3']
+    assert resolve_policies(db, cid, ObjectId(), [group]) == []
+    assert admin.list_policy_sets(category='dlp', page=1, page_size=50, user=user)['total'] == 1
+    assigned = admin.assign_policy_set(pid, admin.PolicySetGroups(version=1,
+        group_ids=[str(group), str(another)]), request, user)['policy']
+    for gid in (group, another):
+        resolved = resolve_policies(db, cid, ObjectId(), [gid])
+        assert len(resolved) == 1 and resolved[0]['selected_entry_ids'] == ['example-1', 'example-3']
+    updated = admin.update_policy_set(pid, admin.PolicySetUpdate(version=2, name='Customer data',
+        description='Only financial checks', selected_entry_ids=['example-4']), request, user)['policy']
+    assert updated['scope']['group_ids'] == [str(group), str(another)]
+    assert resolve_policies(db, cid, ObjectId(), [group])[0]['selected_entry_ids'] == ['example-4']
+    with db.client.start_session() as session:
+        session.with_transaction(lambda s: import_catalogs(db, source, s))
+    assert db.policies.find_one({'_id': ObjectId(pid)})['status'] == 'active'
+    disabled = admin.change_policy_set_status(pid, admin.PolicySetStatus(version=3, status='disabled'), request, user)['policy']
+    assert disabled['status'] == 'disabled' and resolve_policies(db, cid, ObjectId(), [group]) == []
+    assert db.policy_versions.count_documents({'policy_id': ObjectId(pid)}) == 4
+
+
+def test_named_policy_rejects_invalid_checks_foreign_groups_and_stale_updates(catalogs):
+    db, user, group, foreign, _ = catalogs
+    request = SimpleNamespace(state=SimpleNamespace(request_id='policy-validation-test'))
+    for ids in (['not-in-catalog'], ['example-1', 'example-1']):
+        with pytest.raises(DomainError) as error:
+            admin.create_policy_set(admin.PolicySetInput(category='guardrail', name='Safe replies',
+                selected_entry_ids=ids), request, user)
+        assert error.value.status_code == 422
+    created = admin.create_policy_set(admin.PolicySetInput(category='guardrail', name='Safe replies',
+        selected_entry_ids=['example-2']), request, user)['policy']
+    assert db.policies.count_documents({'policy_set': True, 'company_id': ObjectId(user.company.id)}) == 1
+    with pytest.raises(DomainError) as error:
+        admin.create_policy_set(admin.PolicySetInput(category='guardrail', name='Safe replies',
+            selected_entry_ids=['example-3']), request, user)
+    assert error.value.code == 'duplicate_name'
+    for groups in ([str(foreign)], [str(group), str(group)]):
+        with pytest.raises(DomainError) as error:
+            admin.assign_policy_set(created['_id'], admin.PolicySetGroups(version=1, group_ids=groups), request, user)
+        assert error.value.status_code == 422
+    with pytest.raises(DomainError) as error:
+        admin.assign_policy_set(created['_id'], admin.PolicySetGroups(version=2, group_ids=[str(group)]), request, user)
+    assert error.value.code == 'stale_version'
+    foreign_company = db.groups.find_one({'_id': foreign})['company_id']
+    other_user = SimpleNamespace(id=str(ObjectId()), role='org_admin',
+                                 company=SimpleNamespace(id=str(foreign_company)))
+    with pytest.raises(DomainError) as error:
+        admin.assign_policy_set(created['_id'], admin.PolicySetGroups(version=1, group_ids=[str(group)]), request, other_user)
+    assert error.value.status_code == 404

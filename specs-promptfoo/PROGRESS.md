@@ -1,0 +1,35 @@
+# Red Team on promptfoo — progress tracker
+
+Planning status only. `Done` means verified and accepted (00 is a recorded decision); `Not started` means no implementation has begun. Coders append their own spec logs; the lead maintains this table.
+
+| Spec | Unit | Status |
+| --- | --- | --- |
+| 00 | Planner decisions | Done |
+| 01 | Runtime and Heroku setup | Not started |
+| 02 | Plugin and strategy catalog | Not started |
+| 03 | Framework compliance | Not started |
+| 04 | Config and environment builder | Not started |
+| 05 | Results parser | Not started |
+| 06 | Report aggregation | Not started |
+| 07 | Frontend client service and labels | Not started |
+| 08 | Bridge provider | Not started |
+| 09 | Bridge server | Not started |
+| 10 | Runner | Not started |
+| 11 | Test editor | Not started |
+| 12 | Test list and run progress | Not started |
+| 13 | Report summary, plugin table and strategy breakdown | Not started |
+| 14 | Compliance tabs | Not started |
+| 15 | Results table and attack detail | Not started |
+| 16 | Service, schemas, routes and indexes | Not started |
+| 17 | Worker and recovery | Not started |
+| 18 | Red Team page integration | Not started |
+| 19 | Archive legacy data and remove old engine | Not started |
+| 20 | End-to-end suite | Not started |
+| 21 | Verification pass | Not started |
+
+## Log
+
+- **2026-11-22**: Recorded the planner's decisions and drafted 01–21, steering docs and the dependency graph. Execution specs describe offline artifact handling and fixture proof only; see `README.md` for deviations. No application changes or live tests.
+
+- **2026-11-22**: Planner (Claude) restored the live scope: rewrote specs 04, 08, 09, 10, 16, 17 and 21 and patched 01-03, 05, 07, 11, 18, 20, README and AGENT-GUIDE after the spec-writing Codex session had narrowed them to offline replay. Spec 10 now depends on 05; spec 16 on 01. Implementer split: Claude implements 04, 08, 09, 10, 16, 17, 21; Codex the rest. Validator: 0 errors, 31 warnings (justified in README Known gaps).
+- **2026-11-22**: Planner review of Codex-written specs 01-03, 05-07, 11-15, 18-20: removed remaining offline-only wording in 07, 11, 12, 13, 15, 18, 20 (editor Launch action, live progress phases, clone evaluates stored suite, worker pipeline e2e). Validator re-run: see docs/planning/promptfoo/validator.md.
