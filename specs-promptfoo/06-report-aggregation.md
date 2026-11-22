@@ -1,6 +1,6 @@
 # Spec 06 — Report aggregation
 
-**Status:** Not started
+**Status:** Blocked
 **Depends on:** Spec 02, Spec 03
 **Model:** Heavy — `claude-opus-5-5` · `gpt-6.2-sol` · `gemini-4-argon`
 **Issue:** —
@@ -42,3 +42,16 @@ Produce the report for stored defensive results as a deterministic, database-fre
 - [ ] `cd backend && .venv/bin/python -m pytest -q tests/unit` passes; log the count. [unit]
 - [ ] `cd backend && .venv/bin/python -m compileall -q app` passes. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+### 2026-11-22
+
+- Implementation is blocked by the dependency gate in `AGENT-GUIDE.md`. Spec 02 owns the required plugin and strategy catalog and is `Not started`. Both `backend/app/red_team/catalog.py` and `backend/app/red_team/promptfoo_catalog.json` are absent. Spec 03 owns the framework compliance API and is `In progress`. Its implementation and inventory fragment are present. Both dependencies must be `Done` before implementing this spec.
+- Read installed `node_modules/promptfoo/package.json` directly and verified the package name `promptfoo` and version `0.126.0`. Checked the local `score_plugin`, `score_system`, `round_half_up`, and `compliance` definitions. No package runtime was invoked for this review.
+- `cd backend && .venv/bin/python -m pytest -q tests/unit/test_red_team_report.py` exited 4. The required test file is absent and zero tests ran in 0.01 s.
+- The aggregator import inspection is blocked because `backend/app/services/red_team_report.py` does not exist.
+- `cd backend && .venv/bin/python -m pytest -q tests/unit` exited 0 with 542 passed and 8 warnings in 15.49 s.
+- `cd backend && .venv/bin/python -m compileall -q app` exited 0.
+- `cd Frontend && npm run build` exited 0 in 6.23 s with 2,941 modules transformed. Vite warned about the undefined `compareRedTeamTests` import in `RedTeamPage.jsx` and reported plugin timing warnings.
+- These are baseline results. This spec has no MongoDB integration checks.

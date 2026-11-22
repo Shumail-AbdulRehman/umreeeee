@@ -1,6 +1,6 @@
 # Spec 12 — Test list and run progress
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 07
 **Model:** Standard — `claude-sonnet-5-5` · `gpt-6.2-sol` · `gemini-3.8-flash`
 **Issue:** —

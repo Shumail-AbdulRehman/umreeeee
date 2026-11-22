@@ -1,143 +1,166 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { formatNumber, formatPercent } from '../../lib/format.js'
-import { notScored, statusLabel, verdictLabel } from './labels.js'
+import { evidenceSourceLabel, phaseLabel, statusLabel, verdictLabel } from './labels.js'
 import './red-team.css'
 
-const num = (value) => Number(value) || 0
+const ACTIVE_STATUSES = new Set(['queued', 'generating', 'running', 'cancelling'])
+const PHASE_BY_STATUS = { generating: 'generating', running: 'evaluating' }
+const isCount = (value) => Number.isInteger(value) && value >= 0
 
-function Badge({ info }) {
+function CancelRun({ busy, onCancel }) {
+  const [open, setOpen] = useState(false)
+  const confirmed = useRef(false)
+
+  const changeOpen = (nextOpen) => {
+    if (nextOpen) {
+      if (busy) return
+      confirmed.current = false
+    }
+    setOpen(nextOpen)
+  }
+
+  const confirm = () => {
+    if (busy || confirmed.current) return
+    confirmed.current = true
+    setOpen(false)
+    onCancel()
+  }
+
   return (
-    <span className={`rt-badge rt-badge-sm rt-tone-${info.tone}${info.judged ? ' rt-judged' : ''}`}>
-      {info.missing ? <><span aria-hidden="true">–</span><span className="rt-sr-only">{notScored}</span></> : info.label}
-    </span>
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" className="min-h-11 sm:min-h-0 aria-disabled:opacity-50" aria-disabled={busy}>Cancel test</Button>
+      </DialogTrigger>
+      <DialogContent className="rt-dialog overflow-y-auto motion-reduce:animate-none" showCloseButton={false}>
+        <div className="rt-panel-body grid gap-2">
+          <DialogTitle>Cancel this test?</DialogTitle>
+          <DialogDescription>Completed results are kept. Cancellation may take time while work is in progress.</DialogDescription>
+        </div>
+        <DialogFooter className="rt-panel-foot">
+          <DialogClose asChild><Button type="button" variant="outline" className="min-h-11 sm:min-h-0">Keep running</Button></DialogClose>
+          <Button type="button" variant="destructive" className="min-h-11 sm:min-h-0" onClick={confirm} disabled={busy}>Cancel test</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function remainingMinutes(progress, requestsPerMinute) {
-  const left = num(progress?.queued) + num(progress?.running) + num(progress?.retry_wait)
-  const pace = Number(requestsPerMinute)
-  if (!left || !(pace > 0)) return null
-  return Math.ceil(left / pace)
+function LatestResults({ rows }) {
+  return (
+    <section className="rt-panel">
+      <div className="rt-panel-head"><h2 id="rt-latest-title" className="rt-panel-title">Latest results</h2></div>
+      {rows.length === 0 ? <p className="rt-empty">No results recorded yet.</p> : (
+        <div className="rt-table-region" role="region" tabIndex={0} aria-labelledby="rt-latest-title">
+          <table className="rt-table">
+            <thead><tr><th scope="col" className="rt-num">#</th><th scope="col">Plugin</th><th scope="col">Verdict</th><th scope="col">Strategy</th><th scope="col">Evidence</th></tr></thead>
+            <tbody>
+              {rows.map((row) => {
+                const verdict = verdictLabel(row.verdict, row)
+                const source = row.verdict_source && evidenceSourceLabel(row.verdict_source).label
+                const index = row.attack_index ?? (isCount(row.test_idx) ? row.test_idx + 1 : '—')
+                return (
+                  <tr key={row.id}>
+                    <td data-label="#" className="rt-num">{index}</td>
+                    <td data-label="Plugin"><strong>{row.plugin_name || row.plugin_id || '—'}</strong></td>
+                    <td data-label="Verdict"><span className={`rt-badge rt-tone-${verdict.tone}`}>{verdict.label}</span></td>
+                    <td data-label="Strategy">{row.strategy_name || row.strategy_id || '—'}</td>
+                    <td data-label="Evidence">
+                      {source && <><strong>{source}</strong>{' '}</>}
+                      {row.grader_reason || row.evidence || (row.verdict === 'pending' || row.verdict === 'judging' ? 'Awaiting grade' : !source && '—')}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
 }
 
 export default function RunProgress({
   test,
   provisional,
   latest = [],
-  requestsPerMinute,
+  elapsedSeconds,
   updatedAgo,
   dispatchPending = false,
   busy = false,
   onCancel,
 }) {
-  const [open, setOpen] = useState(false)
-  const progress = test?.progress || {}
-  const total = num(progress.total_jobs)
-  const finished = num(progress.finished ?? progress.terminal_jobs)
-  const queued = num(progress.queued)
-  const running = num(progress.running)
-  const retry = num(progress.retry_wait)
-  const fraction = total > 0 ? Math.min(1, finished / total) : 0
-  const minutes = remainingMinutes(progress, requestsPerMinute)
-  const status = statusLabel(test?.status, Math.round(fraction * 100))
-  const decided = num(provisional?.decided)
-  const worked = num(provisional?.worked)
-  const pace = Number(requestsPerMinute)
-
-  const confirm = () => {
-    setOpen(false)
-    onCancel?.()
-  }
+  const status = test?.status
+  const active = ACTIVE_STATUSES.has(status)
+  const phase = active && status !== 'cancelling' ? test?.progress?.phase ?? PHASE_BY_STATUS[status] : null
+  const label = phase ? phaseLabel(phase).label : statusLabel(status).label
+  const evaluating = phase === 'evaluating'
+  const importing = phase === 'importing'
+  const counts = test?.counts ?? test?.progress
+  const planned = isCount(counts?.planned) && counts.planned > 0 ? counts.planned : undefined
+  const executed = isCount(counts?.executed) ? Math.min(counts.executed, planned ?? counts.executed) : undefined
+  const graded = isCount(counts?.graded) ? Math.min(counts.graded, executed ?? planned ?? counts.graded) : undefined
+  const determinate = (evaluating || importing) && planned !== undefined && executed !== undefined
+  const progressText = determinate ? `${formatNumber(executed)}/${formatNumber(planned)}` : undefined
+  const decided = isCount(provisional?.decided) ? provisional.decided : undefined
+  const worked = isCount(provisional?.worked) ? provisional.worked : undefined
+  const rate = provisional?.attack_success_rate
+  const successKnown = decided > 0 && Number.isFinite(rate) && rate >= 0 && rate <= 1
 
   return (
-    <div className="rt-run">
-      <div className="rt-panel-head">
-        <Badge info={status} />
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <button type="button" className="rt-chip rt-press" disabled={busy}>Cancel test</button>
-          </DialogTrigger>
-          <DialogContent className="rt-dialog" showCloseButton={false}>
-            <div className="rt-panel-body">
-              <DialogTitle>Cancel this test?</DialogTitle>
-              <DialogDescription className="rt-sr-only">Choose whether to stop the remaining attacks.</DialogDescription>
-              <ul className="rt-banner rt-tone-fail">
-                <li>The {formatNumber(queued)} queued attacks will not run.</li>
-                <li>The attack in progress may still finish, and may cost money.</li>
-                <li>The {formatNumber(finished)} finished results stay in the report, marked as a cancelled run with no final score.</li>
-              </ul>
-            </div>
-            <DialogFooter className="rt-panel-foot">
-              <DialogClose asChild><button type="button" className="rt-chip rt-press">Keep running</button></DialogClose>
-              <button type="button" className="rt-chip rt-press rt-tone-fail" onClick={confirm} disabled={busy}>Cancel test</button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
+    <div className="grid gap-4">
       <section className="rt-panel" aria-labelledby="rt-run-title">
         <div className="rt-panel-head">
-          <h2 id="rt-run-title" className="rt-panel-title">Running</h2>
-          <strong className="rt-num">{formatNumber(finished)} of {formatNumber(total)} finished</strong>
+          <h2 id="rt-run-title" className="rt-panel-title rt-num">
+            {evaluating && progressText ? `${label} ${progressText}` : label}
+          </h2>
+          {active && onCancel && <CancelRun busy={busy || status === 'cancelling'} onCancel={onCancel} />}
         </div>
-        <div className="rt-panel-body">
-          <div className="rt-progress" role="progressbar" aria-label="Finished attacks" aria-valuemin={0} aria-valuemax={total} aria-valuenow={finished}>
-            <span style={{ '--rt-progress': fraction }} />
+        <span role="status" aria-live="polite" className="rt-sr-only">{label}</span>
+        {active && (
+          <div className="rt-panel-body grid gap-3 pt-0">
+            <div className="rt-progress" role="progressbar" aria-label="Executed attacks"
+              aria-valuemin={determinate ? 0 : undefined} aria-valuemax={determinate ? planned : undefined}
+              aria-valuenow={determinate ? executed : undefined}
+              aria-valuetext={determinate ? `${formatNumber(executed)} of ${formatNumber(planned)} executed` : undefined}>
+              {determinate && <div className="h-full rounded-full transition-[width] duration-250 ease-linear motion-reduce:transition-none"
+                style={{ width: `${executed / planned * 100}%`, backgroundColor: 'var(--rt-accent)' }} />}
+            </div>
+            {(evaluating || importing) && (
+              <dl className="flex flex-wrap gap-x-6 gap-y-2">
+                <div><dt className="rt-panel-note">Executed</dt><dd className="rt-num">{formatNumber(executed)}</dd></div>
+                <div><dt className="rt-panel-note">Planned</dt><dd className="rt-num">{planned === undefined ? 'Total pending' : formatNumber(planned)}</dd></div>
+                <div><dt className="rt-panel-note">Graded</dt><dd className="rt-num">{formatNumber(graded)}</dd></div>
+              </dl>
+            )}
+            {(isCount(elapsedSeconds) || isCount(updatedAgo)) && (
+              <div className="rt-panel-note flex flex-wrap gap-x-4">
+                {isCount(elapsedSeconds) && <span>Elapsed {formatNumber(elapsedSeconds)} s</span>}
+                {isCount(updatedAgo) && <span>Updated {formatNumber(updatedAgo)} s ago</span>}
+              </div>
+            )}
+            {status === 'queued' && dispatchPending && <p className="rt-panel-note">Waiting for the worker to pick up this test.</p>}
           </div>
-          <dl className="rt-run-counts">
-            <div><dt>Finished</dt><dd className="rt-num">{formatNumber(finished)}</dd></div>
-            <div><dt>Running</dt><dd className="rt-num">{formatNumber(running)}</dd></div>
-            <div><dt>Queued</dt><dd className="rt-num">{formatNumber(queued)}</dd></div>
-            <div><dt>Waiting to retry</dt><dd className="rt-num">{formatNumber(retry)}</dd></div>
-          </dl>
-          <p className="rt-panel-note">
-            {pace > 0 ? `One attack runs at a time, up to ${pace} per minute` : 'Attacks run one at a time'}
-            {minutes != null ? `, so about ${minutes} ${minutes === 1 ? 'minute' : 'minutes'} remain` : ''}
-            . You can leave this page; the test keeps running.{' '}
-            <span aria-live="polite">{updatedAgo != null ? `Updated ${updatedAgo} s ago.` : ''}</span>
+        )}
+      </section>
+
+      {active && (
+        <section aria-label="Provisional figures" className="rt-panel rt-panel-body">
+          <h2 className="rt-panel-title">Attack success so far</h2>
+          <div className="rt-kpi-value mt-1">
+            <strong>{successKnown ? formatPercent(rate) : '—'}</strong>
+            <span className="rt-badge rt-badge-sm rt-tone-neutral">Provisional</span>
+          </div>
+          <p className="rt-panel-note mt-1">
+            {decided > 0 && worked !== undefined && worked <= decided
+              ? `${formatNumber(worked)} of ${formatNumber(decided)} decided attacks succeeded.`
+              : decided === 0 ? 'No attacks have been decided yet.' : 'Attack success is unavailable.'}
           </p>
-          {dispatchPending && <p className="rt-banner rt-tone-accent">Waiting for the queue to pick this test up. That is not a result.</p>}
-        </div>
-      </section>
+        </section>
+      )}
 
-      <section aria-label="Provisional figures" className="rt-run-kpis">
-        <article className="rt-panel rt-panel-body">
-          <h2 className="rt-panel-title">Attacks that worked so far</h2>
-          <div className="rt-kpi-value"><strong>{decided > 0 ? formatPercent(provisional?.attack_success_rate) : '–'}</strong><span className="rt-badge rt-badge-sm rt-tone-neutral">Provisional</span></div>
-          <p className="rt-panel-note">{formatNumber(worked)} of {formatNumber(decided)} decided.</p>
-        </article>
-        <article className="rt-panel rt-panel-body">
-          <h2 className="rt-panel-title">Decided so far</h2>
-          <div className="rt-kpi-value"><strong>{formatNumber(decided)}</strong><span className="rt-kpi-of">of {formatNumber(num(provisional?.finished ?? finished))} finished</span></div>
-          <p className="rt-panel-note">The rest are waiting for the judge or inconclusive.</p>
-        </article>
-        <article className="rt-panel rt-panel-body">
-          <h2 className="rt-panel-title">Overall risk</h2>
-          <div className="rt-kpi-value"><strong className="rt-muted">Not yet</strong></div>
-          <p className="rt-panel-note">Calculated when the test finishes, so a partial run never shows a final score.</p>
-        </article>
-      </section>
-
-      <section className="rt-panel" aria-labelledby="rt-latest-title">
-        <div className="rt-panel-head"><h2 id="rt-latest-title" className="rt-panel-title">Latest results</h2></div>
-        <div className="rt-table-region" role="region" tabIndex={0} aria-labelledby="rt-latest-title">
-          <table className="rt-table">
-            <thead><tr><th className="rt-num">#</th><th>Plugin</th><th>Verdict</th><th>Strategy</th><th>Evidence</th></tr></thead>
-            <tbody>
-              {latest.map((row) => (
-                <tr key={row.id}>
-                  <td data-label="#" className="rt-num">{row.attack_index}</td>
-                  <td data-label="Plugin"><strong>{row.plugin_name}</strong></td>
-                  <td data-label="Verdict"><Badge info={verdictLabel(row.verdict, { verdict_source: row.verdict_source })} /></td>
-                  <td data-label="Strategy">{row.strategy_name}</td>
-                  <td data-label="Evidence">{row.evidence || (row.state === 'judging' || row.verdict === 'pending' ? 'Waiting for the judge' : '')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <LatestResults rows={latest} />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 # Spec 03 — Framework compliance from promptfoo's mapping
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 01
 **Model:** Standard — `claude-sonnet-5-5` · `gpt-6.2-sol` · `gemini-3.8-flash`
 **Issue:** —
@@ -39,3 +39,16 @@ Calculate framework coverage from imported defensive results, never equating a r
 - [ ] `cd backend && .venv/bin/python -m pytest -q tests/unit` passes; log the count. [unit]
 - [ ] `cd backend && .venv/bin/python -m compileall -q app` and `.venv/bin/python -m py_compile scripts/extract_promptfoo_frameworks.py` pass. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+### 2026-11-22
+
+- Verified the installed `node_modules/promptfoo/package.json` name, version `0.126.0`, and MIT license notice. Read the four mapping objects in `dist/src/tables-DdCbyxUP.js`, including the separate ATLAS AI Attack Staging object and the distinct legacy alias. Read exact OWASP control titles and verified the default pass threshold of 1 and `harmful` collection expansion in `dist/src/app/assets/index-Cvjh7gqz.js`. The static extractor reads these versioned chunks as text. It preserves package control IDs and mapping order, derives NIST, ATLAS and EU display titles from the shipped IDs, and includes the package license notice.
+- Implemented the capability catalog and pure compliance tally in `backend/app/red_team/framework_compliance.py`. Explicit historical selections can contribute stored decisions when current offerings change. The current offered and selected scopes supply coverage-gap reasons. Reusable signatures are in `specs-promptfoo/inventory/03-framework-compliance.md`.
+- `cd backend && .venv/bin/python -m pytest -q tests/unit/test_framework_compliance.py` returned 12 passed in 0.09 s using synthetic counts.
+- `cd backend && .venv/bin/python scripts/extract_promptfoo_frameworks.py --check` exited 0 and reported a byte-for-byte match. The JSON contains 61 controls across four frameworks (OWASP 10, NIST 21, MITRE ATLAS 16, EU AI Act 14).
+- `cd backend && .venv/bin/python -m pytest -q tests/unit` returned 542 passed and 8 deprecation warnings in 9.46 s.
+- From `backend/`, `.venv/bin/python -m compileall -q app` and `.venv/bin/python -m py_compile scripts/extract_promptfoo_frameworks.py` both exited 0.
+- `cd Frontend && npm run build` exited 0 in 5.17 s with 2,941 modules transformed. Vite warned about the existing missing `compareRedTeamTests` export used by `RedTeamPage.jsx` and reported plugin timing warnings.
+- All five Done-when checks passed. This spec has zero MongoDB integration checks.

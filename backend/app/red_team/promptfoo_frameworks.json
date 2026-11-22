@@ -1,0 +1,713 @@
+{
+  "source": "promptfoo 0.126.0",
+  "license": "Copyright (c) Promptfoo 2025\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+  "frameworks": [
+    {
+      "id": "owasp",
+      "promptfoo_id": "owasp:llm",
+      "name": "OWASP LLM Top 10 2025",
+      "controls": [
+        {
+          "key": "llm01",
+          "id": "owasp:llm:01",
+          "name": "Prompt Injection",
+          "plugins": [
+            "ascii-smuggling",
+            "indirect-prompt-injection",
+            "prompt-extraction",
+            "harmful"
+          ]
+        },
+        {
+          "key": "llm02",
+          "id": "owasp:llm:02",
+          "name": "Sensitive Information Disclosure",
+          "plugins": [
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social",
+            "harmful:privacy",
+            "cross-session-leak",
+            "prompt-extraction"
+          ]
+        },
+        {
+          "key": "llm03",
+          "id": "owasp:llm:03",
+          "name": "Supply Chain",
+          "plugins": []
+        },
+        {
+          "key": "llm04",
+          "id": "owasp:llm:04",
+          "name": "Data and Model Poisoning",
+          "plugins": [
+            "harmful:misinformation-disinformation",
+            "harmful:hate",
+            "bias:age",
+            "bias:disability",
+            "bias:gender",
+            "bias:race",
+            "harmful:radicalization",
+            "harmful:specialized-advice"
+          ]
+        },
+        {
+          "key": "llm05",
+          "id": "owasp:llm:05",
+          "name": "Improper Output Handling",
+          "plugins": [
+            "shell-injection",
+            "sql-injection",
+            "ssrf",
+            "debug-access"
+          ]
+        },
+        {
+          "key": "llm06",
+          "id": "owasp:llm:06",
+          "name": "Excessive Agency",
+          "plugins": [
+            "excessive-agency",
+            "rbac",
+            "bfla",
+            "bola",
+            "shell-injection",
+            "sql-injection",
+            "ssrf"
+          ]
+        },
+        {
+          "key": "llm07",
+          "id": "owasp:llm:07",
+          "name": "System Prompt Leakage",
+          "plugins": [
+            "prompt-extraction",
+            "rbac",
+            "harmful:privacy",
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social"
+          ]
+        },
+        {
+          "key": "llm08",
+          "id": "owasp:llm:08",
+          "name": "Vector and Embedding Weaknesses",
+          "plugins": [
+            "cross-session-leak",
+            "harmful:privacy",
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social"
+          ]
+        },
+        {
+          "key": "llm09",
+          "id": "owasp:llm:09",
+          "name": "Misinformation",
+          "plugins": [
+            "hallucination",
+            "overreliance",
+            "harmful:misinformation-disinformation",
+            "harmful:specialized-advice"
+          ]
+        },
+        {
+          "key": "llm10",
+          "id": "owasp:llm:10",
+          "name": "Unbounded Consumption",
+          "plugins": [
+            "divergent-repetition",
+            "reasoning-dos"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nist",
+      "promptfoo_id": "nist:ai:measure",
+      "name": "NIST AI RMF",
+      "controls": [
+        {
+          "key": "measure-1.1",
+          "id": "nist:ai:measure:1.1",
+          "name": "Measure 1.1",
+          "plugins": [
+            "excessive-agency",
+            "harmful:misinformation-disinformation"
+          ]
+        },
+        {
+          "key": "measure-1.2",
+          "id": "nist:ai:measure:1.2",
+          "name": "Measure 1.2",
+          "plugins": [
+            "excessive-agency",
+            "harmful:misinformation-disinformation"
+          ]
+        },
+        {
+          "key": "measure-2.1",
+          "id": "nist:ai:measure:2.1",
+          "name": "Measure 2.1",
+          "plugins": [
+            "harmful:privacy",
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social"
+          ]
+        },
+        {
+          "key": "measure-2.2",
+          "id": "nist:ai:measure:2.2",
+          "name": "Measure 2.2",
+          "plugins": [
+            "harmful:privacy",
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social"
+          ]
+        },
+        {
+          "key": "measure-2.3",
+          "id": "nist:ai:measure:2.3",
+          "name": "Measure 2.3",
+          "plugins": [
+            "excessive-agency"
+          ]
+        },
+        {
+          "key": "measure-2.4",
+          "id": "nist:ai:measure:2.4",
+          "name": "Measure 2.4",
+          "plugins": [
+            "excessive-agency",
+            "harmful:misinformation-disinformation"
+          ]
+        },
+        {
+          "key": "measure-2.5",
+          "id": "nist:ai:measure:2.5",
+          "name": "Measure 2.5",
+          "plugins": [
+            "excessive-agency"
+          ]
+        },
+        {
+          "key": "measure-2.6",
+          "id": "nist:ai:measure:2.6",
+          "name": "Measure 2.6",
+          "plugins": [
+            "harmful:chemical-biological-weapons",
+            "harmful:indiscriminate-weapons",
+            "harmful:unsafe-practices"
+          ]
+        },
+        {
+          "key": "measure-2.7",
+          "id": "nist:ai:measure:2.7",
+          "name": "Measure 2.7",
+          "plugins": [
+            "harmful:cybercrime",
+            "shell-injection",
+            "sql-injection"
+          ]
+        },
+        {
+          "key": "measure-2.8",
+          "id": "nist:ai:measure:2.8",
+          "name": "Measure 2.8",
+          "plugins": [
+            "bfla",
+            "bola",
+            "rbac"
+          ]
+        },
+        {
+          "key": "measure-2.9",
+          "id": "nist:ai:measure:2.9",
+          "name": "Measure 2.9",
+          "plugins": [
+            "excessive-agency"
+          ]
+        },
+        {
+          "key": "measure-2.10",
+          "id": "nist:ai:measure:2.10",
+          "name": "Measure 2.10",
+          "plugins": [
+            "harmful:privacy",
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social"
+          ]
+        },
+        {
+          "key": "measure-2.11",
+          "id": "nist:ai:measure:2.11",
+          "name": "Measure 2.11",
+          "plugins": [
+            "harmful:harassment-bullying",
+            "harmful:hate",
+            "harmful:insults"
+          ]
+        },
+        {
+          "key": "measure-2.12",
+          "id": "nist:ai:measure:2.12",
+          "name": "Measure 2.12",
+          "plugins": []
+        },
+        {
+          "key": "measure-2.13",
+          "id": "nist:ai:measure:2.13",
+          "name": "Measure 2.13",
+          "plugins": [
+            "excessive-agency"
+          ]
+        },
+        {
+          "key": "measure-3.1",
+          "id": "nist:ai:measure:3.1",
+          "name": "Measure 3.1",
+          "plugins": [
+            "excessive-agency",
+            "harmful:misinformation-disinformation"
+          ]
+        },
+        {
+          "key": "measure-3.2",
+          "id": "nist:ai:measure:3.2",
+          "name": "Measure 3.2",
+          "plugins": [
+            "excessive-agency"
+          ]
+        },
+        {
+          "key": "measure-3.3",
+          "id": "nist:ai:measure:3.3",
+          "name": "Measure 3.3",
+          "plugins": [
+            "excessive-agency"
+          ]
+        },
+        {
+          "key": "measure-4.1",
+          "id": "nist:ai:measure:4.1",
+          "name": "Measure 4.1",
+          "plugins": [
+            "excessive-agency"
+          ]
+        },
+        {
+          "key": "measure-4.2",
+          "id": "nist:ai:measure:4.2",
+          "name": "Measure 4.2",
+          "plugins": [
+            "excessive-agency",
+            "harmful:misinformation-disinformation"
+          ]
+        },
+        {
+          "key": "measure-4.3",
+          "id": "nist:ai:measure:4.3",
+          "name": "Measure 4.3",
+          "plugins": [
+            "excessive-agency"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "atlas",
+      "promptfoo_id": "mitre:atlas",
+      "name": "MITRE ATLAS",
+      "controls": [
+        {
+          "key": "ai-attack-staging",
+          "id": "mitre:atlas:ai-attack-staging",
+          "name": "AI Attack Staging",
+          "plugins": [
+            "ascii-smuggling",
+            "excessive-agency",
+            "harmful:cybercrime:malicious-code",
+            "hallucination",
+            "indirect-prompt-injection",
+            "rag-poisoning"
+          ]
+        },
+        {
+          "key": "ai-model-access",
+          "id": "mitre:atlas:ai-model-access",
+          "name": "AI Model Access",
+          "plugins": []
+        },
+        {
+          "key": "collection",
+          "id": "mitre:atlas:collection",
+          "name": "Collection",
+          "plugins": [
+            "data-exfil",
+            "harmful:privacy",
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social",
+            "prompt-extraction",
+            "rag-document-exfiltration"
+          ]
+        },
+        {
+          "key": "command-and-control",
+          "id": "mitre:atlas:command-and-control",
+          "name": "Command And Control",
+          "plugins": [
+            "excessive-agency",
+            "harmful:cybercrime",
+            "harmful:cybercrime:malicious-code",
+            "mcp",
+            "shell-injection",
+            "ssrf"
+          ]
+        },
+        {
+          "key": "credential-access",
+          "id": "mitre:atlas:credential-access",
+          "name": "Credential Access",
+          "plugins": [
+            "data-exfil",
+            "harmful:privacy",
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social",
+            "prompt-extraction",
+            "rag-document-exfiltration",
+            "tool-discovery"
+          ]
+        },
+        {
+          "key": "defense-evasion",
+          "id": "mitre:atlas:defense-evasion",
+          "name": "Defense Evasion",
+          "plugins": [
+            "ascii-smuggling",
+            "hijacking",
+            "imitation",
+            "rag-source-attribution",
+            "special-token-injection"
+          ]
+        },
+        {
+          "key": "discovery",
+          "id": "mitre:atlas:discovery",
+          "name": "Discovery",
+          "plugins": [
+            "debug-access",
+            "model-identification",
+            "prompt-extraction",
+            "system-prompt-override",
+            "tool-discovery"
+          ]
+        },
+        {
+          "key": "execution",
+          "id": "mitre:atlas:execution",
+          "name": "Execution",
+          "plugins": [
+            "excessive-agency",
+            "hijacking",
+            "indirect-prompt-injection",
+            "mcp",
+            "shell-injection",
+            "sql-injection",
+            "ssrf",
+            "system-prompt-override",
+            "tool-discovery"
+          ]
+        },
+        {
+          "key": "exfiltration",
+          "id": "mitre:atlas:exfiltration",
+          "name": "Exfiltration",
+          "plugins": [
+            "ascii-smuggling",
+            "cross-session-leak",
+            "data-exfil",
+            "harmful:privacy",
+            "indirect-prompt-injection",
+            "pii:api-db",
+            "pii:direct",
+            "pii:session",
+            "pii:social",
+            "prompt-extraction",
+            "rag-document-exfiltration"
+          ]
+        },
+        {
+          "key": "impact",
+          "id": "mitre:atlas:impact",
+          "name": "Impact",
+          "plugins": [
+            "divergent-repetition",
+            "excessive-agency",
+            "harmful",
+            "hijacking",
+            "imitation",
+            "reasoning-dos"
+          ]
+        },
+        {
+          "key": "initial-access",
+          "id": "mitre:atlas:initial-access",
+          "name": "Initial Access",
+          "plugins": [
+            "debug-access",
+            "harmful:cybercrime",
+            "indirect-prompt-injection",
+            "mcp",
+            "shell-injection",
+            "sql-injection",
+            "ssrf"
+          ]
+        },
+        {
+          "key": "lateral-movement",
+          "id": "mitre:atlas:lateral-movement",
+          "name": "Lateral Movement",
+          "plugins": [
+            "bfla",
+            "bola",
+            "harmful:cybercrime",
+            "rbac"
+          ]
+        },
+        {
+          "key": "persistence",
+          "id": "mitre:atlas:persistence",
+          "name": "Persistence",
+          "plugins": [
+            "agentic:memory-poisoning",
+            "cross-session-leak",
+            "indirect-prompt-injection",
+            "rag-poisoning",
+            "system-prompt-override"
+          ]
+        },
+        {
+          "key": "privilege-escalation",
+          "id": "mitre:atlas:privilege-escalation",
+          "name": "Privilege Escalation",
+          "plugins": [
+            "bfla",
+            "bola",
+            "debug-access",
+            "excessive-agency",
+            "mcp",
+            "rbac",
+            "shell-injection",
+            "system-prompt-override"
+          ]
+        },
+        {
+          "key": "reconnaissance",
+          "id": "mitre:atlas:reconnaissance",
+          "name": "Reconnaissance",
+          "plugins": [
+            "competitors",
+            "model-identification",
+            "policy",
+            "prompt-extraction",
+            "rbac"
+          ]
+        },
+        {
+          "key": "resource-development",
+          "id": "mitre:atlas:resource-development",
+          "name": "Resource Development",
+          "plugins": [
+            "harmful:chemical-biological-weapons",
+            "harmful:cybercrime",
+            "harmful:cybercrime:malicious-code",
+            "harmful:illegal-drugs",
+            "harmful:indiscriminate-weapons"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eu",
+      "promptfoo_id": "eu:ai-act",
+      "name": "EU AI Act",
+      "controls": [
+        {
+          "key": "art5-subliminal-manipulation",
+          "id": "eu:ai-act:art5:subliminal-manipulation",
+          "name": "Art. 5 · Subliminal Manipulation",
+          "plugins": [
+            "hijacking",
+            "intent",
+            "excessive-agency",
+            "harmful:misinformation-disinformation"
+          ]
+        },
+        {
+          "key": "art5-exploitation-of-vulnerabilities",
+          "id": "eu:ai-act:art5:exploitation-of-vulnerabilities",
+          "name": "Art. 5 · Exploitation Of Vulnerabilities",
+          "plugins": [
+            "hijacking",
+            "imitation",
+            "harmful:misinformation-disinformation",
+            "bias:age",
+            "bias:disability"
+          ]
+        },
+        {
+          "key": "art5-social-scoring",
+          "id": "eu:ai-act:art5:social-scoring",
+          "name": "Art. 5 · Social Scoring",
+          "plugins": [
+            "harmful:misinformation-disinformation",
+            "overreliance",
+            "bias:age",
+            "bias:gender",
+            "bias:race",
+            "bias:disability"
+          ]
+        },
+        {
+          "key": "art5-biometric-categorisation",
+          "id": "eu:ai-act:art5:biometric-categorisation",
+          "name": "Art. 5 · Biometric Categorisation",
+          "plugins": [
+            "pii:direct",
+            "pii:session",
+            "harmful:privacy"
+          ]
+        },
+        {
+          "key": "art5-remote-biometric-id-live",
+          "id": "eu:ai-act:art5:remote-biometric-id-live",
+          "name": "Art. 5 · Remote Biometric ID Live",
+          "plugins": [
+            "pii:session",
+            "pii:direct",
+            "harmful:privacy"
+          ]
+        },
+        {
+          "key": "art5-remote-biometric-id-post",
+          "id": "eu:ai-act:art5:remote-biometric-id-post",
+          "name": "Art. 5 · Remote Biometric ID Post",
+          "plugins": [
+            "pii:api-db",
+            "pii:direct",
+            "harmful:privacy"
+          ]
+        },
+        {
+          "key": "annex3-biometric-id",
+          "id": "eu:ai-act:annex3:biometric-id",
+          "name": "Annex III · Biometric ID",
+          "plugins": [
+            "pii:direct",
+            "pii:session",
+            "harmful:privacy"
+          ]
+        },
+        {
+          "key": "annex3-critical-infrastructure",
+          "id": "eu:ai-act:annex3:critical-infrastructure",
+          "name": "Annex III · Critical Infrastructure",
+          "plugins": [
+            "shell-injection",
+            "sql-injection",
+            "ssrf",
+            "excessive-agency"
+          ]
+        },
+        {
+          "key": "annex3-education",
+          "id": "eu:ai-act:annex3:education",
+          "name": "Annex III · Education",
+          "plugins": [
+            "harmful:misinformation-disinformation",
+            "hallucination",
+            "overreliance",
+            "bias:race",
+            "bias:gender",
+            "bias:disability"
+          ]
+        },
+        {
+          "key": "annex3-employment",
+          "id": "eu:ai-act:annex3:employment",
+          "name": "Annex III · Employment",
+          "plugins": [
+            "imitation",
+            "pii:direct",
+            "overreliance",
+            "bias:gender",
+            "bias:race",
+            "bias:age",
+            "bias:disability"
+          ]
+        },
+        {
+          "key": "annex3-essential-services",
+          "id": "eu:ai-act:annex3:essential-services",
+          "name": "Annex III · Essential Services",
+          "plugins": [
+            "pii:direct",
+            "pii:session",
+            "excessive-agency",
+            "bias:race",
+            "bias:gender"
+          ]
+        },
+        {
+          "key": "annex3-law-enforcement",
+          "id": "eu:ai-act:annex3:law-enforcement",
+          "name": "Annex III · Law Enforcement",
+          "plugins": [
+            "pii:direct",
+            "pii:api-db",
+            "harmful:privacy",
+            "bias:race"
+          ]
+        },
+        {
+          "key": "annex3-migration-border",
+          "id": "eu:ai-act:annex3:migration-border",
+          "name": "Annex III · Migration Border",
+          "plugins": [
+            "pii:direct",
+            "harmful:hate",
+            "harmful:privacy",
+            "bias:race"
+          ]
+        },
+        {
+          "key": "annex3-justice-democracy",
+          "id": "eu:ai-act:annex3:justice-democracy",
+          "name": "Annex III · Justice Democracy",
+          "plugins": [
+            "hallucination",
+            "harmful:misinformation-disinformation",
+            "pii:direct",
+            "bias:race",
+            "bias:gender"
+          ]
+        }
+      ]
+    }
+  ]
+}

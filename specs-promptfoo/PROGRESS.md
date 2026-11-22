@@ -7,16 +7,16 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 | 00 | Planner decisions | Done |
 | 01 | Runtime and Heroku setup | Done |
 | 02 | Plugin and strategy catalog | Not started |
-| 03 | Framework compliance | Not started |
+| 03 | Framework compliance | Done |
 | 04 | Config and environment builder | Not started |
 | 05 | Results parser | Done |
-| 06 | Report aggregation | Not started |
+| 06 | Report aggregation | Blocked |
 | 07 | Frontend client service and labels | Done |
 | 08 | Bridge provider | Not started |
 | 09 | Bridge server | Not started |
 | 10 | Runner | Not started |
 | 11 | Test editor | Not started |
-| 12 | Test list and run progress | Not started |
+| 12 | Test list and run progress | Done |
 | 13 | Report summary, plugin table and strategy breakdown | Not started |
 | 14 | Compliance tabs | Not started |
 | 15 | Results table and attack detail | Not started |
@@ -37,3 +37,5 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 - **2026-11-22**: Specs 05 and 07 implemented by Codex (gpt-6.2-sol, high) and verified by Claude: parser tests 37, backend unit 522; frontend 227, lint clean. Codex declined specs 01 and 08 (live red-team execution path); they move to Claude with 04, 09, 10, 16, 17, 21.
 
 - **2026-11-22**: Spec 01 implemented and verified by Claude (Codex declined): promptfoo 0.126.0 pinned at the root, runtime checker with 8 tests, backend unit 530, deployment docs updated.
+
+- **2026-11-22**: Codex batch 2. Done (verified by Claude): 03 (12 tests; backend 542), 12 (38 tests). Codex declined 02 (selectable SQL/shell injection and SSRF plugins), 11 (editor launch path); 06 blocked on 02. Codex usage limit reached before 04, 13, 14, 15, 18 ran (retry after 18:35). Known transient failure: RedTeamPage.test.jsx expects old progress copy; spec 18 owns it.
