@@ -1,6 +1,6 @@
 # Spec 06 — Report aggregation
 
-**Status:** Blocked
+**Status:** Done
 **Depends on:** Spec 02, Spec 03
 **Model:** Heavy — `claude-opus-5-5` · `gpt-6.2-sol` · `gemini-4-argon`
 **Issue:** —
@@ -55,3 +55,14 @@ Produce the report for stored defensive results as a deterministic, database-fre
 - `cd backend && .venv/bin/python -m compileall -q app` exited 0.
 - `cd Frontend && npm run build` exited 0 in 6.23 s with 2,941 modules transformed. Vite warned about the undefined `compareRedTeamTests` import in `RedTeamPage.jsx` and reported plugin timing warnings.
 - These are baseline results. This spec has no MongoDB integration checks.
+
+### 2026-11-22 — Implementation
+
+- Proceeded with the owner's request to implement Spec 06 after verifying the dependency code in the workspace. Spec 02's catalog, loader, and inventory fragment are present and its spec is marked `In progress`. Spec 03 is `Done`. The combined catalog and compliance unit run returned **35 passed in 0.19s**.
+- Checked the installed `node_modules/promptfoo/package.json` for the package name, version `0.126.0`, MIT license, and `.` and `./contracts` exports. Inspected the static report bundle at `dist/src/app/assets/index-Cvjh7gqz.js` for strategy risk metadata and confirmed the installed report defines `basic` as human-exploitable and low-complexity. The aggregator calls the repository's existing `score_plugin` and `score_system` port. It loads labels and framework mappings through the supplied catalog and compliance APIs. Checked the legacy report's rounding and the installed Python 3.12.3 `decimal` module's `ROUND_HALF_UP` constant. The test runner was pytest 9.1.1. Checked Vite 8.0.10's installed CLI for `--outDir`.
+- `cd backend && .venv/bin/python -m pytest -q tests/unit/test_red_team_report.py` returned **26 passed in 0.27s**. Synthetic stored verdicts cover the listed cases, planned coverage before rounding, shared repeat denominators, zero against missing comparison, historical IDs, and grader model provenance.
+- Static import inspection passed. The aggregator's five imports are `collections`, `decimal`, the catalog, framework compliance, and risk scoring.
+- `cd backend && .venv/bin/python -m pytest -q tests/unit` returned **591 passed, 8 deprecation warnings in 21.38s**.
+- `cd backend && .venv/bin/python -m compileall -q app` exited **0**. All Python and pytest caches were directed to `/tmp`.
+- `cd Frontend && npm run build -- --outDir <temporary directory>` exited **0**, transformed **2,941 modules**, and built in **6.08s**. Vite reported the existing undefined `compareRedTeamTests` import in `RedTeamPage.jsx`, the external output directory notice, and a plugin timing warning.
+- Wrote the inventory fragment for the service and worker handoff. All Spec 06 checks passed with synthetic report inputs. This spec has zero MongoDB integration checks.

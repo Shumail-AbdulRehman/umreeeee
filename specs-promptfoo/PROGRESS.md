@@ -6,11 +6,11 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 | --- | --- | --- |
 | 00 | Planner decisions | Done |
 | 01 | Runtime and Heroku setup | Done |
-| 02 | Plugin and strategy catalog | Not started |
+| 02 | Plugin and strategy catalog | Done |
 | 03 | Framework compliance | Done |
 | 04 | Config and environment builder | Not started |
 | 05 | Results parser | Done |
-| 06 | Report aggregation | Blocked |
+| 06 | Report aggregation | Done |
 | 07 | Frontend client service and labels | Done |
 | 08 | Bridge provider | Not started |
 | 09 | Bridge server | Not started |
@@ -41,3 +41,5 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 - **2026-11-22**: Codex batch 2. Done (verified by Claude): 03 (12 tests; backend 542), 12 (38 tests). Codex declined 02 (selectable SQL/shell injection and SSRF plugins), 11 (editor launch path); 06 blocked on 02. Codex usage limit reached before 04, 13, 14, 15, 18 ran (retry after 18:35). Known transient failure: RedTeamPage.test.jsx expects old progress copy; spec 18 owns it.
 
 - **2026-11-22**: Specs 13, 14, 15 implemented by Codex (high) and checked by Claude: frontend 288 passed (1 known spec-18 page failure), lint clean.
+
+- **2026-11-22**: Specs 02 (read-only catalog metadata) and 06 (report aggregation) implemented by Codex and checked by Claude: focused 49 passed, backend unit 591, compile clean. Claude cannot implement the live execution specs (04, 08, 09, 10, 17, launch path); they need another implementer (see docs/planning/promptfoo/handoff-prompt.md).
