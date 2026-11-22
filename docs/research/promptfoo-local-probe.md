@@ -37,3 +37,13 @@ Python backend. The `--omit=optional` install must be proven to run red-team gen
 - The worker must treat "0 tests generated" as a failure even though the CLI exits 0, i.e. use `--strict` and/or check the
   generated test count.
 - The size of promptfoo's dependencies is a Heroku deployment risk; it needs a dedicated check.
+
+## Cloud API-key login (2026-11-22, second probe)
+
+- `PROMPTFOO_API_KEY` in the environment with an empty `PROMPTFOO_CONFIG_DIR` is **not** enough: `redteam generate`
+  still stopped at "Email Verification Required … Work email:" and exited 1.
+- `promptfoo auth login --host https://www.promptfoo.app --api-key <key>` run non-interactively (stdin closed) with
+  `PROMPTFOO_CONFIG_DIR=<dir>` succeeded ("Successfully logged in", user, organization `umer-fyp`, app URL) and wrote
+  `<dir>/promptfoo.yaml` with a `cloud:` block (`apiHost`, `appUrl`, `currentOrganizationId`, `sharing: false`).
+- With that config dir, `redteam generate` for the remote-only `hijacking` plugin exited 0 and wrote 1 test case — no
+  email prompt. So the worker logs in per run inside its private config dir, then generates.

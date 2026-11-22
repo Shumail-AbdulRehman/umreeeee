@@ -11,7 +11,7 @@ Red Team page ──HTTP──▶ FastAPI (routes/red_team.py → RedTeamService
 dispatcher ──▶ RabbitMQ {v, job_id, test_id, generation} ──▶ red-team worker (Python)
 worker ─┬─ starts BridgeServer (127.0.0.1:<random port>, per-run bearer token)
         └─ runs promptfoo CLI (Node subprocess, own process group)
-             1. redteam generate  (hosted generation, account email preset)  → suite file → red_team_suites
+             1. redteam generate  (hosted generation after `auth login` with the Cloud API key)  → suite file → red_team_suites
              2. redteam eval      (target = bridge provider; grader = org integration) → results.jsonl / results.json
 promptfoo ─▶ backend/promptfoo_bridge/provider.py (stdlib only) ─POST loopback─▶ BridgeServer
 BridgeServer ─▶ raw: ProviderService.execute  |  protected: ProtectedPromptService.execute_protected (frozen snapshot)
@@ -82,7 +82,7 @@ Frontend/src/pages/RedTeamPage.jsx                spec 18
 
 ## Subprocess environment (built by spec 04, applied by spec 10)
 
-`PROMPTFOO_CONFIG_DIR=<workspace>/home`, `PROMPTFOO_DISABLE_TELEMETRY=1`, `PROMPTFOO_DISABLE_UPDATE=1`, `PROMPTFOO_DISABLE_SHARING=true`, `PROMPTFOO_CACHE_ENABLED=false`, `FORCE_COLOR=0`, `CI` and similar CI variables explicitly removed (they replace the account email with a placeholder, `docs/research/promptfoo-redteam.md` §7), `PROMPTFOO_PYTHON=<worker sys.executable>`, `PYTHONPATH=<repo>/backend`, grader credentials via provider config (never `OPENAI_API_KEY`), `PATH` minimal. The account email is written into `<workspace>/home/promptfoo.yaml` before launch.
+`PROMPTFOO_CONFIG_DIR=<workspace>/home`, `PROMPTFOO_DISABLE_TELEMETRY=1`, `PROMPTFOO_DISABLE_UPDATE=1`, `PROMPTFOO_DISABLE_SHARING=true`, `PROMPTFOO_CACHE_ENABLED=false`, `FORCE_COLOR=0`, `CI` and similar CI variables explicitly removed (they replace the Cloud API key with a placeholder, `docs/research/promptfoo-redteam.md` §7), `PROMPTFOO_PYTHON=<worker sys.executable>`, `PYTHONPATH=<repo>/backend`, grader credentials via provider config (never `OPENAI_API_KEY`), `PATH` minimal. Before generate, the runner runs `promptfoo auth login --host <PROMPTFOO_CLOUD_HOST> --api-key <PROMPTFOO_API_KEY>` with this environment; the key is passed only to that command and redacted from logs; the workspace (holding the login) is deleted after the run.
 
 ## Invariants (violating one is a defect)
 
