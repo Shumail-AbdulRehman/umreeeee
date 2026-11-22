@@ -17,9 +17,9 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 | 10 | Runner | Not started |
 | 11 | Test editor | Not started |
 | 12 | Test list and run progress | Done |
-| 13 | Report summary, plugin table and strategy breakdown | Not started |
-| 14 | Compliance tabs | Not started |
-| 15 | Results table and attack detail | Not started |
+| 13 | Report summary, plugin table and strategy breakdown | Done |
+| 14 | Compliance tabs | Done |
+| 15 | Results table and attack detail | Done |
 | 16 | Service, schemas, routes and indexes | Not started |
 | 17 | Worker and recovery | Not started |
 | 18 | Red Team page integration | Not started |
@@ -39,3 +39,5 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 - **2026-11-22**: Spec 01 implemented and verified by Claude (Codex declined): promptfoo 0.126.0 pinned at the root, runtime checker with 8 tests, backend unit 530, deployment docs updated.
 
 - **2026-11-22**: Codex batch 2. Done (verified by Claude): 03 (12 tests; backend 542), 12 (38 tests). Codex declined 02 (selectable SQL/shell injection and SSRF plugins), 11 (editor launch path); 06 blocked on 02. Codex usage limit reached before 04, 13, 14, 15, 18 ran (retry after 18:35). Known transient failure: RedTeamPage.test.jsx expects old progress copy; spec 18 owns it.
+
+- **2026-11-22**: Specs 13, 14, 15 implemented by Codex (high) and checked by Claude: frontend 288 passed (1 known spec-18 page failure), lint clean.

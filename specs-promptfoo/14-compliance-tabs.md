@@ -1,6 +1,6 @@
 # Spec 14 — Compliance tabs
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 07
 **Model:** Light — `claude-haiku-5-5` · `gpt-6.2-sol` · `gemini-3.5-flash-lite`
 **Issue:** —
@@ -40,3 +40,15 @@ Show which framework controls were tested and why untested controls have no deci
 - [ ] `cd Frontend && npx vitest run` passes; log the count. [unit]
 - [ ] `cd Frontend && npm run lint` passes with no errors or warnings. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+### 2026-11-22
+
+- Updated `ComplianceTabs.jsx` with the approved ordered, horizontally scrollable framework tabs and responsive control rows. The component presents stored statuses, counts and backend reasons with the shared badge and label registry, distinguishes missing data from provisional coverage, and retains selection by framework ID. If the focused tab is removed, focus moves to the first remaining tab; outside focus is left alone. Added mocked-DTO tests and the spec 14 inventory fragment. No mapping, report composition, or live runtime behavior changed.
+- Verified the spec 07 `RedTeamReport.compliance` array/null contract in `redTeamService.js`, incumbent `framework`/`totals` and flattened page shapes, and framework IDs, fields, statuses, and reason strings in `framework_compliance.py` and `promptfoo_frameworks.json`. No promptfoo package API is used by this component.
+- Verified installed React/React DOM 19.2.5 hooks, callback-ref cleanup, and ref detachment before host removal in their local `cjs` sources. Checked installed Testing Library React 16.3.3/DOM 10.4.2 exports, `render`/`rerender`, `reactStrictMode`, and `fireEvent`, and the local Vitest 5.1.0/jsdom 29.1.1 configuration and package manifests. Inspected `badge.jsx` and the installed Radix 1.7.0/CVA 0.7.1 manifests; checked Tailwind 4.2.4/Vite 8.0.10 manifests and the built CSS for the grid, overflow, selected border, transition and focus rules. Checked Playwright 1.64.0's installed manifest and launch/reduced-motion declarations for the offline layout inspection.
+- `cd Frontend && npx vitest run src/features/red-team/ComplianceTabs.test.jsx`: 1 file passed, 12 tests passed in 3.24 s.
+- Static style inspection: existing `--rt-*` tokens and no raw colors or transforms. Offline synthetic HTML/CSS inspection with cached Chromium at 1440 px and 390 px showed 4/2 row columns, 56 px tab height, immediate 2 px keyboard outline, and no panel transform, animation, or transition under reduced motion. At 390 px the strip scrolled locally (356 px viewport / 795 px content), with no document overflow. No app routes, providers, or services ran.
+- `cd Frontend && npx vitest run`: exit 1, 20 files passed and 1 failed; 271 tests passed, 1 failed, no skips, 15.31 s. The existing `src/pages/RedTeamPage.test.jsx:64` running-test assertion expects `Not yet`; that branch does not mount `ComplianceTabs`. Spec 13 recorded the same baseline failure. Report composition is owned by spec 18, so it was left unchanged.
+- `cd Frontend && npm run lint`: exit 0, 0 errors and 0 warnings. `cd Frontend && npm run build`: exit 0, 2,941 modules transformed in 15.43 s; one existing `IMPORT_IS_UNDEFINED` warning for `compareRedTeamTests` in `RedTeamPage.jsx`. No MongoDB integration check applies to spec 14.

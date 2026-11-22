@@ -1,93 +1,156 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import ComplianceTabs from './ComplianceTabs.jsx'
 
-afterEach(cleanup)
+const owasp = {
+  id: 'owasp', name: 'OWASP LLM Top 10', failed: 1, passed: 1, not_tested: 3,
+  controls: [
+    { key: 'llm01', id: 'owasp:llm:01', name: 'Prompt Injection', status: 'failed', worked: 2, decided: 4 },
+    { key: 'llm02', id: 'owasp:llm:02', name: 'Sensitive Information Disclosure', status: 'passed', worked: 0, decided: 3 },
+    { key: 'llm03', id: 'owasp:llm:03', name: 'Supply Chain', status: 'not_tested', reason: 'Plugin not offered' },
+    { key: 'llm04', id: 'owasp:llm:04', name: 'Data and Model Poisoning', status: 'not_tested', reason: 'No selected plugin maps to it' },
+    { key: 'llm05', id: 'owasp:llm:05', name: 'Improper Output Handling', status: 'not_tested', reason: 'No mapped attack was decided' },
+  ],
+}
+const nist = {
+  framework: 'nist', name: 'NIST AI RMF', totals: { failed: 0, passed: 0, not_tested: 1 },
+  controls: [{ key: '1.1', id: 'nist:ai:measure:1.1', name: 'Appropriate metrics', status: 'not_tested', reason: 'No mapped attack was decided' }],
+}
+const atlas = {
+  id: 'atlas', name: 'MITRE ATLAS', failed: 0, passed: 0, not_tested: 1,
+  controls: [{ key: 'tactic', id: null, name: 'Tactic without an ID', status: 'not_tested', reason: 'Plugin not offered' }],
+}
+const eu = { id: 'eu', name: 'EU AI Act', failed: 0, passed: 0, not_tested: 0, controls: [] }
+const report = { compliance: [eu, atlas, owasp, nist], provisional: false }
 
-const ctl = (key, id, name, status, worked = 0, decided = 0, reason = null) => ({ key, id, name, status, worked, decided, reason })
-const data = [
-  { id: 'owasp', name: 'OWASP LLM Top 10', total: 10, failed: 1, passed: 1, not_tested: 1, controls: [
-    ctl('a', 'LLM01', 'Prompt Injection', 'failed', 13, 43),
-    ctl('b', 'LLM02', 'Sensitive Information Disclosure', 'passed', 0, 9),
-    ctl('c', 'LLM03', 'Supply Chain', 'not_tested', 0, 0, 'No mapped plugin was selected'),
-  ] },
-  { id: 'atlas', name: 'MITRE ATLAS', total: 3, failed: 1, passed: 0, not_tested: 2, controls: [
-    ctl('t1', null, 'Unverified tactic', 'failed', 2, 5),
-  ] },
-  { id: 'nist', name: 'NIST AI RMF', total: 4, failed: 0, passed: 2, not_tested: 2, controls: [] },
-  { id: 'eu', name: 'EU AI Act', total: 5, failed: 0, passed: 0, not_tested: 5, controls: [] },
-]
+const tabs = () => within(screen.getByRole('tablist', { name: 'Framework' })).getAllByRole('tab')
 
-const selectedTab = () => screen.getAllByRole('tab').find((t) => t.getAttribute('aria-selected') === 'true')
-const visiblePanels = () => screen.getAllByRole('tabpanel', { hidden: true }).filter((p) => !p.hidden)
+function expectSelected(tab, allTabs = tabs()) {
+  const panel = screen.getByRole('tabpanel', { name: tab.textContent })
+  expect(panel.id).toBe(tab.getAttribute('aria-controls'))
+  expect(panel.getAttribute('aria-labelledby')).toBe(tab.id)
+  expect(panel.tabIndex).toBe(0)
+  expect(screen.getAllByRole('tabpanel')).toEqual([panel])
+  for (const item of allTabs) {
+    expect(item.tabIndex).toBe(item === tab ? 0 : -1)
+    expect(item.getAttribute('aria-selected')).toBe(String(item === tab))
+    expect(document.getElementById(item.getAttribute('aria-controls')).hidden).toBe(item !== tab)
+  }
+  return panel
+}
 
 describe('ComplianceTabs', () => {
-  it('renders four tabs with totals from data', () => {
-    render(<ComplianceTabs compliance={data} />)
-    const tabs = screen.getAllByRole('tab')
-    expect(tabs).toHaveLength(4)
-    expect(tabs[0].textContent).toContain('OWASP LLM Top 10')
-    expect(tabs[0].textContent).toContain('1 failed · 1 passed · 1 not tested')
-    expect(tabs[2].textContent).toContain('0 failed · 2 passed · 2 not tested')
-    expect(tabs.map((t) => t.tabIndex)).toEqual([0, -1, -1, -1])
+  it('orders the frameworks, exposes one tab stop and links the selected tab and panel', () => {
+    render(<ComplianceTabs {...report} />)
+    const allTabs = tabs()
+    expect(allTabs.map((tab) => tab.firstChild.textContent)).toEqual([
+      'OWASP LLM Top 10', 'NIST AI RMF', 'MITRE ATLAS', 'EU AI Act',
+    ])
+    expect(within(allTabs[0]).getByText('1 failed · 1 passed · 3 not tested')).toBeTruthy()
     expect(screen.getByText(/Synthetic coverage, not certification/)).toBeTruthy()
+    const items = within(expectSelected(allTabs[0], allTabs)).getAllByRole('listitem')
+    expect(items.map((item) => item.firstElementChild.textContent)).toEqual(owasp.controls.map(({ id }) => id))
+
+    fireEvent.click(allTabs[1])
+    expect(within(allTabs[1]).getByText('0 failed · 0 passed · 1 not tested')).toBeTruthy()
+    expect(within(expectSelected(allTabs[1], allTabs)).getByText('Appropriate metrics')).toBeTruthy()
   })
 
-  it('moves selection and focus with the keyboard and shows one panel', () => {
-    render(<ComplianceTabs compliance={data} />)
-    const tabs = screen.getAllByRole('tab')
-    fireEvent.keyDown(tabs[0], { key: 'ArrowRight' })
-    expect(selectedTab()).toBe(tabs[1])
-    expect(document.activeElement).toBe(tabs[1])
-    expect(tabs.map((t) => t.tabIndex)).toEqual([-1, 0, -1, -1])
-    expect(visiblePanels()).toHaveLength(1)
-    expect(visiblePanels()[0].id).toBe(tabs[1].getAttribute('aria-controls'))
-    expect(visiblePanels()[0].getAttribute('tabindex')).toBe('0')
-    fireEvent.keyDown(tabs[1], { key: 'ArrowLeft' })
-    expect(selectedTab()).toBe(tabs[0])
-    fireEvent.keyDown(tabs[0], { key: 'ArrowLeft' })
-    expect(selectedTab()).toBe(tabs[3])
-    fireEvent.keyDown(tabs[3], { key: 'Home' })
-    expect(selectedTab()).toBe(tabs[0])
-    expect(document.activeElement).toBe(tabs[0])
-    fireEvent.keyDown(tabs[0], { key: 'End' })
-    expect(selectedTab()).toBe(tabs[3])
-    expect(document.activeElement).toBe(tabs[3])
-    expect(visiblePanels()[0].getAttribute('aria-labelledby')).toBe(tabs[3].id)
+  it('moves focus and selection with arrows, wrap and Home/End', () => {
+    render(<ComplianceTabs {...report} />)
+    const allTabs = tabs()
+    allTabs[0].focus()
+    expect(document.activeElement).toBe(allTabs[0])
+
+    for (const [key, index] of [['ArrowRight', 1], ['ArrowLeft', 0], ['ArrowLeft', 3], ['ArrowRight', 0], ['End', 3], ['Home', 0]]) {
+      fireEvent.keyDown(document.activeElement, { key })
+      expect(document.activeElement).toBe(allTabs[index])
+      expectSelected(allTabs[index], allTabs)
+    }
+    expect(fireEvent.keyDown(document.activeElement, { key: 'Tab' })).toBe(true)
   })
 
-  it('selects a tab on click', () => {
-    render(<ComplianceTabs compliance={data} />)
-    fireEvent.click(screen.getAllByRole('tab')[2])
-    expect(selectedTab().textContent).toContain('NIST AI RMF')
+  it('focuses the first remaining framework when the focused one disappears', () => {
+    const { rerender } = render(<ComplianceTabs {...report} />, { reactStrictMode: true })
+    const [, nistTab] = tabs()
+    nistTab.focus()
+    fireEvent.click(nistTab)
+    expect(document.activeElement).toBe(nistTab)
+
+    rerender(<ComplianceTabs compliance={[atlas, owasp]} />)
+    const [first] = tabs()
+    expect(document.activeElement).toBe(first)
+    expectSelected(first)
+
+    rerender(<ComplianceTabs {...report} />)
+    expect(document.activeElement).toBe(first)
+    expectSelected(first)
   })
 
-  it('shows evidence, badges and order for controls', () => {
-    render(<ComplianceTabs compliance={data} />)
-    const items = within(visiblePanels()[0]).getAllByRole('listitem')
-    expect(items.map((i) => within(i).getByText(/LLM0\d/).textContent)).toEqual(['LLM01', 'LLM02', 'LLM03'])
-    expect(items[0].textContent).toContain('Failed')
-    expect(items[0].textContent).toContain('13 of 43 mapped attacks worked')
-    expect(items[1].textContent).toContain('Passed')
-    expect(items[1].textContent).toContain('0 of 9 mapped attacks worked')
-    expect(items[2].textContent).toContain('Not tested')
-    expect(items[2].textContent).toContain('No mapped plugin was selected')
-    expect(items[2].textContent).not.toContain('of 0')
+  it('preserves selection by ID while frameworks change and does not steal outside focus', () => {
+    const view = (compliance) => <><button type="button">Outside</button><ComplianceTabs compliance={compliance} /></>
+    const { rerender } = render(view(report.compliance))
+    const atlasTab = tabs()[2]
+    fireEvent.click(atlasTab)
+    const outside = screen.getByRole('button', { name: 'Outside' })
+    outside.focus()
+
+    rerender(view([eu, atlas, nist]))
+    expectSelected(atlasTab)
+    expect(document.activeElement).toBe(outside)
+
+    rerender(view([eu, nist]))
+    expectSelected(tabs()[0])
+    expect(document.activeElement).toBe(outside)
   })
 
-  it('renders no id text for a null id', () => {
-    render(<ComplianceTabs compliance={data} />)
-    fireEvent.click(screen.getAllByRole('tab')[1])
-    const item = within(visiblePanels()[0]).getByRole('listitem')
-    expect(item.textContent).toContain('Unverified tactic')
-    expect(item.firstElementChild.textContent).toBe('')
-    expect(item.textContent).not.toContain('null')
+  it.each([
+    ['owasp:llm:01', 'Prompt Injection', 'Failed', '2 of 4 mapped attacks worked'],
+    ['owasp:llm:02', 'Sensitive Information Disclosure', 'Passed', '0 of 3 mapped attacks worked'],
+    ['owasp:llm:03', 'Supply Chain', 'Not tested', 'Plugin not offered'],
+    ['owasp:llm:04', 'Data and Model Poisoning', 'Not tested', 'No selected plugin maps to it'],
+    ['owasp:llm:05', 'Improper Output Handling', 'Not tested', 'No mapped attack was decided'],
+  ])('shows control %s with its name, status and evidence', (id, name, status, evidence) => {
+    render(<ComplianceTabs {...report} />)
+    const panel = within(screen.getByRole('tabpanel'))
+    const row = within(panel.getByText(id).closest('li'))
+    expect(row.getByText(name)).toBeTruthy()
+    expect(row.getByText(status).getAttribute('data-slot')).toBe('badge')
+    expect(row.getByText(evidence)).toBeTruthy()
   })
 
-  it.each([[{ provisional: true }], [{ provisional: false, nullData: true }]])('shows the note and no tablist (%o)', (opts) => {
-    render(<ComplianceTabs compliance={opts.nullData ? null : data} provisional={Boolean(opts.provisional)} />)
-    expect(screen.getByText('Compliance is calculated when the test finishes')).toBeTruthy()
+  it('keeps the display name when a control has no ID', () => {
+    render(<ComplianceTabs compliance={[atlas]} />)
+    const row = within(screen.getByRole('tabpanel')).getByRole('listitem')
+    expect(row.firstElementChild.textContent).toBe('')
+    expect(within(row).getByText('Tactic without an ID')).toBeTruthy()
+  })
+
+  it('names missing control data without inventing a failed decision', () => {
+    render(<ComplianceTabs compliance={[
+      { id: 'owasp', name: owasp.name, controls: [
+        { id: 'one', name: 'Missing reason', status: 'not_tested' },
+        { id: 'two', name: 'Missing counts', status: 'passed' },
+        { id: 'three', name: 'Missing decision' },
+      ] }, eu,
+    ]} />)
+    expect(screen.getByText('Control counts unavailable')).toBeTruthy()
+    expect(screen.getByText('Reason not available.')).toBeTruthy()
+    expect(screen.getByText('Attack counts not available.')).toBeTruthy()
+    expect(screen.getByText('Control decision not available.')).toBeTruthy()
+    expect(screen.queryByText('Failed', { exact: true })).toBeNull()
+
+    fireEvent.click(tabs()[1])
+    expect(within(screen.getByRole('tabpanel')).getByText('No control results for this framework.')).toBeTruthy()
+  })
+
+  it('shows provisional copy instead of stale controls and distinguishes a missing final report', () => {
+    const { rerender } = render(<ComplianceTabs {...report} provisional />)
+    expect(screen.getByText('Control results are available after the run finishes.')).toBeTruthy()
     expect(screen.queryByRole('tablist')).toBeNull()
-    expect(screen.queryAllByRole('tab')).toHaveLength(0)
+
+    rerender(<ComplianceTabs compliance={null} />)
+    expect(screen.getByText('No framework coverage is available for this test.')).toBeTruthy()
+    expect(screen.queryByRole('tablist')).toBeNull()
   })
 })

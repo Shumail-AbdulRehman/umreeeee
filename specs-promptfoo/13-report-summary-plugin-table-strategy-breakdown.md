@@ -1,6 +1,6 @@
 # Spec 13 — Report summary, plugin table and strategy breakdown
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 07
 **Model:** Standard — `claude-sonnet-5-5` · `gpt-6.2-sol` · `gemini-3.8-flash`
 **Issue:** —
@@ -42,3 +42,16 @@ Make a finished report answer “what changed with policies?” before showing i
 - [ ] `cd Frontend && npx vitest run` passes; log the count. [unit]
 - [ ] `cd Frontend && npm run lint` passes with no errors or warnings. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+### 2026-11-22
+
+- Updated the three report components and their tests. Recorded the fixture fields in the inventory fragment for specs 06 and 18. The comparison reads the stored matched rates and signed delta, including zero. The tables preserve the report order and display recorded coverage and outcomes.
+- Verified installed React and React DOM 19.2.5, including React's `useId` export. Checked Testing Library React 16.3.3 render and cleanup, Testing Library DOM 10.4.2 role and accessible-name queries, Vitest 5.1.0's test and assertion entry points, and jsdom 29.1.1's active-element implementation. Checked the local table primitive's overflow wrapper, Tailwind CSS 4.2.4's compiled rules, and the installed Vite 8.0.10 and ESLint 10.2.1 CLI entries. Checked Playwright 1.64.0's reduced-motion and accessibility snapshot declarations and axe Playwright 4.13.0's `analyze` implementation. Confirmed promptfoo 0.126.0 from installed package metadata only. The provenance display uses the report's recorded version.
+- `cd Frontend && npx vitest run src/features/red-team/ReportSummary.test.jsx src/features/red-team/PluginTable.test.jsx src/features/red-team/StrategyBreakdown.test.jsx` exited 0. 3 files passed, 26 tests passed, 0 skips, 7.25 s.
+- Static inspection found no raw colour values or animated metrics. Chromium with synthetic report props confirmed named tables, 2 px keyboard focus outlines, horizontal keyboard scrolling within the plugin region at 640 px, and stacked rows with reduced motion at 390 px. Axe reported 0 violations at 1440, 640 and 390 px. The Impeccable detector returned no findings.
+- `cd Frontend && npx vitest run` exited 1. 20 files passed, 1 failed. 266 tests passed, 1 failed, 0 skips, 19.31 s. The baseline before the component edits had 251 passes and the same single failure. `src/pages/RedTeamPage.test.jsx:64` expects “Not yet” for a running test, while the progress component renders “Attack success is unavailable.” Spec 18 owns the failing page test.
+- `cd Frontend && npm run lint` exited 0 with 0 errors and 0 warnings.
+- `cd Frontend && npm run build` exited 0 in 20.41 s with 2,941 modules transformed. Ran from a temporary Frontend copy with the installed dependencies to keep generated files outside the owned paths. Vite emitted the existing `IMPORT_IS_UNDEFINED` warning for `compareRedTeamTests` in `RedTeamPage.jsx` and a `PLUGIN_TIMINGS` warning.
+- `git diff --check` passed. Automated checks used synthetic report data. This spec has no MongoDB integration criterion.

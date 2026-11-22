@@ -1,6 +1,6 @@
 # Spec 15 — Results table and attack detail
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 07
 **Model:** Standard — `claude-sonnet-5-5` · `gpt-6.2-sol` · `gemini-3.8-flash`
 **Issue:** —
@@ -41,3 +41,18 @@ Let reviewers find a stored result, inspect why it was decided, and distinguish 
 - [ ] `cd Frontend && npx vitest run` passes; log the count. [unit]
 - [ ] `cd Frontend && npm run lint` passes with no errors or warnings. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+### 2026-11-22
+
+- Updated `ResultsTable`, `AttackDetailDialog` and `ReportStates`, their three test files, and [the reuse fragment](inventory/15-results-table-and-attack-detail.md). The promptfoo table emits the four controlled filter keys once per change. The page applies them and resets the result page to 1 together. The table still recognizes the incumbent page’s `evidence` prop until spec 18 switches the page to `verdict_source`.
+- Verified the installed promptfoo 0.126.0 manifest and `dist/src/index.d.ts` for zero-based `testIdx` and `repeatIndex`, `gradingResult.pass`/`reason` and explicit execution errors. Checked their normalized fields in `results_parser.py` and the policy rule shape in `enforcement_service.py`. Used the approved report and states layouts and the spec 07 labels. The components consume result data through props.
+- Verified React and React DOM 19.2.5 text-node rendering in the installed client. Checked Radix UI 1.7.0, Dialog 1.2.0 and Focus Scope 1.2.0 for modal focus trapping, Tab looping and open/close autofocus callbacks. Checked Tailwind CSS 4.2.4 and tailwind-merge 3.7.0 through the generated CSS and computed Chromium styles for reduced motion, dialog positioning and the focusable scroll region.
+- Verified installed Testing Library React 16.3.3 and DOM 10.4.2 render, event and wait helpers, Vitest 5.1.0 spy assertions and test CLI, jsdom 29.1.1 test environment, ESLint 10.2.1 and Vite 8.0.10 CLI entries, and Playwright 1.64.0 with axe-core Playwright 4.13.0 browser checks.
+- `cd Frontend && npx vitest run src/features/red-team/ResultsTable.test.jsx src/features/red-team/AttackDetailDialog.test.jsx src/features/red-team/ReportStates.test.jsx` passed with 3 files and 41 tests. Initial assertions exposed missing accessible spacing in verdict counts and imprecise fallback wording. Both were fixed and the focused command was rerun.
+- Static token check passed. A temporary Chromium harness with fake records passed the table and open-dialog axe checks with 0 violations at 1440px, 700px and 390px. It verified labelled keyboard scrolling at 700px, Enter to open, Tab and Shift+Tab wrapping, Escape and focus restoration, inert reply text, and computed transform, translation and animation set to `none` under reduced motion. An initial axe run found a duplicate landmark name, which was fixed before rerunning.
+- `cd Frontend && npx vitest run` exited 1 with 21 files passed and 1 failed, 288 tests passed and 1 failed. The sole failure was `RedTeamPage.test.jsx` → “shows progress for a running test,” which expects “Not yet.” The pre-edit run had the same failure, with 271 passed and 1 failed. The page test belongs to spec 18.
+- `cd Frontend && npm run lint` exited 0 with 0 errors and 0 warnings.
+- `npm run build` from a temporary Frontend copy with the installed dependencies exited 0 and transformed 2,941 modules. It emitted the existing `IMPORT_IS_UNDEFINED` warning for the page’s legacy `compareRedTeamTests` reference and a `PLUGIN_TIMINGS` warning. The build output stayed in the temporary copy.
+- `git diff --check` passed in both the root and Frontend repositories. This spec has no MongoDB gate. Automated verification used fake data and services. Spec 16 owns the authorized detail reads and spec 18 owns page fetch and filter wiring.

@@ -1,102 +1,116 @@
 import { useRef } from 'react'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { formatMoney, formatNumber } from '../../lib/format.js'
-import { severityLabel, verdictLabel } from './labels.js'
+import { formatMoney, formatNumber, readable } from '../../lib/format.js'
+import { decisionLabel, evidenceSourceLabel, severityLabel } from './labels.js'
 import { VerdictBadge } from './ResultsTable.jsx'
 import './red-team.css'
 
-// Remember whether the last interaction was a pointer or the keyboard, so a
-// dialog opened from the keyboard skips its motion.
-let lastInput = 'keyboard'
-if (typeof document !== 'undefined') {
-  document.addEventListener('pointerdown', () => { lastInput = 'pointer' }, true)
-  document.addEventListener('keydown', () => { lastInput = 'keyboard' }, true)
+const HEADING = 'mb-2! text-xs! font-semibold text-[var(--rt-ink-secondary)]'
+const TEXT_BLOCK = 'm-0 max-h-44 overflow-auto rounded-[7px] border border-[var(--rt-line)] bg-[var(--rt-surface-subtle)] px-3 py-3 font-mono text-xs leading-relaxed whitespace-pre-wrap wrap-anywhere'
+
+function ContentBlock({ title, text, placeholder }) {
+  return <section>
+    <h3 className={HEADING}>{title}</h3>
+    {placeholder
+      ? <p className="rt-muted m-0">{placeholder}</p>
+      : <pre className={TEXT_BLOCK} role="region" aria-label={title} tabIndex={0}>{text}</pre>}
+  </section>
 }
 
-const STEP_NAMES = { policy: 'Policy check', exact: 'Exact evidence', judge: 'LLM judge' }
-const block = { margin: 0, padding: '12px 14px', maxHeight: 180, overflow: 'auto', border: '1px solid var(--rt-line)', borderRadius: 7, background: 'var(--rt-surface-subtle)', fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', color: 'var(--rt-ink)' }
-const heading = { margin: '0 0 6px', fontSize: 12, fontWeight: 600, color: 'var(--rt-ink-secondary)' }
-
-function attackTitle(result) {
-  const { verdict, verdict_source: source } = result
-  const judged = source === 'judge'
-  if (verdict === 'fail') return judged ? 'Unsafe, judged: no exact evidence either way' : source === 'policy' ? 'Unsafe: a policy check failed' : 'Unsafe: the hidden marker leaked'
-  if (verdict === 'pass') return judged ? 'Defended, judged: the reply stayed in scope' : source === 'policy' ? 'Defended: blocked by a policy' : 'Defended: the model refused'
-  if (verdict === 'inconclusive') return 'Inconclusive: no decisive evidence'
-  if (verdict === 'error') return 'Error: the attack did not complete'
-  return 'Attack result'
+function PolicyEvidence({ evidence = [] }) {
+  const matches = (evidence ?? []).filter((rule) => rule?.outcome === 'match' && rule.field && rule.field !== 'system_prompt')
+  return <section>
+    <h3 className={HEADING}>Policy evidence</h3>
+    {matches.length > 0 ? <ul aria-label="Matched policy rules" className="grid gap-2">
+      {matches.map((rule, index) => <li key={`${rule.policy_id}-${rule.rule_id}-${rule.field}-${index}`} className="rt-banner block wrap-anywhere">
+        <strong>{rule.policy_name || rule.policy_id || 'Policy match'}</strong>
+        <div>{[rule.rule_name || rule.rule_id || rule.type, readable(rule.field)].filter(Boolean).join(' · ')}</div>
+      </li>)}
+    </ul> : <p className="rt-muted m-0">No policy matches were recorded.</p>}
+  </section>
 }
 
-function Block({ title, text, children }) {
-  return <div><h3 style={heading}>{title}</h3>{children || <pre style={block}>{text}</pre>}</div>
-}
+function DetailBody({ result, mode, graderModel }) {
+  const decision = decisionLabel(result.decision)
+  const source = evidenceSourceLabel(result.verdict_source ?? 'none')
+  const model = result.grader_model || graderModel
+  const expired = result.content_expired
+  const prompt = result.prompt
+  const reply = result.response_text
+  const promptPlaceholder = expired ? 'The stored attack prompt has expired.' : prompt == null ? 'No attack prompt was recorded.' : ''
+  const replyPlaceholder = result.response_withheld || result.decision === 'blocked_output' ? 'An organization policy withheld the model reply.'
+    : expired ? 'The stored model reply has expired.' : reply == null ? 'No model reply was recorded.' : ''
+  const latency = result.latency_ms ?? result.provider_latency_ms
+  const tokens = result.total_tokens ?? result.token_usage?.total
 
-function Steps({ steps, result }) {
-  const verdict = verdictLabel(result.verdict, { verdict_source: result.verdict_source })
-  return <ol aria-label="How this verdict was decided" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
-    {steps.map((step, index) => {
-      const decisive = step.state === 'decisive'
-      return <li key={`${step.step}-${index}`} data-state={step.state} className={decisive ? `rt-banner rt-tone-${verdict.tone}` : 'rt-banner'} style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-        <span><strong>{index + 1}. {STEP_NAMES[step.step] || step.step}</strong>{step.description ? `: ${step.description}` : ''}</span>
-        <span className="rt-nowrap">{decisive ? <VerdictBadge verdict={result.verdict} source={result.verdict_source} /> : step.state === 'skipped' ? 'Skipped' : 'Undecided'}</span>
-      </li>
-    })}
-  </ol>
-}
-
-function Body({ result, mode }) {
-  const sent = result.prompt && result.prompt !== result.original_prompt
-  const unavailable = result.response_withheld || result.content_expired
-  const judge = result.judge
   return <>
-    {result.evidence_steps?.length > 0 && <Steps steps={result.evidence_steps} result={result} />}
-    {result.explanation && <p style={{ margin: 0, fontSize: 13 }}>{result.explanation}</p>}
-    {judge && <div className="rt-banner rt-tone-neutral" style={{ display: 'block' }}><strong>Judge reasoning.</strong> {judge.reason} This is a judgement, not exact proof.{judge.model ? <> <span className="rt-muted">Judge model: {judge.model}</span></> : null}</div>}
-    <Block title={sent ? 'Original attack' : 'Attack sent'} text={result.original_prompt ?? result.prompt} />
-    {sent && <Block title="Sent to the model" text={result.prompt} />}
-    {result.response_withheld
-      ? <div className="rt-banner rt-tone-warn" role="note">Protected output was withheld. No reply text is available.</div>
-      : result.content_expired
-        ? <div className="rt-banner rt-tone-neutral" role="note">The stored reply has expired. The result details remain.</div>
-        : result.response_text != null
-          ? <Block title="Model reply, as received" text={result.response_text} />
-          : <p className="rt-muted" style={{ margin: 0 }}>No reply text was recorded.</p>}
-    {!unavailable && result.decoded_response && <Block title="Model reply, decoded" text={result.decoded_response} />}
-    {result.paired && <div className="rt-banner" style={{ display: 'block' }}>
-      <h3 style={heading}>{mode === 'protected' ? 'Same attack without policies' : 'Same attack with policies'}</h3>
-      <VerdictBadge verdict={result.paired.verdict} source={result.paired.verdict_source} />
-      {result.paired.prevention_stage ? <span className="rt-muted"> Stopped at: {String(result.paired.prevention_stage).replaceAll('_', ' ')}</span> : null}
-    </div>}
-    <p className="rt-muted" style={{ margin: 0, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12 }}>
-      <span>Latency {result.provider_latency_ms == null ? '–' : `${formatNumber(result.provider_latency_ms)} ms`}</span>
-      <span>{result.total_tokens == null ? '–' : formatNumber(result.total_tokens)} tokens</span>
-      <span>Estimated {result.estimated_cost_usd == null ? '–' : formatMoney(result.estimated_cost_usd)}</span>
-    </p>
+    <section>
+      <h3 className={HEADING}>Decision</h3>
+      <div className="flex flex-wrap items-center gap-2">
+        <VerdictBadge verdict={result.verdict} source={result.verdict_source} />
+        <span>{decision.missing ? 'Target decision unavailable' : decision.label}</span>
+        <span className="rt-muted">{source.label}</span>
+      </div>
+    </section>
+    <PolicyEvidence evidence={result.policy_evidence} />
+    {result.verdict_source === 'grader' && <section>
+      <h3 className={HEADING}>{model ? `promptfoo grader (${model})` : 'promptfoo grader'}</h3>
+      <p className="m-0 whitespace-pre-wrap wrap-anywhere">{result.grader_reason || 'No grader reason was recorded.'}</p>
+    </section>}
+    <ContentBlock title="Attack prompt" text={prompt} placeholder={promptPlaceholder} />
+    <ContentBlock title="Model reply" text={reply} placeholder={replyPlaceholder} />
+    {result.paired && <section className="rt-banner block">
+      <h3 className={HEADING}>{mode === 'protected' ? 'Same attack without policies' : 'Same attack with policies'}</h3>
+      <div className="flex flex-wrap items-center gap-2">
+        <VerdictBadge verdict={result.paired.verdict} source={result.paired.verdict_source} />
+        <span>{evidenceSourceLabel(result.paired.verdict_source ?? 'none').label}</span>
+        {result.paired.decision && <span>{decisionLabel(result.paired.decision).label}</span>}
+        {result.paired.prevention_stage && <span>Stopped at {readable(result.paired.prevention_stage)}</span>}
+      </div>
+    </section>}
+    <div className="rt-muted flex flex-wrap gap-x-4 gap-y-1 text-xs">
+      <span>{latency == null ? 'Latency unavailable' : `Latency ${formatNumber(latency)} ms`}</span>
+      <span>{tokens == null ? 'Token count unavailable' : `${formatNumber(tokens)} tokens`}</span>
+      <span>{result.estimated_cost_usd == null ? 'Cost unavailable' : `Estimated ${formatMoney(result.estimated_cost_usd)}`}</span>
+    </div>
   </>
 }
 
-export default function AttackDetailDialog({ result, loading = false, error = '', onClose, input, mode = 'raw' }) {
+export default function AttackDetailDialog({ result, loading = false, error = false, onClose, input = 'keyboard', mode = 'raw', graderModel }) {
   const open = Boolean(result || loading || error)
   const opener = useRef(null)
-  const kicker = result ? [`Attack ${result.attack_index + 1}`, result.plugin_name, result.strategy_name, result.severity ? `Severity ${severityLabel(result.severity).label.toLowerCase()}` : null].filter(Boolean).join(' · ') : ''
-  const title = result ? attackTitle(result) : loading ? 'Loading attack' : 'Attack unavailable'
+  const index = result?.test_idx ?? result?.attack_index
+  const title = error ? 'Attack unavailable' : loading ? 'Loading attack' : index == null ? 'Attack result' : `Attack ${index + 1}`
+  const metadata = result && [
+    result.plugin_name || result.plugin_id,
+    result.strategy_name || result.strategy_id,
+    result.severity && `Severity ${severityLabel(result.severity).label.toLowerCase()}`,
+    result.repeat_index > 0 && `Repeat ${result.repeat_index + 1}`,
+  ].filter(Boolean).join(' · ')
+
   return <Dialog open={open} onOpenChange={(next) => { if (!next) onClose?.() }}>
-    <DialogContent className="rt-dialog" showCloseButton={false} data-input={input || lastInput}
+    <DialogContent className="rt-dialog inset-0 m-auto h-fit max-w-none translate-none gap-0 sm:max-w-none motion-reduce:animate-none motion-reduce:transform-none data-[input=keyboard]:animate-none"
+      showCloseButton={false} data-input={input}
       onOpenAutoFocus={() => { opener.current = document.activeElement }}
-      onCloseAutoFocus={(event) => { event.preventDefault(); opener.current?.focus() }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--rt-line-subtle)' }}>
-      <div>
-        {kicker && <p className="rt-muted" style={{ margin: 0, fontSize: 12 }}>{kicker}</p>}
-        <DialogTitle style={{ margin: 0, fontSize: 18 }}>{title}</DialogTitle>
-        <DialogDescription className="rt-sr-only">Attack evidence, model reply and verdict details.</DialogDescription>
+      onCloseAutoFocus={(event) => {
+        if (opener.current?.isConnected) {
+          event.preventDefault()
+          opener.current.focus()
+        }
+      }}>
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--rt-line-subtle)] px-5 py-4">
+        <div className="min-w-0 wrap-anywhere">
+          <DialogTitle className="m-0 text-lg">{title}</DialogTitle>
+          {metadata && <p className="rt-muted mt-1 text-xs">{metadata}</p>}
+          <DialogDescription className="rt-sr-only">Attack evidence, model reply and verdict details.</DialogDescription>
+        </div>
+        <DialogClose asChild><button type="button" className="rt-chip rt-press">Close</button></DialogClose>
       </div>
-      <DialogClose asChild><button type="button" className="rt-chip rt-press" aria-label="Close">Close</button></DialogClose>
-    </div>
-    <div style={{ display: 'grid', gap: 14, padding: 20, overflowY: 'auto' }}>
-      {error ? <div className="rt-banner rt-tone-fail" role="alert">{error}</div>
-        : loading && !result ? <p className="rt-muted" role="status">Loading attack details…</p>
-          : result ? <Body result={result} mode={mode} /> : null}
-    </div>
+      <div className="grid min-h-0 gap-4 overflow-y-auto p-5 text-[13px] wrap-anywhere">
+        {error ? <p className="rt-banner rt-tone-fail" role="alert">Could not load attack details. Close this dialog and open the result again.</p>
+          : loading ? <p className="rt-muted" role="status">Loading attack details…</p>
+            : result && <DetailBody result={result} mode={mode} graderModel={graderModel} />}
+      </div>
     </DialogContent>
   </Dialog>
 }
