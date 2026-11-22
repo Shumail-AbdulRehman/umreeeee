@@ -12,8 +12,8 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 | 05 | Results parser | Done |
 | 06 | Report aggregation | Done |
 | 07 | Frontend client service and labels | Done |
-| 08 | Bridge provider | Not started |
-| 09 | Bridge server | Not started |
+| 08 | Bridge provider | In progress (local mock provider verified) |
+| 09 | Bridge server | Not started (local fixture uses an in-process mock) |
 | 10 | Runner | Not started |
 | 11 | Test editor | Not started |
 | 12 | Test list and run progress | Done |

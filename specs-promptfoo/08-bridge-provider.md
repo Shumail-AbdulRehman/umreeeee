@@ -1,6 +1,6 @@
 # Spec 08 — Bridge provider (promptfoo side)
 
-**Status:** Not started
+**Status:** In progress
 **Depends on:** Spec 00
 **Model:** Standard — `claude-sonnet-5-5` · `gpt-6.2-sol` · `gemini-3.8-flash`
 **Issue:** —
@@ -42,3 +42,11 @@ The Python file promptfoo loads as its red-team target. For every attack promptf
 - [ ] Same file: importing `promptfoo_bridge.provider` in a subprocess with `-I` and only the backend folder on `sys.path` imports no `app` module (checked via `sys.modules`). [unit]
 - [ ] `cd backend && .venv/bin/python -m pytest -q tests/unit` passes with 0 failures; count in the Log. [unit]
 - [ ] `cd backend && .venv/bin/python -m compileall -q app promptfoo_bridge` passes. [static]
+
+## Log
+
+### 2026-11-22 — Local fixture scope
+
+- Implemented the local Promptfoo Python provider as a fixed response table. The same support case succeeds in both modes. The banner case returns a synthetic marker in raw mode and the expected private-banner response in protected mode. Unknown modes and prompts fail with fixed error messages. There is no HTTP transport, arbitrary target input, or app import. Live bridge acceptance remains open.
+- Confirmed `call_api(prompt, options, context)` in the installed 0.126.0 `dist/src/python/persistent_wrapper.py` and verified the provider worker selects that callable by default, passes the provider options, and validates the `output`/`error` response in `dist/src/providers-BROlDdDc.js`.
+- From `backend/`, `.venv/bin/python -m pytest -q tests/unit/test_promptfoo_bridge_provider.py` returned **8 passed**. `.venv/bin/python -m pytest -q tests/unit` returned **606 passed, 8 warnings**. `.venv/bin/python -m compileall -q app promptfoo_bridge` exited **0**. No MongoDB criterion in this spec.
