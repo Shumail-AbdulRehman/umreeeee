@@ -8,7 +8,7 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 | 01 | Runtime and Heroku setup | Done |
 | 02 | Plugin and strategy catalog | Done |
 | 03 | Framework compliance | Done |
-| 04 | Config and environment builder | Not started |
+| 04 | Config and environment builder | In progress (local fixture subset verified) |
 | 05 | Results parser | Done |
 | 06 | Report aggregation | Done |
 | 07 | Frontend client service and labels | Done |

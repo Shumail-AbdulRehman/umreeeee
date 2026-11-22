@@ -1,6 +1,6 @@
 # Spec 04 — promptfoo config and environment builder
 
-**Status:** Not started
+**Status:** In progress
 **Depends on:** Spec 02
 **Model:** Heavy — `claude-opus-5-5` · `gpt-6.2-sol` · `gemini-4-argon`
 **Issue:** —
@@ -45,3 +45,11 @@ Pure functions that turn a launched test (its document and frozen snapshot) into
 - [ ] Same file: `config_hash` is equal for raw vs protected and different when a plugin count changes; `redact` hides token and apiKey; an empty key raises `promptfoo_api_key_missing`. [unit]
 - [ ] `cd backend && .venv/bin/python -m pytest -q tests/unit` passes with 0 failures; count in the Log. [unit]
 - [ ] `cd backend && .venv/bin/python -m compileall -q app` passes. [static]
+
+## Log
+
+### 2026-11-22 — Local fixture scope
+
+- The owner requested an isolated local evaluation with fixed harmless cases, synthetic data and mock providers. Implemented a two-case suite shared across raw and protected mock modes, a stable suite ID and an allowlisted subprocess environment built without inheriting credentials. Hosted generation, Cloud login, integration-backed grading and the HTTP bridge target remain outside this local deliverable. The original acceptance items remain open.
+- Root `npm ci` added 579 packages and audited 580 (0 vulnerabilities reported). Checked installed `node_modules/promptfoo/package.json` (0.126.0), CLI `eval` config options in `dist/src/main.js`, the exact-match assertion, Python provider worker configuration, and the environment reads for the private config directory, cache, remote generation, telemetry, update and sharing flags.
+- From `backend/`, `.venv/bin/python -m pytest -q tests/unit/test_config_builder.py` returned **7 passed**. `.venv/bin/python -m pytest -q tests/unit` returned **598 passed, 8 warnings**. `.venv/bin/python -m compileall -q app` exited **0**. No MongoDB criterion in this spec.
