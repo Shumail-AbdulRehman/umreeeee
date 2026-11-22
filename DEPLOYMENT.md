@@ -19,3 +19,6 @@ build the frontend. These values are configured in the hosting dashboards, not c
 Repository setup is ready for deployment; actual cloud deployment and credentials are not
 created by these files. MongoDB, SMTP, detector access and optional RabbitMQ must be configured.
 When moving an existing database, preserve its encryption keys.
+
+The Red Team runs the promptfoo CLI pinned in the root `package.json`: Heroku needs the `heroku/nodejs` buildpack first
+and `heroku/python` second, plus `PROMPTFOO_API_KEY`. Details: [backend deployment](backend/DEPLOYMENT.md#promptfoo-runtime-red-team-engine).

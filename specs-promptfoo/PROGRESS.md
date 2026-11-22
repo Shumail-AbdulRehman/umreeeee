@@ -5,7 +5,7 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 | Spec | Unit | Status |
 | --- | --- | --- |
 | 00 | Planner decisions | Done |
-| 01 | Runtime and Heroku setup | Not started |
+| 01 | Runtime and Heroku setup | Done |
 | 02 | Plugin and strategy catalog | Not started |
 | 03 | Framework compliance | Not started |
 | 04 | Config and environment builder | Not started |
@@ -35,3 +35,5 @@ Planning status only. `Done` means verified and accepted (00 is a recorded decis
 - **2026-11-22**: Planner review of Codex-written specs 01-03, 05-07, 11-15, 18-20: removed remaining offline-only wording in 07, 11, 12, 13, 15, 18, 20 (editor Launch action, live progress phases, clone evaluates stored suite, worker pipeline e2e). Validator re-run: see docs/planning/promptfoo/validator.md.
 
 - **2026-11-22**: Specs 05 and 07 implemented by Codex (gpt-6.2-sol, high) and verified by Claude: parser tests 37, backend unit 522; frontend 227, lint clean. Codex declined specs 01 and 08 (live red-team execution path); they move to Claude with 04, 09, 10, 16, 17, 21.
+
+- **2026-11-22**: Spec 01 implemented and verified by Claude (Codex declined): promptfoo 0.126.0 pinned at the root, runtime checker with 8 tests, backend unit 530, deployment docs updated.

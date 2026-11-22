@@ -98,6 +98,36 @@ dictionary on each cycle (keys `dispatch_reset`, `pre_call_reset`, `response_res
 encryption keys as `worker` and `dispatcher`. It never replays an uncertain provider call: a
 job whose provider outcome cannot be confirmed is finalized as `execution_outcome_unknown`,
 because the original call may already have incurred cost.
+
+### promptfoo runtime (Red Team engine)
+
+Red Team scans run the pinned promptfoo CLI (`promptfoo` `0.126.0` in the repository-root `package.json`) as a
+subprocess of `worker`. Locally: run `npm ci` in the repository root (Node 24; `.node-version`), then
+`cd backend && python -m scripts.check_promptfoo_runtime` — it must report `"available": true` and
+`"cloud_key_configured": true`.
+
+Configuration (backend `.env` or Heroku config vars):
+
+- `PROMPTFOO_API_KEY` — the owner's promptfoo Cloud user API token. The worker runs
+  `promptfoo auth login --host <PROMPTFOO_CLOUD_HOST> --api-key <key>` inside a private per-run config directory before
+  generating attacks; no email verification step is needed. Never commit it.
+- `PROMPTFOO_CLOUD_HOST` — optional, defaults to `https://www.promptfoo.app`.
+
+Heroku (only when the project is deployed; the current plan is local testing): the app needs both buildpacks, Node
+first and Python last, so `node_modules/.bin/promptfoo` exists in the slug:
+
+```sh
+heroku buildpacks:set heroku/python --app YOUR-APP
+heroku buildpacks:add --index 1 heroku/nodejs --app YOUR-APP
+heroku buildpacks --app YOUR-APP   # 1. heroku/nodejs  2. heroku/python
+heroku ps:resize worker=standard-2x --app YOUR-APP
+```
+
+The worker needs a Standard-2X dyno (1 GB): Node alone uses about 315 MiB next to the Python worker. promptfoo adds
+about 130 MB to the compressed slug (limit 1000 MB). The Procfile is unchanged; the worker calls promptfoo by its
+absolute path because the process starts with `cd backend`. In the standalone `backend/` repository layout, copy the
+root `package.json` and `package-lock.json` into that repository root as well.
+
 Normal Prompt Studio runs do not require RabbitMQ. The application also needs periodic
 content cleanup: schedule `python -m scripts.expire_content` through Heroku Scheduler
 (or `cd backend && python -m scripts.expire_content` for the complete repository).

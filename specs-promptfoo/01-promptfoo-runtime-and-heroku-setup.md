@@ -1,6 +1,6 @@
 # Spec 01 — promptfoo runtime and Heroku setup
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 00
 **Model:** Light — `claude-haiku-5-5` · `gpt-6.2-sol` · `gemini-3.5-flash-lite`
 **Issue:** —
@@ -35,9 +35,14 @@ Install the pinned promptfoo runtime the worker executes, add a runtime checker 
 
 ## Done when
 
-- [ ] `cd backend && .venv/bin/python -m pytest -q tests/unit/test_check_promptfoo_runtime.py` passes: fake version match, wrong version, missing binary, bad Node major and masked API key (including no raw value on failure). [unit]
-- [ ] From repo root `npm ci` succeeds and `node_modules/.bin/promptfoo --version` reports `0.126.0`; this is a version check only. [static]
-- [ ] Both deployment docs list `heroku/nodejs` first and `heroku/python` second, and neither Procfile changes. [static]
-- [ ] `cd backend && .venv/bin/python -m pytest -q tests/unit` passes; log the count. [unit]
-- [ ] `cd backend && .venv/bin/python -m compileall -q app` and `.venv/bin/python -m py_compile scripts/check_promptfoo_runtime.py` pass. [static]
-- [ ] `cd Frontend && npm run build` passes. [static]
+- [x] `cd backend && .venv/bin/python -m pytest -q tests/unit/test_check_promptfoo_runtime.py` passes: fake version match, wrong version, missing binary, bad Node major and masked API key (including no raw value on failure). [unit]
+- [x] From repo root `npm ci` succeeds and `node_modules/.bin/promptfoo --version` reports `0.126.0`; this is a version check only. [static]
+- [x] Both deployment docs list `heroku/nodejs` first and `heroku/python` second, and neither Procfile changes. [static]
+- [x] `cd backend && .venv/bin/python -m pytest -q tests/unit` passes; log the count. [unit]
+- [x] `cd backend && .venv/bin/python -m compileall -q app` and `.venv/bin/python -m py_compile scripts/check_promptfoo_runtime.py` pass. [static]
+- [x] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+- **2026-11-22** (Claude; Codex declined this spec): Root `package.json` pins `promptfoo` `0.126.0`, `engines.node` `24.x`, private, no scripts; `package-lock.json` generated on Linux (`npm install`, then `rm -rf node_modules && npm ci` → 579 packages); `node_modules/.bin/promptfoo --version` → `0.126.0`. Root `.node-version` = `24` (`Frontend/.node-version` stays `22` for Netlify). `backend/scripts/check_promptfoo_runtime.py` provides `runtime_status()` and a CLI; the real run on this machine reported available, version 0.126.0, node 24, cloud key configured, with no secret printed. The deployment docs document `PROMPTFOO_API_KEY`/`PROMPTFOO_CLOUD_HOST`, the buildpack order (nodejs index 1, then python) and Standard-2X; both Procfiles are unchanged (`git status` clean for both).
+- Verification: `tests/unit/test_check_promptfoo_runtime.py` 8 passed (match, wrong version, missing binary, unreadable version, Node 20, missing node, key never in output, CLI output); backend unit suite 530 passed; `compileall -q app` and `py_compile scripts/check_promptfoo_runtime.py` OK; `cd Frontend && npm run build` OK.

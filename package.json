@@ -1,0 +1,11 @@
+{
+  "name": "averiq-red-team-runtime",
+  "private": true,
+  "description": "Pinned promptfoo CLI executed by the backend red-team worker (backend/app/red_team/runner.py).",
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "promptfoo": "0.126.0"
+  }
+}
