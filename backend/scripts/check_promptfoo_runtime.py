@@ -11,17 +11,20 @@ import subprocess
 import sys
 from pathlib import Path
 
+if __package__ in (None, ''):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from app.red_team.runtime_paths import BACKEND_ROOT, PROMPTFOO_BINARY
+
 PINNED_VERSION = '0.126.0'
 MIN_NODE_MAJOR = 22  # promptfoo 0.126.0 declares engines.node >=22.22.0; the repo pins 24.x
 DEFAULT_CLOUD_HOST = 'https://www.promptfoo.app'
-REPO_ROOT = Path(__file__).resolve().parents[2]
-BACKEND_ROOT = REPO_ROOT / 'backend'
 _SEMVER = re.compile(r'(\d+)\.(\d+)\.(\d+)')
 _PROBE_ENV = {'PROMPTFOO_DISABLE_TELEMETRY': '1', 'PROMPTFOO_DISABLE_UPDATE': '1', 'FORCE_COLOR': '0'}
 
 
 def default_binary():
-    return REPO_ROOT / 'node_modules' / '.bin' / 'promptfoo'
+    return PROMPTFOO_BINARY
 
 
 def _probe(run, command, timeout):

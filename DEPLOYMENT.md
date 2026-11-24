@@ -5,7 +5,7 @@ Both a single repository and two separate repositories are supported.
 | Layout | Heroku repository root | Netlify base directory |
 | --- | --- | --- |
 | This entire project | Project root (root Procfile and requirements wrapper) | `Frontend` (root netlify.toml) |
-| Two repositories | Contents of `backend/`, with its Procfile at root | Contents of `Frontend/`, base blank |
+| Two repositories | Contents of `backend/`, with its Procfile at root, plus the root npm manifests and `app.json` | Contents of `Frontend/`, base blank |
 
 Follow [backend deployment](backend/DEPLOYMENT.md) and
 [frontend deployment](Frontend/DEPLOYMENT.md). Each guide also works when its directory is
@@ -20,5 +20,7 @@ Repository setup is ready for deployment; actual cloud deployment and credential
 created by these files. MongoDB, SMTP, detector access and optional RabbitMQ must be configured.
 When moving an existing database, preserve its encryption keys.
 
-The Red Team runs the promptfoo CLI pinned in the root `package.json`: Heroku needs the `heroku/nodejs` buildpack first
-and `heroku/python` second, plus `PROMPTFOO_API_KEY`. Details: [backend deployment](backend/DEPLOYMENT.md#promptfoo-runtime-red-team-engine).
+For Red Team on Heroku Cedar, use `heroku/nodejs` first and `heroku/python` last,
+then set `PROMPTFOO_API_KEY` in Heroku Config Vars. The root `app.json` declares
+the order for newly created apps. Update existing apps in Heroku before
+redeploying the branch. See [backend deployment](backend/DEPLOYMENT.md#promptfoo-runtime-red-team-engine).

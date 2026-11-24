@@ -15,6 +15,7 @@ import threading
 import time
 
 from app.red_team.config_builder import cloud_login_args, to_yaml
+from app.red_team.runtime_paths import PROMPTFOO_BINARY
 from app.red_team.results_parser import (
     ArtifactParseError,
     SuiteSecretError,
@@ -24,8 +25,6 @@ from app.red_team.results_parser import (
 )
 
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_DEFAULT_BINARY = _REPO_ROOT / "node_modules" / ".bin" / "promptfoo"
 _TAIL_BYTES = 4096
 
 
@@ -84,7 +83,7 @@ class PromptfooRun:
         sleep=time.sleep,
         keep_workspace=False,
     ):
-        self.binary = Path(binary) if binary is not None else _DEFAULT_BINARY
+        self.binary = Path(binary) if binary is not None else PROMPTFOO_BINARY
         self.workspace_root = Path(workspace_root or Path.cwd())
         self.config = dict(config or {})
         self.cloud_host = cloud_host

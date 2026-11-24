@@ -29,6 +29,7 @@ from app.red_team.catalog import PROMPTFOO_VERSION
 from app.red_team.config_builder import build_clone_config, build_redteam_config, subprocess_env
 from app.red_team.results_parser import ArtifactParseError, decide, parse_results_json, suite_breakdown
 from app.red_team.runner import PromptfooRun
+from app.red_team.runtime_paths import BACKEND_ROOT, RUNTIME_ROOT
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.llm_integration_repository import LLMIntegrationRepository
 from app.services.admin_common import utcnow
@@ -40,7 +41,6 @@ from app.services.red_team_report import build_report
 logger = logging.getLogger(__name__)
 _RESULTS_LIMIT = 100 * 1024 * 1024
 _SUITE_LIMIT = 5 * 1024 * 1024
-_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 class CredentialUnavailable(Exception):
@@ -395,7 +395,7 @@ def process_job(db, job_id, test_id, generation, provider_service=None, *,
                 test, snapshot, target_key=target_key, grader_key=grader_key,
                 workspace=workspace_root, bridge=bridge_config,
             )
-        env = subprocess_env(os.environ, workspace_root, sys.executable, _REPO_ROOT)
+        env = subprocess_env(os.environ, workspace_root, sys.executable, RUNTIME_ROOT, backend_root=BACKEND_ROOT)
         runner = runner_factory(
             workspace_root=workspace_root, config=config,
             cloud_host=PROMPTFOO_CLOUD_HOST, cloud_api_key=PROMPTFOO_API_KEY,

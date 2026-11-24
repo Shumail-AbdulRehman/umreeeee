@@ -103,7 +103,7 @@ def test_config_preview_hides_secrets_and_paths():
     assert "http://127.0.0.1" not in preview
     assert "/ws" not in preview
     assert "redteam" in preview and "pii:direct" in preview
-    assert str(cb._REPO_ROOT) not in preview
+    assert str(cb.BRIDGE_PROVIDER) not in preview
     assert "internal.example" not in preview
     assert yaml.safe_load(preview)["targets"][0]["id"].startswith("file://<workspace>/")
 
@@ -150,6 +150,11 @@ def test_subprocess_env_allowlist_and_drops():
     assert env["PROMPTFOO_CACHE_ENABLED"] == "false"
     assert env["PROMPTFOO_PYTHON"] == "/py/bin/python"
     assert env["PYTHONPATH"] == "/repo/backend"
+
+
+def test_subprocess_env_uses_explicit_standalone_backend():
+    env = cb.subprocess_env({}, "/ws", "/py/bin/python", "/app", backend_root="/app")
+    assert env["PYTHONPATH"] == "/app"
     for dropped in ("OPENAI_API_KEY", "CI", "PROMPTFOO_DISABLE_REDTEAM_REMOTE_GENERATION",
                     "PROMPTFOO_REMOTE_GENERATION_URL"):
         assert dropped not in env

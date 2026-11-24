@@ -1,6 +1,11 @@
 import json
+from pathlib import Path
+import shutil
 import stat
 import subprocess
+import sys
+
+import pytest
 
 from scripts import check_promptfoo_runtime as checker
 
@@ -85,3 +90,40 @@ def test_main_prints_no_secret(tmp_path, monkeypatch, capsys):
     output = capsys.readouterr()
     assert SECRET not in output.out + output.err
     assert 'binary_missing' in output.err
+
+
+@pytest.mark.parametrize('standalone', [False, True])
+def test_runtime_paths_follow_the_deployed_layout(tmp_path, standalone):
+    source = Path(__file__).resolve().parents[2]
+    deploy = tmp_path / 'deploy'
+    backend = tmp_path / 'backend' if standalone else deploy / 'backend'
+    if standalone:
+        deploy = backend
+    shutil.copytree(source / 'app' / 'red_team', backend / 'app' / 'red_team',
+                    ignore=shutil.ignore_patterns('__pycache__'))
+    (backend / 'scripts').mkdir()
+    script = backend / 'scripts' / 'check_promptfoo_runtime.py'
+    shutil.copyfile(checker.__file__, script)
+    (backend / 'promptfoo_bridge').mkdir()
+    shutil.copyfile(source / 'promptfoo_bridge' / 'provider.py', backend / 'promptfoo_bridge' / 'provider.py')
+    (deploy / 'package.json').write_text('{}')
+    binary_dir = deploy / 'node_modules' / '.bin'
+    binary_dir.mkdir(parents=True)
+    binary = fake_binary(binary_dir)
+
+    result = subprocess.run([sys.executable, '-I', str(script)], cwd=tmp_path,
+                            capture_output=True, text=True, timeout=25)
+    status = json.loads(result.stdout)
+    assert status['binary_present'] and status['version'] == '0.126.0'
+
+    program = """
+import json
+import sys
+sys.path.insert(0, sys.argv[1])
+from app.red_team.config_builder import BRIDGE_PROVIDER
+from app.red_team.runner import PromptfooRun
+print(json.dumps([str(PromptfooRun().binary), str(BRIDGE_PROVIDER)]))
+"""
+    result = subprocess.run([sys.executable, '-I', '-c', program, str(backend)], cwd=tmp_path,
+                            capture_output=True, text=True, check=True, timeout=25)
+    assert json.loads(result.stdout) == [str(binary), str(backend / 'promptfoo_bridge' / 'provider.py')]

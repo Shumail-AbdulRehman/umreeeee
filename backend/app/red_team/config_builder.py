@@ -12,10 +12,9 @@ from pathlib import Path
 import yaml
 
 from app.red_team.catalog import PLUGINS, PROMPTFOO_VERSION
+from app.red_team.runtime_paths import BRIDGE_PROVIDER
 
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_PROVIDER = _REPO_ROOT / "backend" / "promptfoo_bridge" / "provider.py"
 _DEFAULT_CLOUD_HOST = "https://www.promptfoo.app"
 _DEEPSEEK_BASE = "https://api.deepseek.com/v1"
 
@@ -122,7 +121,7 @@ def _protected_target(bridge):
     if not bridge:
         raise ConfigBuilderError("bridge_required", "Protected mode needs a bridge")
     return {
-        "id": f"file://{_PROVIDER}",
+        "id": f"file://{BRIDGE_PROVIDER}",
         "label": "policy pipeline · protected",
         "config": {
             "url": bridge["url"],
@@ -283,7 +282,7 @@ def cloud_login_redacted(host, api_key):
     return ["auth", "login", "--host", host or _DEFAULT_CLOUD_HOST, "--api-key", _REDACTED]
 
 
-def subprocess_env(base_env, workspace, python_executable, repo_root):
+def subprocess_env(base_env, workspace, python_executable, repo_root, *, backend_root=None):
     """A fresh environment per ARCHITECTURE 'Subprocess environment'."""
     base_env = base_env or {}
     workspace = Path(workspace)
@@ -298,7 +297,7 @@ def subprocess_env(base_env, workspace, python_executable, repo_root):
         "PROMPTFOO_CACHE_ENABLED": "false",
         "FORCE_COLOR": "0",
         "PROMPTFOO_PYTHON": str(python_executable),
-        "PYTHONPATH": str(Path(repo_root) / "backend"),
+        "PYTHONPATH": str(backend_root if backend_root is not None else Path(repo_root) / "backend"),
     }
     for name in _DROP_ENV:
         env.pop(name, None)

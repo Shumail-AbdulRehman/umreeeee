@@ -1,0 +1,8 @@
+{
+  "name": "Averiq API",
+  "description": "FastAPI backend with the pinned Promptfoo runtime for Red Team evaluations.",
+  "buildpacks": [
+    { "url": "heroku/nodejs" },
+    { "url": "heroku/python" }
+  ]
+}
