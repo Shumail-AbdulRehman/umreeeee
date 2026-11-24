@@ -31,20 +31,25 @@ def decrypt(text):
 
 def expire_content(db, now=None):
     cutoff = now or utcnow()
-    ordinary = db.prompt_runs.update_many({'content_expires_at': {'$lte': cutoff},
-        'content_expired': {'$ne': True}}, {'$unset': {field: '' for field in CONTENT_FIELDS},
-        '$set': {'content_expired': True}}).modified_count
-    red_team = db.red_team_jobs.update_many({'content_expires_at': {'$lte': cutoff},
-        'content_expired': {'$ne': True}}, {'$unset': {'response_ciphertext': ''},
-        '$set': {'content_expired': True}}).modified_count
-    return ordinary + red_team
+    query = {'content_expires_at': {'$lte': cutoff}, 'content_expired': {'$ne': True}}
+    return sum(
+        collection.update_many(query, {'$unset': dict.fromkeys(fields, ''),
+                                      '$set': {'content_expired': True}}).modified_count
+        for collection, fields in (
+            (db.prompt_runs, CONTENT_FIELDS),
+            (db.red_team_attacks, ('prompt_ciphertext', 'response_ciphertext')),
+            (db.red_team_jobs, ('response_ciphertext',)),
+        )
+    )
 
 
 def shorten_retention(db, company, days, session=None):
     # Pipeline uses the original creation date, never the time settings are edited.
-    db.prompt_runs.update_many({'company_id': company, 'content_expired': {'$ne': True},
-        'content_expires_at': {'$exists': True}}, [{'$set': {'content_expires_at': {'$min': [
-            '$content_expires_at', {'$add': ['$created_at', int(timedelta(days=days).total_seconds() * 1000)]}]}}}], session=session)
-    db.red_team_jobs.update_many({'company_id': company, 'content_expired': {'$ne': True},
-        'content_expires_at': {'$exists': True}}, [{'$set': {'content_expires_at': {'$min': [
-            '$content_expires_at', {'$add': ['$created_at', int(timedelta(days=days).total_seconds() * 1000)]}]}}}], session=session)
+    query = {'company_id': company, 'content_expired': {'$ne': True},
+             'content_expires_at': {'$exists': True}}
+    duration_ms = int(timedelta(days=days).total_seconds() * 1000)
+    update = [{'$set': {'content_expires_at': {'$min': [
+        '$content_expires_at', {'$add': ['$created_at', duration_ms]},
+    ]}}}]
+    for collection in (db.prompt_runs, db.red_team_attacks, db.red_team_jobs):
+        collection.update_many(query, update, session=session)

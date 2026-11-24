@@ -1,6 +1,7 @@
-"""Tenant-scoped red-team configuration and durable launch; no provider calls here."""
-from hashlib import sha256
+"""Tenant-scoped Promptfoo Red Team configuration, launch and reads."""
+
 import csv
+from hashlib import sha256
 import io
 import json
 import re
@@ -14,49 +15,85 @@ from pymongo.errors import PyMongoError
 from app.core.errors import DomainError, object_id
 from app.core.permissions import ADMIN_ROLES, require_admin
 from app.db.mongo import get_database
-from app.red_team.catalog_schema import CATALOG_VERSION, EVALUATOR_VERSION, manifest, manifest_hash, CATEGORIES
-from app.red_team.manifest_v3 import build_manifest
-from app.red_team.plugins import PLUGINS, STRATEGIES, CATALOG_VERSION as V3_CATALOG_VERSION
+from app.red_team.catalog import PLUGINS, PROMPTFOO_VERSION, STRATEGIES, estimated_target_calls, plugin_label, strategy_label
+from app.red_team.config_builder import ConfigBuilderError, config_hash, config_preview as build_preview, provider_id
+from app.red_team.framework_compliance import framework_catalog
 from app.services.admin_common import audit, serialize, utcnow
+from app.services.content_service import decrypt
 from app.services.enforcement_service import resolve_policies
+from app.services.red_team_report import build_report
 from app.services.remote_detection import catalog_ready
-from app.services.red_team_report_service import progress, score
 from app.validators.registry import registry
+from scripts.check_promptfoo_runtime import runtime_status
+
+
+TERMINAL = {'completed', 'partially_failed', 'failed', 'cancelled'}
+CSV_COLUMNS = [
+    'test_idx', 'repeat_index', 'plugin_id', 'strategy_id', 'severity', 'decision',
+    'verdict', 'verdict_source', 'prompt', 'response_text', 'grader_reason',
+    'latency_ms', 'cost_usd', 'error_code',
+]
+
+
+def csv_safe(value):
+    text = str(value if value is not None else '')
+    return "'" + text if text.lstrip().startswith(('=', '+', '-', '@', '\t', '\r')) else text
+
+
+def _generated_tests(plugins, strategies, tests_per_plugin):
+    selected = set(strategies) | {'basic'}
+    per_seed = sum(STRATEGIES[strategy]['cases_per_seed'] for strategy in selected)
+    return len(set(plugins)) * tests_per_plugin * per_seed
 
 
 def test_read(doc, *, detail=False):
     item = serialize(doc)
     item['id'] = item.pop('_id')
-    item.pop('manifest', None)
+    for key in ('launch_key', 'launch_fingerprint'):
+        item.pop(key, None)
     if not detail:
         item.pop('config_snapshot', None)
+    elif item.get('config_snapshot'):
+        # The preview endpoint redacts paths even for drafts created by older workers.
+        item['config_snapshot'].pop('preview_yaml', None)
     return item
 
 
-def job_read(doc, *, detail=False):
-    keys = ['_id', 'test_id', 'attack_index', 'attack_id', 'category', 'case_kind', 'state', 'verdict',
-            'verdict_reason_code', 'explanation', 'prevention_stage', 'response_length',
-            'response_withheld', 'attempt_number', 'error_code', 'created_at', 'started_at', 'finished_at',
-            'provider_latency_ms', 'total_tokens', 'estimated_cost_usd', 'cost_status', 'cost_source', 'pricing_snapshot', 'prompt_tokens',
-            'completion_tokens', 'provider_request_id', 'possible_cost', 'protected_run_id']
-    if detail:
-        keys += ['prompt', 'scenario_system', 'description', 'attempt_history', 'content_expires_at']
+def _payload_values(test, fields):
+    values = {
+        key: str(test[key]) if key in {'integration_id', 'subject_user_id'} and test.get(key) else test.get(key)
+        for key in fields
+    }
+    grader = values.get('grader')
+    if isinstance(grader, dict) and grader.get('integration_id') is not None:
+        values['grader'] = {**grader, 'integration_id': str(grader['integration_id'])}
+    return values
+
+
+def attack_read(doc, *, detail=False):
+    keys = [
+        '_id', 'test_id', 'test_idx', 'repeat_index', 'plugin_id', 'strategy_id', 'severity',
+        'decision', 'verdict', 'verdict_source', 'grader_reason', 'policy_evidence',
+        'protected_run_id', 'assert_type', 'assert_metric', 'latency_ms', 'prompt_tokens',
+        'completion_tokens', 'total_tokens', 'cost_usd', 'error_code', 'created_at',
+    ]
     item = serialize({key: doc.get(key) for key in keys})
     item['id'] = item.pop('_id')
+    item['plugin_name'] = plugin_label(doc.get('plugin_id'))
+    item['strategy_name'] = strategy_label(doc.get('strategy_id') or 'basic')
     if detail:
-        expired = doc.get('content_expires_at') and doc['content_expires_at'] <= utcnow()
-        item['content_expired'] = bool(expired or doc.get('content_expired'))
-        if not item['content_expired'] and not doc.get('response_withheld') and doc.get('response_ciphertext'):
-            from app.services.content_service import decrypt
-            item['response_text'] = decrypt(doc['response_ciphertext'])
-        else:
-            item['response_text'] = None
+        expires = doc.get('content_expires_at')
+        expired = bool(doc.get('content_expired') or (expires is not None and expires <= utcnow()))
+        item['content_expired'] = expired
+        item['prompt'] = None if expired else decrypt(doc.get('prompt_ciphertext'))
+        item['response_text'] = None if expired else decrypt(doc.get('response_ciphertext'))
     return item
 
 
 class RedTeamService:
-    def __init__(self, db=None):
+    def __init__(self, db=None, *, runtime_check=runtime_status):
         self.db = db if db is not None else get_database()
+        self.runtime_check = runtime_check
 
     @staticmethod
     def _tenant(user):
@@ -64,8 +101,9 @@ class RedTeamService:
         return object_id(user.company.id)
 
     def _find(self, user, test_id, session=None):
-        row = self.db.red_team_tests.find_one({'_id': object_id(test_id),
-            'company_id': self._tenant(user)}, session=session)
+        row = self.db.red_team_tests.find_one({
+            '_id': object_id(test_id), 'company_id': self._tenant(user),
+        }, session=session)
         if not row:
             raise DomainError(404, 'not_found', 'Test not found')
         return row
@@ -75,76 +113,160 @@ class RedTeamService:
             try:
                 with self.db.client.start_session() as session:
                     with session.start_transaction():
-                        updated = self.db.companies.update_one({'_id': self._tenant(user),
-                            'status': 'active'}, {'$inc': {'administration_revision': 1}}, session=session)
-                        if updated.matched_count != 1:
+                        changed = self.db.companies.update_one(
+                            {'_id': self._tenant(user), 'status': 'active'},
+                            {'$inc': {'administration_revision': 1}}, session=session,
+                        )
+                        if changed.matched_count != 1:
                             raise DomainError(403, 'organization_unavailable', 'Organization is unavailable')
                         return operation(self.db, session)
             except PyMongoError as exc:
                 if attempt == 5 or not exc.has_error_label('TransientTransactionError'):
                     raise
-                sleep(min(0.02 * (2 ** attempt), 0.3))
-
-    def _judge_target(self, company, judge, session=None, *, launching=False):
-        if not judge:
-            return None
-        judge_id = judge['integration_id']
-        target = self.db.integrations.find_one({'_id': object_id(judge_id),
-            'company_id': company, 'status': 'active'}, session=session)
-        if not target or judge['model'] not in target.get('models', []):
-            raise DomainError(409 if launching else 422, 'judge_unavailable',
-                'Choose an active judge integration and enabled model in this organization',
-                {'judge.integration_id': ['Judge integration or model is unavailable']})
-        return target
+                sleep(min(.02 * (2 ** attempt), .3))
 
     @staticmethod
-    def _config_values(payload, rows):
-        data = payload.model_dump(exclude={'version'})
-        if payload.format == 'plugins':
-            data.pop('attack_categories', None)
-            data.update({'num_attacks': len(rows) - 5, 'strategies': list(dict.fromkeys(['basic', *payload.strategies])),
-                         'catalog_version': V3_CATALOG_VERSION, 'evaluator_version': 'exact-evidence-3'})
-        else:
-            for key in ('plugins', 'strategies', 'tests_per_plugin', 'judge'):
-                data.pop(key, None)
-            data.update({'catalog_version': CATALOG_VERSION, 'evaluator_version': EVALUATOR_VERSION})
+    def _provider_supported(integration, model):
+        try:
+            provider_id(integration.get('provider'), model)
+        except ConfigBuilderError as exc:
+            raise DomainError(422, exc.code, str(exc), {
+                'integration_id': ['Provider is not supported by promptfoo'],
+            }) from exc
+
+    def _validate_config(self, user, payload, session=None, *, launching=False):
+        company = self._tenant(user)
+        target = self.db.integrations.find_one({
+            '_id': object_id(payload.integration_id), 'company_id': company, 'status': 'active',
+        }, session=session)
+        if not target or payload.model not in target.get('models', []):
+            raise DomainError(409 if launching else 422, 'target_unavailable',
+                              'Choose an active target integration and enabled model')
+        grader = self.db.integrations.find_one({
+            '_id': object_id(payload.grader.integration_id), 'company_id': company, 'status': 'active',
+        }, session=session)
+        if not grader or payload.grader.model not in grader.get('models', []):
+            raise DomainError(409 if launching else 422, 'grader_unavailable',
+                              'Choose an active grader integration and enabled model',
+                              {'grader.integration_id': ['Grader integration or model is unavailable']})
+        self._provider_supported(target, payload.model)
+        self._provider_supported(grader, payload.grader.model)
+        subject = None
+        if payload.mode == 'protected':
+            subject = self.db.users.find_one({
+                '_id': object_id(payload.subject_user_id), 'company_id': company,
+                'is_active': True, 'is_email_verified': True,
+            }, session=session)
+            if not subject:
+                raise DomainError(409 if launching else 422, 'subject_unavailable',
+                                  'Choose an active verified subject in this organization')
+        return target, grader, subject
+
+    @staticmethod
+    def _snapshot_for_preview(payload, target, grader):
+        return {
+            'provider': target['provider'], 'base_url': target.get('base_url'),
+            'model': payload.model, 'integration_name': target.get('account_name'),
+            'system_instruction': target.get('system_prompt', ''),
+            'temperature': None, 'max_tokens': None,
+            'grader': {
+                'integration_id': grader['_id'], 'provider': grader['provider'],
+                'base_url': grader.get('base_url'), 'model': payload.grader.model,
+            },
+        }
+
+    def _preview_payload(self, payload, target, grader, suite=None):
+        snapshot = self._snapshot_for_preview(payload, target, grader)
+        return {
+            'yaml': build_preview(payload.model_dump(), snapshot, suite=suite['suite'] if suite else None),
+            'estimated_target_calls': estimated_target_calls(
+                payload.plugins, payload.strategies, payload.tests_per_plugin,
+            ),
+            'generated_tests_estimate': suite['test_count'] if suite else _generated_tests(
+                payload.plugins, payload.strategies, payload.tests_per_plugin,
+            ),
+        }
+
+    def preview(self, user, payload, test_id=None):
+        suite = None
+        if test_id:
+            original = self._find(user, test_id)
+            suite = self._suite_document(original)
+            self._validate_suite_settings(payload.model_dump(), suite, original)
+        target, grader, _subject = self._validate_config(user, payload)
+        return self._preview_payload(payload, target, grader, suite)
+
+    def stored_preview(self, user, test_id):
+        from app.schemas.red_team import TestConfig
+        test = self._find(user, test_id)
+        payload = TestConfig(**_payload_values(test, TestConfig.model_fields))
+        target, grader, _subject = self._validate_config(user, payload)
+        return self._preview_payload(payload, target, grader, self._suite_document(test))
+
+    def _suite_document(self, test, session=None):
+        if not test.get('suite_id'):
+            return None
+        suite = self.db.red_team_suites.find_one(
+            {'_id': test['suite_id'], 'company_id': test['company_id']}, session=session,
+        )
+        if suite is None:
+            raise DomainError(409, 'suite_unavailable', 'The stored test suite is unavailable.')
+        return suite
+
+    def _suite_for_launch(self, test, session):
+        if test.get('suite_id'):
+            return self._suite_document(test, session)
+        siblings = {
+            'company_id': test['company_id'], 'comparison_group_id': test['comparison_group_id'],
+            '_id': {'$ne': test['_id']},
+        }
+        source = self.db.red_team_tests.find_one(
+            {**siblings, 'suite_id': {'$type': 'objectId'}}, session=session,
+        )
+        if source:
+            return self._suite_document(source, session)
+        if self.db.red_team_tests.find_one({
+            **siblings, 'status': {'$in': ['queued', 'generating', 'running', 'cancelling']},
+        }, session=session):
+            raise DomainError(409, 'suite_pending',
+                              'Wait for the other run in this comparison to generate its test cases.')
+        return None
+
+    @staticmethod
+    def _validate_suite_settings(config, suite, original):
+        if suite and config_hash(config) != (suite.get('config_hash') or config_hash(original)):
+            raise DomainError(409, 'suite_config_locked',
+                              'This draft reuses stored test cases. Keep the original generation settings.')
+
+    @staticmethod
+    def _config_document(payload, target, grader, subject):
+        data = payload.model_dump()
+        data['integration_id'] = target['_id']
+        data['grader'] = {'integration_id': grader['_id'], 'model': payload.grader.model}
+        data['subject_user_id'] = subject['_id'] if subject else None
         return data
 
-    def _validate_config(self, user, payload, session=None):
-        company = self._tenant(user)
-        target = self.db.integrations.find_one({'_id': object_id(payload.integration_id),
-            'company_id': company, 'status': 'active'}, session=session)
-        if not target or payload.model not in target.get('models', []):
-            raise DomainError(422, 'invalid_target', 'Choose an active integration and model')
-        subject_id = object_id(payload.subject_user_id or user.id)
-        subject = self.db.users.find_one({'_id': subject_id, 'company_id': company,
-            'is_active': True, 'is_email_verified': True}, session=session)
-        if not subject:
-            raise DomainError(422, 'invalid_subject', 'Choose an active user in this organization')
-        try:
-            rows = build_manifest(payload.plugins, payload.strategies, payload.tests_per_plugin, payload.seed) \
-                if payload.format == 'plugins' else manifest(payload.attack_categories, payload.num_attacks, payload.seed)
-            self._judge_target(company, payload.judge.model_dump() if payload.judge else None, session)
-        except ValueError as exc:
-            raise DomainError(422, 'invalid_manifest', str(exc)) from exc
-        return target, subject, rows
-
-    def create(self, user, payload, request_id='', comparison_group_id=None):
-        target, subject, rows = self._validate_config(user, payload)
-        now = utcnow()
-        data = self._config_values(payload, rows)
-        data['subject_user_id'] = subject['_id']
-        data['integration_id'] = target['_id']
-        data.update({'company_id': self._tenant(user), 'created_by': object_id(user.id),
-            'control_count': 5, 'minimum_evaluable_fraction': .8,
-            'manifest': rows, 'manifest_hash': manifest_hash(rows), 'status': 'draft',
-            'version': 1, 'execution_revision': 0, 'comparison_group_id': comparison_group_id or ObjectId(),
-            'created_at': now, 'updated_at': now})
-
+    def create(self, user, payload, request_id='', comparison_group_id=None, suite_id=None):
         def operation(db, session):
+            target, grader, subject = self._validate_config(user, payload, session)
+            now = utcnow()
+            data = self._config_document(payload, target, grader, subject)
+            suite = self._suite_document({'suite_id': suite_id, 'company_id': self._tenant(user)}, session)
+            planned = suite['test_count'] if suite else _generated_tests(
+                payload.plugins, payload.strategies, payload.tests_per_plugin,
+            )
+            data.update({
+                'company_id': self._tenant(user), 'created_by': object_id(user.id),
+                'engine': 'promptfoo', 'promptfoo_version': PROMPTFOO_VERSION,
+                'suite_id': suite_id, 'status': 'draft', 'failure_reason': None,
+                'counts': {'planned': planned, 'executed': 0, 'graded': 0},
+                'version': 1, 'execution_revision': 0,
+                'comparison_group_id': comparison_group_id or ObjectId(),
+                'created_at': now, 'updated_at': now,
+            })
             db.red_team_tests.insert_one(data, session=session)
             audit(db, session, user, 'red_team.created', 'red_team_test', data['_id'], request_id)
-            return {'test': test_read(data, detail=True)}
+            return {'test': self._with_progress(data, detail=True)}
         return self._transaction(user, operation)
 
     def edit(self, user, test_id, payload, request_id=''):
@@ -154,24 +276,33 @@ class RedTeamService:
                 raise DomainError(409, 'not_draft', 'Only draft tests can be edited')
             if old['version'] != payload.version:
                 raise DomainError(409, 'stale_version', 'Test changed. Refresh and try again.')
-            target, subject, rows = self._validate_config(user, payload, session)
-            if payload.format != old.get('format', 'categories'):
-                raise DomainError(422, 'format_mismatch', 'A draft keeps its original format')
-            data = self._config_values(payload, rows)
-            data.update({'integration_id': target['_id'], 'subject_user_id': subject['_id'],
-                'manifest': rows, 'manifest_hash': manifest_hash(rows), 'updated_at': utcnow()})
-            result = db.red_team_tests.update_one({'_id': old['_id'], 'company_id': old['company_id'],
-                'status': 'draft', 'version': payload.version}, {'$set': data, '$inc': {'version': 1}}, session=session)
-            if result.matched_count != 1:
+            target, grader, subject = self._validate_config(user, payload, session)
+            data = self._config_document(payload, target, grader, subject)
+            data.pop('version', None)
+            suite = self._suite_document(old, session)
+            self._validate_suite_settings(data, suite, old)
+            data.update({
+                'counts': {
+                    'planned': suite['test_count'] if suite else _generated_tests(
+                        payload.plugins, payload.strategies, payload.tests_per_plugin,
+                    ),
+                    'executed': 0, 'graded': 0,
+                },
+                'updated_at': utcnow(),
+            })
+            changed = db.red_team_tests.update_one({
+                '_id': old['_id'], 'company_id': old['company_id'], 'status': 'draft', 'version': payload.version,
+            }, {'$set': data, '$inc': {'version': 1}}, session=session)
+            if changed.matched_count != 1:
                 raise DomainError(409, 'stale_version', 'Test changed. Refresh and try again.')
             audit(db, session, user, 'red_team.edited', 'red_team_test', old['_id'], request_id)
-            return {'test': test_read(db.red_team_tests.find_one({'_id': old['_id'],
-                'company_id': old['company_id']}, session=session), detail=True)}
+            current = db.red_team_tests.find_one({'_id': old['_id'], 'company_id': old['company_id']}, session=session)
+            return {'test': self._with_progress(current, detail=True)}
         return self._transaction(user, operation)
 
     def list(self, user, page=1, page_size=20, q=None, status=None, mode=None, integration_id=None,
              start=None, end=None):
-        query = {'company_id': self._tenant(user)}
+        query = {'company_id': self._tenant(user), 'engine': 'promptfoo'}
         if q:
             query['name'] = {'$regex': re.escape(q[:120]), '$options': 'i'}
         if status:
@@ -188,38 +319,73 @@ class RedTeamService:
                 query['created_at']['$gte'] = start
             if end:
                 query['created_at']['$lt'] = end
-        rows = list(self.db.red_team_tests.find(query).sort([('created_at', DESCENDING),
-            ('_id', DESCENDING)]).skip((page - 1) * page_size).limit(page_size))
-        return {'items': [self._with_progress(row) for row in rows], 'page': page,
-                'page_size': page_size, 'total': self.db.red_team_tests.count_documents(query)}
-
-    def _jobs(self, test):
-        return list(self.db.red_team_jobs.find({'company_id': test['company_id'], 'test_id': test['_id']}))
+        rows = self.db.red_team_tests.find(query).sort([
+            ('created_at', DESCENDING), ('_id', DESCENDING),
+        ]).skip((page - 1) * page_size).limit(page_size)
+        return {'items': [self._with_progress(row) for row in rows], 'page': page, 'page_size': page_size,
+                'total': self.db.red_team_tests.count_documents(query)}
 
     def _with_progress(self, test, detail=False):
-        jobs = self._jobs(test) if test['status'] != 'draft' else []
-        if test.get('format') == 'plugins':
-            from app.services.red_team_report_v3 import build_report
-            summary = build_report(test, jobs)
-            return {**test_read(test, detail=detail), 'progress': progress(jobs, test),
-                    'summary': {key: summary[key] for key in ('risk', 'attack_success', 'decided', 'threshold')},
-                    'model_calls': sum(j.get('attempt_number', 0) for j in jobs),
-                    'judge_calls': sum((j.get('judge') or {}).get('attempts', 0) for j in jobs),
-                    'dispatch_pending': any(j.get('dispatch_state') != 'published' and
-                        j['state'] not in {'finished', 'cancelled'} for j in jobs)}
-        return {**test_read(test, detail=detail), 'progress': progress(jobs, test),
-                'score': score(test, jobs), 'dispatch_pending': any(
-                    job.get('dispatch_state') != 'published' and job['state'] not in {'finished', 'cancelled'}
-                    for job in jobs)}
+        phase = None
+        if test.get('status') != 'draft':
+            job = self.db.red_team_jobs.find_one({
+                'company_id': test['company_id'], 'test_id': test['_id'], 'kind': 'run',
+            }, sort=[('created_at', DESCENDING)])
+            phase = (job or {}).get('phase') or (job or {}).get('execution_phase')
+        counts = test.get('counts') or {'planned': 0, 'executed': 0, 'graded': 0}
+        return {**test_read(test, detail=detail), 'progress': {**serialize(counts), 'phase': phase}}
 
     def detail(self, user, test_id):
         return {'test': self._with_progress(self._find(user, test_id), detail=True)}
+
+    def _launch_snapshot(self, user, test, target, grader, subject, company, session, suite=None):
+        group_ids = []
+        policies = []
+        if test['mode'] == 'protected':
+            groups = self.db.groups.find({
+                '_id': {'$in': subject.get('group_ids', [])}, 'company_id': test['company_id'], 'status': 'active',
+            }, {'_id': 1}, session=session)
+            group_ids = [group['_id'] for group in groups]
+            policies = resolve_policies(
+                self.db, str(test['company_id']), str(test['integration_id']), group_ids, session=session,
+            )
+            if company.get('settings', {}).get('require_active_policy', True) and not any(
+                    'input' in policy.get('stages', []) for policy in policies):
+                raise DomainError(409, 'policy_required', 'No applicable input policy is active')
+            missing = sorted({
+                rule['type'] for policy in policies for rule in policy.get('rules', [])
+                if not registry.capabilities().get(rule['type'], {}).get('ready')
+                or (rule['type'] == 'catalog' and not catalog_ready(policy))
+            })
+            if missing:
+                raise DomainError(409, 'validator_unavailable', 'Unavailable validators: ' + ', '.join(missing))
+        snapshot = {
+            'integration_id': target['_id'], 'integration_name': target['account_name'],
+            'provider': target['provider'], 'base_url': target.get('base_url'), 'model': test['model'],
+            'system_instruction': target.get('system_prompt', ''), 'temperature': None, 'max_tokens': None,
+            'price_snapshot': target.get('model_prices', []),
+            'subject_user_id': subject['_id'] if subject else None,
+            'subject_group_ids': group_ids, 'policy_snapshots': policies,
+            'require_active_policy': company.get('settings', {}).get('require_active_policy', True),
+            'grader': {
+                'integration_id': grader['_id'], 'provider': grader['provider'],
+                'base_url': grader.get('base_url'), 'model': test['grader']['model'],
+                'price_snapshot': grader.get('model_prices', []),
+            },
+            'catalog_severities': {plugin: PLUGINS[plugin]['severity'] for plugin in test['plugins']},
+            'config_hash': config_hash(test),
+        }
+        snapshot['preview_yaml'] = build_preview(test, snapshot, suite=suite['suite'] if suite else None)
+        return snapshot
 
     def launch(self, user, test_id, version, key, request_id=''):
         try:
             UUID(key)
         except (ValueError, TypeError) as exc:
             raise DomainError(422, 'invalid_idempotency_key', 'Idempotency-Key must be a UUID') from exc
+        readiness = self.runtime_check()
+        if not readiness.get('available') or not readiness.get('cloud_key_configured'):
+            raise DomainError(409, 'promptfoo_unavailable', 'Promptfoo runtime or Cloud API key is unavailable')
         fingerprint = sha256(f'{test_id}:{version}'.encode()).hexdigest()
 
         def operation(db, session):
@@ -230,58 +396,40 @@ class RedTeamService:
                 raise DomainError(409, 'already_launched', 'Clone this test to run it again')
             if test['version'] != version:
                 raise DomainError(409, 'stale_version', 'Test changed. Refresh and try again.')
-            actor = db.users.find_one({'_id': object_id(user.id), 'company_id': test['company_id'],
-                'role': {'$in': list(ADMIN_ROLES)}, 'is_active': True, 'is_email_verified': True}, session=session)
+            actor = db.users.find_one({
+                '_id': object_id(user.id), 'company_id': test['company_id'],
+                'role': {'$in': list(ADMIN_ROLES)}, 'is_active': True, 'is_email_verified': True,
+            }, session=session)
             company = db.companies.find_one({'_id': test['company_id'], 'status': 'active'}, session=session)
-            target = db.integrations.find_one({'_id': test['integration_id'], 'company_id': test['company_id'],
-                'status': 'active'}, session=session)
-            subject = db.users.find_one({'_id': test['subject_user_id'], 'company_id': test['company_id'],
-                'is_active': True, 'is_email_verified': True}, session=session)
-            if not actor or not company or not target or not subject or test['model'] not in target.get('models', []):
-                raise DomainError(409, 'configuration_unavailable', 'Target or test authority is unavailable')
-            groups = list(db.groups.find({'_id': {'$in': subject.get('group_ids', [])},
-                'company_id': test['company_id'], 'status': 'active'}, {'_id': 1}, session=session))
-            group_ids = [row['_id'] for row in groups]
-            policies = resolve_policies(db, str(test['company_id']), str(test['integration_id']), group_ids,
-                session=session) if test['mode'] == 'protected' else []
-            if test['mode'] == 'protected':
-                if company.get('settings', {}).get('require_active_policy', True) and not any(
-                        'input' in p.get('stages', []) for p in policies):
-                    raise DomainError(409, 'policy_required', 'No applicable input policy is active')
-                missing = sorted({rule['type'] for p in policies for rule in p['rules']
-                    if not registry.capabilities().get(rule['type'], {}).get('ready') or
-                    (rule['type'] == 'catalog' and not catalog_ready(p))})
-                if missing:
-                    raise DomainError(409, 'validator_unavailable', 'Unavailable validators: ' + ', '.join(missing))
+            if not actor or not company:
+                raise DomainError(409, 'configuration_unavailable', 'Test authority is unavailable')
+            from app.schemas.red_team import TestConfig
+            payload = TestConfig(**_payload_values(test, TestConfig.model_fields))
+            target, grader, subject = self._validate_config(user, payload, session, launching=True)
+            suite = self._suite_for_launch(test, session)
+            self._validate_suite_settings(test, suite, test)
+            snapshot = self._launch_snapshot(user, test, target, grader, subject, company, session, suite)
             now = utcnow()
-            snapshot = {'integration_name': target['account_name'], 'provider': target['provider'],
-                'integration_id': target['_id'], 'model': test['model'], 'system_instruction': target.get('system_prompt', ''),
-                'subject_user_id': subject['_id'], 'subject_group_ids': group_ids,
-                'policy_snapshots': policies, 'temperature': test['temperature'], 'max_tokens': test['max_tokens'],
-                'price_snapshot': target.get('model_prices', []), 'require_active_policy': company.get(
-                    'settings', {}).get('require_active_policy', True)}
-            if test.get('format') == 'plugins':
-                judge = self._judge_target(test['company_id'], test.get('judge'), session, launching=True)
-                snapshot.update({'plugin_severities': {pid: PLUGINS[pid]['severity'] for pid in test['plugins']},
-                    'strategies': {sid: dict(STRATEGIES[sid]) for sid in test['strategies']},
-                    'judge': {'integration_id': judge['_id'], 'model': test['judge']['model'],
-                              'provider': judge['provider'], 'price_snapshot': judge.get('model_prices', [])} if judge else None})
-            changed = db.red_team_tests.update_one({'_id': test['_id'], 'company_id': test['company_id'],
-                'status': 'draft', 'version': version}, {'$set': {'status': 'queued', 'launch_key': key,
-                'launch_fingerprint': fingerprint, 'launched_at': now, 'updated_at': now,
-                'config_snapshot': snapshot}, '$inc': {'execution_revision': 1}}, session=session)
+            changes = {
+                'status': 'queued', 'launch_key': key, 'launch_fingerprint': fingerprint,
+                'config_snapshot': snapshot, 'launched_at': now, 'updated_at': now,
+            }
+            if suite:
+                changes['counts.planned'] = suite['test_count']
+                changes['suite_id'] = suite['_id']
+            changed = db.red_team_tests.update_one({
+                '_id': test['_id'], 'company_id': test['company_id'], 'status': 'draft', 'version': version,
+            }, {'$set': changes, '$inc': {'execution_revision': 1}}, session=session)
             if changed.matched_count != 1:
                 raise DomainError(409, 'stale_version', 'Test changed. Refresh and try again.')
-            jobs = []
-            for item in test['manifest']:
-                jobs.append({'company_id': test['company_id'], 'test_id': test['_id'], **item,
-                    'catalog_version': test['catalog_version'], 'evaluator_version': test['evaluator_version'],
-                    'state': 'pending', 'dispatch_state': 'pending', 'dispatch_generation': 1,
-                    'next_attempt_at': now, 'attempt_number': 0, 'attempt_history': [],
-                    'verdict': None, **({'verdict_source': None} if test.get('format') == 'plugins' else {}),
-                    'created_at': now, 'response_withheld': False})
-            db.red_team_jobs.insert_many(jobs, ordered=True, session=session)
+            db.red_team_jobs.insert_one({
+                'company_id': test['company_id'], 'test_id': test['_id'], 'integration_id': test['integration_id'],
+                'kind': 'run', 'state': 'pending', 'phase': 'claimed',
+                'dispatch_state': 'pending', 'dispatch_generation': 1, 'dispatch_attempt': 0,
+                'next_attempt_at': now, 'attempt_number': 0, 'created_at': now,
+            }, session=session)
             audit(db, session, user, 'red_team.launched', 'red_team_test', test['_id'], request_id)
+
         self._transaction(user, operation)
         return self.detail(user, test_id) | {'dispatch_pending': True}
 
@@ -290,151 +438,148 @@ class RedTeamService:
             test = self._find(user, test_id, session)
             if test['status'] == 'draft':
                 raise DomainError(409, 'not_launched', 'Draft tests have not started')
-            if test['status'] in {'completed', 'partially_failed', 'failed', 'cancelled'}:
+            if test['status'] in TERMINAL:
                 return
             now = utcnow()
-            db.red_team_tests.update_one({'_id': test['_id'], 'company_id': test['company_id'],
-                'status': {'$in': ['queued', 'running', 'cancelling']}},
-                {'$set': {'status': 'cancelling', 'cancel_requested_at': now,
-                          'cancel_requested_by': object_id(user.id), 'updated_at': now},
-                 '$inc': {'execution_revision': 1}}, session=session)
-            db.red_team_jobs.update_many({'company_id': test['company_id'], 'test_id': test['_id'],
-                'state': {'$in': ['pending', 'queued', 'retry_wait']}},
-                {'$set': {'state': 'cancelled', 'finished_at': now, 'execution_phase': 'cancelled',
-                          'verdict': None, 'response_withheld': True}}, session=session)
-            remaining = db.red_team_jobs.count_documents({'company_id': test['company_id'],
-                'test_id': test['_id'], 'state': 'running'}, session=session)
-            if not remaining:
-                db.red_team_tests.update_one({'_id': test['_id'], 'company_id': test['company_id']},
-                    {'$set': {'status': 'cancelled', 'finished_at': now}}, session=session)
+            if test['status'] == 'queued':
+                db.red_team_tests.update_one(
+                    {'_id': test['_id'], 'company_id': test['company_id'], 'status': 'queued'},
+                    {'$set': {'status': 'cancelled', 'finished_at': now, 'cancel_requested_at': now,
+                              'updated_at': now}, '$inc': {'execution_revision': 1}}, session=session,
+                )
+                db.red_team_jobs.update_many({
+                    'company_id': test['company_id'], 'test_id': test['_id'],
+                    'state': {'$in': ['pending', 'queued', 'retry_wait']},
+                }, {'$set': {'state': 'cancelled', 'phase': 'finished', 'finished_at': now}}, session=session)
+            else:
+                db.red_team_tests.update_one(
+                    {'_id': test['_id'], 'company_id': test['company_id'],
+                     'status': {'$in': ['generating', 'running', 'cancelling']}},
+                    {'$set': {'status': 'cancelling', 'cancel_requested_at': now,
+                              'cancel_requested_by': object_id(user.id), 'updated_at': now},
+                     '$inc': {'execution_revision': 1}}, session=session,
+                )
             audit(db, session, user, 'red_team.cancelled', 'red_team_test', test['_id'], request_id)
         self._transaction(user, operation)
         return self.detail(user, test_id)
 
     def clone(self, user, test_id, mode=None, request_id=''):
-        old = self._find(user, test_id)
         from app.schemas.red_team import TestConfig
-        fields = TestConfig.model_fields
-        config = {key: str(old[key]) if key in {'integration_id', 'subject_user_id'} else old[key]
-                  for key in fields if key in old}
-        if mode:
-            config['mode'] = mode
-        created = self.create(user, TestConfig(**config), request_id, old['comparison_group_id'])
-        return self.detail(user, created['test']['id'])
+        old = self._find(user, test_id)
+        clone_mode = mode or old['mode']
+        values = _payload_values(old, TestConfig.model_fields)
+        values['mode'] = clone_mode
+        if clone_mode == 'protected' and not values.get('subject_user_id'):
+            values['subject_user_id'] = str(old.get('created_by') or object_id(user.id))
+        created = self.create(
+            user, TestConfig(**values), request_id,
+            comparison_group_id=old['comparison_group_id'], suite_id=old.get('suite_id'),
+        )
+        return created
 
-    def results(self, user, test_id, page=1, page_size=20, category=None, case_kind=None,
-                verdict=None, state=None, plugin=None, strategy=None, verdict_source=None):
+    def results(self, user, test_id, page=1, page_size=20, plugin=None, strategy=None,
+                verdict=None, verdict_source=None, **_ignored):
         test = self._find(user, test_id)
-        if test.get('format') == 'plugins':
-            from app.services.red_team_queries_v3 import results
-            return results(self.db, test, page, page_size, {'plugin': plugin, 'strategy': strategy,
-                'verdict_source': verdict_source, 'case_kind': case_kind, 'verdict': verdict, 'state': state})
-        query = {'company_id': test['company_id'], 'test_id': test['_id']}
-        for name, value in [('category', category), ('case_kind', case_kind), ('verdict', verdict), ('state', state)]:
+        scope = {'company_id': test['company_id'], 'test_id': test['_id']}
+        query = dict(scope)
+        for field, value in (
+            ('plugin_id', plugin), ('strategy_id', strategy), ('verdict', verdict),
+            ('verdict_source', verdict_source),
+        ):
             if value:
-                query[name] = value
-        rows = self.db.red_team_jobs.find(query).sort('attack_index', 1).skip((page - 1) * page_size).limit(page_size)
-        return {'items': [job_read(row) for row in rows], 'page': page,
-                'page_size': page_size, 'total': self.db.red_team_jobs.count_documents(query)}
+                query[field] = {'$eq': value}
+        all_rows = list(self.db.red_team_attacks.find(scope, {'verdict': 1}))
+        counts = {'all': len(all_rows)}
+        for name in ('pass', 'fail', 'error'):
+            counts[name] = sum(row.get('verdict') == name for row in all_rows)
+        rows = self.db.red_team_attacks.find(query).sort([
+            ('test_idx', 1), ('repeat_index', 1),
+        ]).skip((page - 1) * page_size).limit(page_size)
+        return {'items': [attack_read(row) for row in rows], 'page': page, 'page_size': page_size,
+                'total': self.db.red_team_attacks.count_documents(query), 'counts': counts}
 
-    def result_detail(self, user, test_id, job_id):
+    def _paired_test(self, test):
+        if not test.get('suite_id'):
+            return None
+        return self.db.red_team_tests.find_one({
+            'company_id': test['company_id'], '_id': {'$ne': test['_id']},
+            'suite_id': test['suite_id'], 'mode': 'protected' if test['mode'] == 'raw' else 'raw',
+            'status': {'$in': sorted(TERMINAL)},
+        }, sort=[('finished_at', DESCENDING), ('_id', DESCENDING)])
+
+    def result_detail(self, user, test_id, attack_id):
         test = self._find(user, test_id)
-        job = self.db.red_team_jobs.find_one({'_id': object_id(job_id), 'company_id': test['company_id'],
-            'test_id': test['_id']})
-        if not job:
+        attack = self.db.red_team_attacks.find_one({
+            '_id': object_id(attack_id), 'company_id': test['company_id'], 'test_id': test['_id'],
+        })
+        if not attack:
             raise DomainError(404, 'not_found', 'Result not found')
-        if test.get('format') == 'plugins':
-            from app.services.red_team_queries_v3 import result_detail
-            return result_detail(self.db, test, job)
-        return {'result': job_read(job, detail=True)}
+        result = attack_read(attack, detail=True)
+        paired = self._paired_test(test)
+        other = self.db.red_team_attacks.find_one({
+            'company_id': test['company_id'], 'test_id': paired['_id'],
+            'test_idx': attack['test_idx'], 'repeat_index': attack.get('repeat_index', 0),
+        }) if paired else None
+        result['paired'] = attack_read(other) if other else None
+        return {'result': result}
+
+    def _previous_test(self, test):
+        if not test.get('finished_at'):
+            return None
+        return self.db.red_team_tests.find_one({
+            'company_id': test['company_id'], '_id': {'$ne': test['_id']}, 'engine': 'promptfoo',
+            'integration_id': test['integration_id'], 'model': test['model'], 'mode': test['mode'],
+            'status': {'$in': sorted(TERMINAL - {'cancelled'})}, 'finished_at': {'$lt': test['finished_at']},
+        }, sort=[('finished_at', DESCENDING), ('_id', DESCENDING)])
 
     def report(self, user, test_id):
         test = self._find(user, test_id)
-        if test.get('format') == 'plugins':
-            from app.services.red_team_queries_v3 import report
-            return report(self.db, test)
-        jobs = self._jobs(test)
-        distinct_attacks = len({j['attack_id'] for j in jobs if j['case_kind'] == 'adversarial'})
-        snapshot = test.get('config_snapshot') or {}
-        return {'test': test_read(test), 'progress': progress(jobs, test), 'score': score(test, jobs),
-            'catalog_version': test['catalog_version'], 'evaluator_version': test['evaluator_version'],
-            'manifest_hash': test['manifest_hash'], 'adversarial_unique_templates': distinct_attacks,
-            'adversarial_repetitions': max(0, test['num_attacks'] - distinct_attacks),
-            'control_templates': 5,
-            'snapshot': {'integration_name': snapshot.get('integration_name'),
-                'provider': snapshot.get('provider'), 'model': test['model'],
-                'temperature': snapshot.get('temperature'), 'max_tokens': snapshot.get('max_tokens'),
-                'system_instruction_sha256': sha256(snapshot.get('system_instruction', '').encode()).hexdigest()
-                    if snapshot else None,
-                'policy_versions': [{'id': str(policy['_id']), 'name': policy['name'],
-                    'version': policy['version']} for policy in snapshot.get('policy_snapshots', [])]},
-            'partial': test['status'] not in {'completed', 'partially_failed', 'failed', 'cancelled'},
-            'limitations': ['Synthetic exact-evidence rubric, not universal model safety',
-                'Provider outputs may vary between runs', 'Unavailable or inconclusive jobs are excluded from score']}
+        attacks = list(self.db.red_team_attacks.find({'company_id': test['company_id'], 'test_id': test['_id']}))
+        paired_test = self._paired_test(test)
+        paired = None
+        if paired_test:
+            paired = (paired_test, list(self.db.red_team_attacks.find({
+                'company_id': test['company_id'], 'test_id': paired_test['_id'],
+            })))
+        previous_test = self._previous_test(test)
+        previous = None
+        if previous_test:
+            previous = (previous_test, list(self.db.red_team_attacks.find({
+                'company_id': test['company_id'], 'test_id': previous_test['_id'],
+            })))
+        return serialize({
+            **build_report(test, attacks, paired=paired, previous=previous),
+            'test': test_read(test), 'progress': self._with_progress(test)['progress'],
+        })
 
     def export(self, user, test_id, format='json'):
         report = self.report(user, test_id)
         test = self._find(user, test_id)
-        if test.get('format') == 'plugins':
-            from app.services.red_team_queries_v3 import export_rows, CSV_COLUMNS
-            if format == 'json':
-                return json.dumps({'report': report, 'results': export_rows(self.db, test)},
-                                  ensure_ascii=False, indent=2), 'application/json'
-            if format != 'csv':
-                raise DomainError(422, 'invalid_format', 'Use json or csv')
-            stream = io.StringIO()
-            writer = csv.DictWriter(stream, fieldnames=CSV_COLUMNS)
-            writer.writeheader()
-            writer.writerows(export_rows(self.db, test, csv=True))
-            return stream.getvalue(), 'text/csv; charset=utf-8'
-        rows = [job_read(job, detail=True) for job in self._jobs(test)]
-        for row in rows:
-            row.pop('scenario_system', None)  # report does not distribute full instruction snapshots
+        attacks = list(self.db.red_team_attacks.find({
+            'company_id': test['company_id'], 'test_id': test['_id'],
+        }).sort([('test_idx', 1), ('repeat_index', 1)]))
+        rows = [attack_read(attack, detail=True) for attack in attacks]
         if format == 'json':
             return json.dumps({'report': report, 'results': rows}, ensure_ascii=False, indent=2), 'application/json'
         if format != 'csv':
             raise DomainError(422, 'invalid_format', 'Use json or csv')
         stream = io.StringIO()
-        writer = csv.writer(stream)
-        columns = ['attack_index', 'attack_id', 'category', 'case_kind', 'state', 'verdict',
-                   'verdict_reason_code', 'prompt', 'response_text', 'error_code']
-        writer.writerow(columns)
-        for row in rows:
-            def safe(value):
-                text = str(value or '')
-                return "'" + text if text.lstrip().startswith(('=', '+', '-', '@', '\t', '\r')) else text
-            writer.writerow([safe(row.get(column)) for column in columns])
+        writer = csv.DictWriter(stream, fieldnames=CSV_COLUMNS)
+        writer.writeheader()
+        writer.writerows({key: csv_safe(row.get(key)) for key in CSV_COLUMNS} for row in rows)
         return stream.getvalue(), 'text/csv; charset=utf-8'
 
-    def comparison(self, user, raw_id, protected_id):
-        raw, protected = self._find(user, raw_id), self._find(user, protected_id)
-        if raw['mode'] != 'raw' or protected['mode'] != 'protected':
-            raise DomainError(409, 'comparison_mismatch', 'Select a raw test and a protected test')
-        fields = ['integration_id', 'model', 'catalog_version', 'evaluator_version', 'manifest_hash',
-                  'seed', 'temperature', 'max_tokens', 'comparison_group_id']
-        mismatch = next((name for name in fields if raw.get(name) != protected.get(name)), None)
-        if mismatch:
-            raise DomainError(409, 'comparison_mismatch', f'Tests differ in {mismatch}')
-        if raw.get('status') == 'draft' or protected.get('status') == 'draft':
-            raise DomainError(409, 'comparison_mismatch', 'Both tests must have been launched')
-        if raw.get('config_snapshot', {}).get('system_instruction') != protected.get('config_snapshot', {}).get('system_instruction'):
-            raise DomainError(409, 'comparison_mismatch', 'Tests differ in frozen system instruction')
-        left = {j['attack_index']: j for j in self._jobs(raw)}
-        right = {j['attack_index']: j for j in self._jobs(protected)}
-        pairs = []
-        for index in sorted(set(left) & set(right)):
-            a, b = left[index], right[index]
-            pairs.append({'attack_index': index, 'attack_id': a['attack_id'], 'category': a.get('category'),
-                'case_kind': a['case_kind'], 'raw_verdict': a.get('verdict'),
-                'protected_verdict': b.get('verdict'), 'prevention_stage': b.get('prevention_stage')})
-        paired = [p for p in pairs if p['case_kind'] == 'adversarial' and p['raw_verdict'] in {'pass', 'fail'}
-                  and p['protected_verdict'] in {'pass', 'fail'}]
-        return {'raw_test_id': str(raw['_id']), 'protected_test_id': str(protected['_id']),
-            'raw_policy_versions': [{'id': str(p['_id']), 'version': p['version']} for p in
-                raw.get('config_snapshot', {}).get('policy_snapshots', [])],
-            'protected_policy_versions': [{'id': str(p['_id']), 'version': p['version']} for p in
-                protected.get('config_snapshot', {}).get('policy_snapshots', [])],
-            'paired_evaluable': len(paired), 'paired_excluded': raw['num_attacks'] - len(paired),
-            'raw_compliance': sum(p['raw_verdict'] == 'pass' for p in paired) / len(paired) if paired else None,
-            'protected_compliance': sum(p['protected_verdict'] == 'pass' for p in paired) / len(paired) if paired else None,
-            'pairs': pairs, 'limitations': 'Observed paired synthetic outcomes; provider nondeterminism remains.'}
+    def capabilities(self):
+        readiness = self.runtime_check()
+        return {
+            'promptfoo': {
+                'version': readiness.get('version'), 'available': readiness.get('available', False),
+                'cloud_key_configured': readiness.get('cloud_key_configured', False),
+            },
+            'plugins': [dict(plugin) for plugin in PLUGINS.values()],
+            'strategies': [dict(strategy) for strategy in STRATEGIES.values()],
+            'frameworks': framework_catalog(PLUGINS),
+            'limits': {'max_target_calls': 200, 'max_tests_per_plugin': 10},
+            'supported_providers': ['openai', 'groq', 'deepseek', 'anthropic', 'gemini', 'ollama'],
+            'modes': ['raw', 'protected'],
+        }

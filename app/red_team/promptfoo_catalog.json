@@ -1,0 +1,335 @@
+{
+  "version": "0.126.0",
+  "license": "Copyright (c) Promptfoo 2025\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+  "plugins": [
+    {
+      "id": "bfla",
+      "name": "Function-Level Authorization Bypass",
+      "description": "Tests for broken function-level authorization vulnerabilities (OWASP API 5)",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": true
+    },
+    {
+      "id": "bola",
+      "name": "Object-Level Authorization Bypass",
+      "description": "Tests for broken object-level authorization vulnerabilities (OWASP API 1)",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": true
+    },
+    {
+      "id": "debug-access",
+      "name": "Debug Interface Exposure",
+      "description": "Tests for exposed debugging interfaces and commands",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "hijacking",
+      "name": "Resource Hijacking",
+      "description": "Tests for unauthorized resource usage and purpose deviation",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": true
+    },
+    {
+      "id": "prompt-extraction",
+      "name": "System Prompt Disclosure",
+      "description": "Tests for system prompt disclosure vulnerabilities",
+      "group": "Security & access",
+      "severity": "medium",
+      "remote_only": false
+    },
+    {
+      "id": "rbac",
+      "name": "RBAC Implementation",
+      "description": "Tests role-based access control implementation",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "shell-injection",
+      "name": "Command Injection",
+      "description": "Tests for command injection vulnerabilities",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "sql-injection",
+      "name": "SQL Injection",
+      "description": "Tests for SQL injection vulnerabilities",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "ssrf",
+      "name": "SSRF Vulnerability",
+      "description": "Tests for server-side request forgery vulnerabilities",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": true
+    },
+    {
+      "id": "system-prompt-override",
+      "name": "System Prompt Override",
+      "description": "Tests for system prompt override vulnerabilities",
+      "group": "Security & access",
+      "severity": "high",
+      "remote_only": true
+    },
+    {
+      "id": "pii:api-db",
+      "name": "PII via API/Database",
+      "description": "Tests for PII exposure via API/database access",
+      "group": "Data & privacy",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "pii:direct",
+      "name": "PII via Direct Exposure",
+      "description": "Tests for direct PII exposure vulnerabilities",
+      "group": "Data & privacy",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "pii:session",
+      "name": "PII via Session Data",
+      "description": "Tests for PII exposure in session data",
+      "group": "Data & privacy",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "pii:social",
+      "name": "PII via Social Engineering",
+      "description": "Tests for PII exposure via social engineering",
+      "group": "Data & privacy",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "harmful:hate",
+      "name": "Hate Speech",
+      "description": "Tests handling of hate speech and discriminatory content",
+      "group": "Trust & safety",
+      "severity": "critical",
+      "remote_only": true
+    },
+    {
+      "id": "harmful:misinformation-disinformation",
+      "name": "Disinformation Campaigns",
+      "description": "Tests handling of false information campaigns",
+      "group": "Trust & safety",
+      "severity": "medium",
+      "remote_only": true
+    },
+    {
+      "id": "harmful:privacy",
+      "name": "Privacy Violation",
+      "description": "Tests handling of privacy violation attempts",
+      "group": "Trust & safety",
+      "severity": "high",
+      "remote_only": false
+    },
+    {
+      "id": "harmful:self-harm",
+      "name": "Self-Harm",
+      "description": "Tests handling of self-harm and suicide content",
+      "group": "Trust & safety",
+      "severity": "critical",
+      "remote_only": true
+    },
+    {
+      "id": "contracts",
+      "name": "Unauthorized Commitments",
+      "description": "Tests for unauthorized contractual commitments and legal exposure",
+      "group": "Brand/behaviour",
+      "severity": "medium",
+      "remote_only": false
+    },
+    {
+      "id": "excessive-agency",
+      "name": "Excessive Agency",
+      "description": "Tests for unauthorized actions beyond defined system boundaries",
+      "group": "Brand/behaviour",
+      "severity": "medium",
+      "remote_only": false
+    },
+    {
+      "id": "hallucination",
+      "name": "Hallucination",
+      "description": "Tests for fabrication of false or misleading information",
+      "group": "Brand/behaviour",
+      "severity": "medium",
+      "remote_only": false
+    },
+    {
+      "id": "imitation",
+      "name": "Entity Impersonation",
+      "description": "Tests handling of unauthorized impersonation of entities",
+      "group": "Brand/behaviour",
+      "severity": "low",
+      "remote_only": false
+    },
+    {
+      "id": "overreliance",
+      "name": "Overreliance",
+      "description": "Tests for overreliance on system assumptions",
+      "group": "Brand/behaviour",
+      "severity": "low",
+      "remote_only": false
+    },
+    {
+      "id": "politics",
+      "name": "Political Bias",
+      "description": "Tests handling of political content and bias",
+      "group": "Brand/behaviour",
+      "severity": "low",
+      "remote_only": false
+    }
+  ],
+  "strategies": [
+    {
+      "id": "basic",
+      "name": "Baseline Testing",
+      "description": "Original plugin tests without any additional strategies or optimizations",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "arabic-presentation-forms",
+      "name": "Arabic Presentation Forms",
+      "description": "Tests handling of Arabic presentation-forms encoding and Unicode normalization in content filters",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "base64",
+      "name": "Base64 Payload Encoding",
+      "description": "Tests handling of Base64-encoded malicious payloads",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "camelcase",
+      "name": "CamelCase Encoding",
+      "description": "Tests handling of text transformed into camelCase to potentially bypass filters",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "emoji",
+      "name": "Emoji Smuggling",
+      "description": "Tests handling of text hidden using emoji variation selectors",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "hex",
+      "name": "Hex Encoding",
+      "description": "Tests handling of hex-encoded malicious payloads",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "homoglyph",
+      "name": "Homoglyph Encoding",
+      "description": "Tests handling of homoglyph (visually similar Unicode characters) encoding to bypass filters",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "leetspeak",
+      "name": "Leetspeak Payload Encoding",
+      "description": "Tests handling of leetspeak-encoded malicious content",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "morse",
+      "name": "Morse Code Encoding",
+      "description": "Tests handling of content encoded in Morse code to potentially bypass filters",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "piglatin",
+      "name": "Pig Latin Encoding",
+      "description": "Tests handling of content translated to Pig Latin to potentially bypass filters",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "rot13",
+      "name": "ROT13 Payload Encoding",
+      "description": "Tests handling of ROT13-encoded malicious content",
+      "remote_only": false,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "crescendo",
+      "name": "Multi-Turn Crescendo",
+      "description": "Multi-turn attack strategy that gradually escalates malicious intent",
+      "remote_only": false,
+      "multi_turn": true,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 20
+    },
+    {
+      "id": "goat",
+      "name": "Generative Offensive Agent Tester",
+      "description": "Dynamic multi-turn attack generation using adversarial techniques",
+      "remote_only": true,
+      "multi_turn": true,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 5
+    },
+    {
+      "id": "jailbreak:composite",
+      "name": "Multi-Vector Safety Bypass",
+      "description": "Combines multiple jailbreak techniques for enhanced effectiveness",
+      "remote_only": true,
+      "multi_turn": false,
+      "cases_per_seed": 5,
+      "target_calls_per_test": 1
+    },
+    {
+      "id": "jailbreak:meta",
+      "name": "Meta-Agent Strategic Jailbreak",
+      "description": "Meta-agent that builds its own attack taxonomy and learns from full attack history",
+      "remote_only": true,
+      "multi_turn": false,
+      "cases_per_seed": 1,
+      "target_calls_per_test": 10
+    }
+  ]
+}

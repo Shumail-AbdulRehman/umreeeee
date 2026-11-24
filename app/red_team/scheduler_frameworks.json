@@ -1,0 +1,2326 @@
+{
+  "source": {
+    "file": "utils/constants.py",
+    "sha256": "4e2b2669f669c262d52b736be8aecef9b0b5a94de819a3d730667ca0e1643706",
+    "ported_date": "2026-11-23"
+  },
+  "license_note": "owner's scheduler, reused with permission",
+  "frameworks": [
+    {
+      "id": "nist_ai_rmf",
+      "name": "NIST AI RMF",
+      "description": "NIST AI Risk Management Framework for responsible AI development",
+      "controls": [
+        {
+          "id": "nist:ai:measure:1.1",
+          "name": "Measure 1.1 AI Risk Identification",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:1.2",
+          "name": "Measure 1.2: Interdisciplinary Risk Assessment",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.1",
+          "name": "Measure 2.1: Evaluation Metrics",
+          "plugins": [
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII via Social Engineering",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.2",
+          "name": "Measure 2.2: AI System Evaluation",
+          "plugins": [
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII via Social Engineering",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.3",
+          "name": "Measure 2.3: AI System Testing",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.4",
+          "name": "Measure 2.4: Performance Benchmarks",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.5",
+          "name": "Measure 2.5: Robustness Evaluation",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.6",
+          "name": "Measure 2.6: Safety Evaluation",
+          "plugins": [
+            {
+              "id": "harmful:chemical-biological-weapons",
+              "name": "WMD Content",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:indiscriminate-weapons",
+              "name": "Weapons Content",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:unsafe-practices",
+              "name": "Dangerous Activity Content",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.7",
+          "name": "Measure 2.7: Security Evaluation",
+          "plugins": [
+            {
+              "id": "harmful:cybercrime",
+              "name": "Cybercrime",
+              "severity": "low"
+            },
+            {
+              "id": "shell-injection",
+              "name": "Command Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.8",
+          "name": "Measure 2.8: Access Control Evaluation",
+          "plugins": [
+            {
+              "id": "bfla",
+              "name": "Function-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "bola",
+              "name": "Object-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "rbac",
+              "name": "RBAC Implementation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.9",
+          "name": "Measure 2.9: Agency and Autonomy Evaluation",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.10",
+          "name": "Measure 2.10: Privacy Risk Evaluation",
+          "plugins": [
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII via Social Engineering",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.11",
+          "name": "Measure 2.11: Bias and Fairness Evaluation",
+          "plugins": [
+            {
+              "id": "harmful:harassment-bullying",
+              "name": "Harassment",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:hate",
+              "name": "Hate Speech",
+              "severity": "critical"
+            },
+            {
+              "id": "harmful:insults",
+              "name": "Personal Attacks",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:2.12",
+          "name": "Measure 2.12: Environmental impact and sustainability of AI model training and management activities",
+          "plugins": []
+        },
+        {
+          "id": "nist:ai:measure:2.13",
+          "name": "Measure 2.13: Effectiveness Evaluation",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:3.1",
+          "name": "Measure 3.1: Monitoring Mechanisms",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:3.2",
+          "name": "Measure 3.2: Incident Response",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:3.3",
+          "name": "Measure 3.3: Feedback Collection",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:4.1",
+          "name": "Measure 4.1: Risk Treatment Decisions",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:4.2",
+          "name": "Measure 4.2: Residual Risk",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "nist:ai:measure:4.3",
+          "name": "Measure 4.3: Organizational Improvement",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eu:ai-act",
+      "name": "EU AI Act",
+      "description": "EU AI Act for responsible AI development",
+      "controls": [
+        {
+          "id": "eu:ai-act:art5:subliminal-manipulation",
+          "name": "Art. 5: Subliminal Manipulation",
+          "plugins": [
+            {
+              "id": "hijacking",
+              "name": "Resource Hijacking",
+              "severity": "high"
+            },
+            {
+              "id": "intent",
+              "name": "Intent",
+              "severity": "high"
+            },
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:art5:exploitation-of-vulnerabilities",
+          "name": "Art. 5: Exploitation of Vulnerabilities",
+          "plugins": [
+            {
+              "id": "hijacking",
+              "name": "Resource Hijacking",
+              "severity": "high"
+            },
+            {
+              "id": "imitation",
+              "name": "Entity Impersonation",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            },
+            {
+              "id": "bias:age",
+              "name": "Age Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "Disability Bias",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:art5:social-scoring",
+          "name": "Art. 5: Social Scoring",
+          "plugins": [
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "bias:age",
+              "name": "Age Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "Disability Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "Race Bias",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:art5:biometric-categorisation",
+          "name": "Art. 5: Biometric Categorisation",
+          "plugins": [
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:art5:remote-biometric-id-live",
+          "name": "Remote Biometric ID Live",
+          "plugins": [
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:art5:remote-biometric-id-post",
+          "name": "Art. 5: Post Remote Biometric ID",
+          "plugins": [
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:annex3:biometric-id",
+          "name": "Annex III-1: Biometric Identification",
+          "plugins": [
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:annex3:critical-infrastructure",
+          "name": "Annex III-2: Critical Infrastructure",
+          "plugins": [
+            {
+              "id": "shell-injection",
+              "name": "Command Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            },
+            {
+              "id": "ssrf",
+              "name": "SSRF Vulnerability",
+              "severity": "high"
+            },
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:annex3:education",
+          "name": "Annex III-3: Education and Training",
+          "plugins": [
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            },
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "Disability Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "Race Bias",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:annex3:employment",
+          "name": "Annex III-4: Employment and HR",
+          "plugins": [
+            {
+              "id": "imitation",
+              "name": "Entity Impersonation",
+              "severity": "low"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "bias:age",
+              "name": "Age Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "Disability Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "Race Bias",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:annex3:essential-services",
+          "name": "Annex III-5: Essential Services",
+          "plugins": [
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "Race Bias",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:annex3:law-enforcement",
+          "name": "Annex III-6: Law Enforcement",
+          "plugins": [
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "bias:race",
+              "name": "Race Bias",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:annex3:migration-border",
+          "name": "Annex III-7: Migration and Border Control",
+          "plugins": [
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:hate",
+              "name": "Hate Speech",
+              "severity": "critical"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "bias:race",
+              "name": "Race Bias",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "eu:ai-act:annex3:justice-democracy",
+          "name": "Annex III-8: Justice and Democracy",
+          "plugins": [
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "Race Bias",
+              "severity": "low"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "owasp:llm",
+      "name": "OWASP LLM Top 10",
+      "description": "OWASP LLM Top 10 security vulnerabilities for large language models",
+      "controls": [
+        {
+          "id": "owasp:llm:01",
+          "name": "LLM01: Prompt Injection",
+          "plugins": [
+            {
+              "id": "ascii-smuggling",
+              "name": "ASCII Smuggling",
+              "severity": "low"
+            },
+            {
+              "id": "indirect-prompt-injection",
+              "name": "Indirect Prompt Injection",
+              "severity": "high"
+            },
+            {
+              "id": "prompt-extraction",
+              "name": "System Prompt Disclosure",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful",
+              "name": "Malicious Content Suite",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "owasp:llm:02",
+          "name": "LLM02: Sensitive Information Disclosure",
+          "plugins": [
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII via Social Engineering",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "cross-session-leak",
+              "name": "Cross-Session Data Leakage",
+              "severity": "medium"
+            },
+            {
+              "id": "prompt-extraction",
+              "name": "System Prompt Disclosure",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "owasp:llm:03",
+          "name": "LLM03: Supply Chain",
+          "plugins": []
+        },
+        {
+          "id": "owasp:llm:04",
+          "name": "LLM04: Data and Model Poisoning",
+          "plugins": [
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:hate",
+              "name": "Hate Speech",
+              "severity": "critical"
+            },
+            {
+              "id": "bias:age",
+              "name": "Age Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "Disability Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "Race Bias",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:radicalization",
+              "name": "Extremist Content",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:specialized-advice",
+              "name": "Unauthorized Advice",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "owasp:llm:05",
+          "name": "LLM05: Improper Output Handling",
+          "plugins": [
+            {
+              "id": "shell-injection",
+              "name": "Command Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            },
+            {
+              "id": "ssrf",
+              "name": "SSRF Vulnerability",
+              "severity": "high"
+            },
+            {
+              "id": "debug-access",
+              "name": "Debug Interface Exposure",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:llm:06",
+          "name": "LLM06: Excessive Agency",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "rbac",
+              "name": "RBAC Implementation",
+              "severity": "high"
+            },
+            {
+              "id": "bfla",
+              "name": "Function-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "bola",
+              "name": "Object-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "shell-injection",
+              "name": "Command Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            },
+            {
+              "id": "ssrf",
+              "name": "SSRF Vulnerability",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:llm:07",
+          "name": "LLM07: System Prompt Leakage",
+          "plugins": [
+            {
+              "id": "prompt-extraction",
+              "name": "System Prompt Disclosure",
+              "severity": "medium"
+            },
+            {
+              "id": "rbac",
+              "name": "RBAC Implementation",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII via Social Engineering",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:llm:08",
+          "name": "LLM08: Vector and Embedding Weaknesses",
+          "plugins": [
+            {
+              "id": "cross-session-leak",
+              "name": "Cross-Session Data Leakage",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII via Social Engineering",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:llm:09",
+          "name": "LLM09: Misinformation",
+          "plugins": [
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:specialized-advice",
+              "name": "Unauthorized Advice",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "owasp:llm:10",
+          "name": "LLM10: Unbounded Consumption",
+          "plugins": [
+            {
+              "id": "divergent-repetition",
+              "name": "Divergent Repetition",
+              "severity": "medium"
+            },
+            {
+              "id": "reasoning-dos",
+              "name": "Reasoning DoS",
+              "severity": "low"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "owasp:api",
+      "name": "OWASP API Top 10",
+      "description": "OWASP API Top 10 security risks for application programming interfaces",
+      "controls": [
+        {
+          "id": "owasp:api:01",
+          "name": "API-1: Broken Object Level Authorization",
+          "plugins": [
+            {
+              "id": "bola",
+              "name": "Object-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "rbac",
+              "name": "RBAC Implementation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:02",
+          "name": "API-2: Broken Authentication",
+          "plugins": [
+            {
+              "id": "bfla",
+              "name": "Function-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "rbac",
+              "name": "RBAC Implementation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:03",
+          "name": "API-3: Broken Object Property Level Authorization",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:04",
+          "name": "API-4: Unrestricted Resource Consumption",
+          "plugins": [
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:05",
+          "name": "API-5: Broken Function Level Authorization",
+          "plugins": [
+            {
+              "id": "bfla",
+              "name": "Function-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "bola",
+              "name": "Object-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "rbac",
+              "name": "RBAC Implementation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:06",
+          "name": "API-6: Unrestricted Access to Sensitive Business Flows",
+          "plugins": [
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Disinformation Campaigns",
+              "severity": "medium"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:07",
+          "name": "API-7: Server Side Request Forgery",
+          "plugins": [
+            {
+              "id": "shell-injection",
+              "name": "Command Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:08",
+          "name": "API-8: Security Misconfiguration",
+          "plugins": [
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:09",
+          "name": "API-9: Improper Inventory Management",
+          "plugins": [
+            {
+              "id": "harmful:specialized-advice",
+              "name": "Unauthorized Advice",
+              "severity": "medium"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "owasp:api:10",
+          "name": "API-10: Unsafe Consumption of APIs",
+          "plugins": [
+            {
+              "id": "debug-access",
+              "name": "Debug Interface Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mitre:atlas",
+      "name": "MITRE ATLAS",
+      "description": "MITRE ATLAS framework for adversarial threat landscape for AI systems",
+      "controls": [
+        {
+          "id": "mitre:atlas:exfiltration",
+          "name": "Exfiltration",
+          "plugins": [
+            {
+              "id": "ascii-smuggling",
+              "name": "ASCII Smuggling",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "indirect-prompt-injection",
+              "name": "Indirect Prompt Injection",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "PII via Direct Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII via Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII via Social Engineering",
+              "severity": "high"
+            },
+            {
+              "id": "prompt-extraction",
+              "name": "System Prompt Disclosure",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "mitre:atlas:impact",
+          "name": "Impact",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful",
+              "name": "Malicious Content Suite",
+              "severity": "medium"
+            },
+            {
+              "id": "hijacking",
+              "name": "Resource Hijacking",
+              "severity": "high"
+            },
+            {
+              "id": "imitation",
+              "name": "Entity Impersonation",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "mitre:atlas:initial-access",
+          "name": "Initial Access",
+          "plugins": [
+            {
+              "id": "debug-access",
+              "name": "Debug Interface Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:cybercrime",
+              "name": "Cybercrime",
+              "severity": "low"
+            },
+            {
+              "id": "shell-injection",
+              "name": "Command Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            },
+            {
+              "id": "ssrf",
+              "name": "SSRF Vulnerability",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "mitre:atlas:ml-attack-staging",
+          "name": "Ml Attack Staging",
+          "plugins": [
+            {
+              "id": "ascii-smuggling",
+              "name": "ASCII Smuggling",
+              "severity": "low"
+            },
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            },
+            {
+              "id": "indirect-prompt-injection",
+              "name": "Indirect Prompt Injection",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "mitre:atlas:reconnaissance",
+          "name": "Reconnaissance",
+          "plugins": [
+            {
+              "id": "competitors",
+              "name": "Competitors",
+              "severity": "low"
+            },
+            {
+              "id": "policy",
+              "name": "Policy Compliance",
+              "severity": "high"
+            },
+            {
+              "id": "prompt-extraction",
+              "name": "System Prompt Disclosure",
+              "severity": "medium"
+            },
+            {
+              "id": "rbac",
+              "name": "RBAC Implementation",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "mitre:atlas:resource-development",
+          "name": "Resource Development",
+          "plugins": [
+            {
+              "id": "harmful:cybercrime",
+              "name": "Cybercrime",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:illegal-drugs",
+              "name": "Drug-Related Content",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:indiscriminate-weapons",
+              "name": "Weapons Content",
+              "severity": "medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "owasp:agentic",
+      "name": "OWASP Agentic AI",
+      "description": "API security vulnerabilities",
+      "controls": [
+        {
+          "id": "owasp:agentic:asi01",
+          "name": "ASI01: Agent Goal Hijack",
+          "plugins": [
+            {
+              "id": "intent",
+              "name": "Intent",
+              "severity": "high"
+            },
+            {
+              "id": "indirect-prompt-injection",
+              "name": "Indirect Prompt Injection",
+              "severity": "high"
+            },
+            {
+              "id": "hijacking",
+              "name": "Hijacking",
+              "severity": "high"
+            },
+            {
+              "id": "system-prompt-override",
+              "name": "System Prompt Override",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi02",
+          "name": "ASI02: Tool Misuse and Exploitation",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "mcp",
+              "name": "Model Context Protocol (MCP)",
+              "severity": "high"
+            },
+            {
+              "id": "tool-discovery",
+              "name": "Tool Discovery",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi03",
+          "name": "ASI03: Identity and Privilege Abuse",
+          "plugins": [
+            {
+              "id": "imitation",
+              "name": "Imitation",
+              "severity": "low"
+            },
+            {
+              "id": "rbac",
+              "name": "Role-Based Access Control (RBAC)",
+              "severity": "high"
+            },
+            {
+              "id": "bfla",
+              "name": "Broken Function-Level Authorization",
+              "severity": "high"
+            },
+            {
+              "id": "bola",
+              "name": "Broken Object-Level Authorization (BOLA)",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi04",
+          "name": "ASI04: Agentic Supply Chain Vulnerabilities",
+          "plugins": [
+            {
+              "id": "indirect-prompt-injection",
+              "name": "Indirect Prompt Injection",
+              "severity": "high"
+            },
+            {
+              "id": "mcp",
+              "name": "Model Context Protocol (MCP)",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi05",
+          "name": "ASI05: Unexpected Code Execution",
+          "plugins": [
+            {
+              "id": "shell-injection",
+              "name": "Shell Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:cybercrime:malicious-code",
+              "name": "Malicious Code Generation",
+              "severity": "low"
+            },
+            {
+              "id": "ssrf",
+              "name": "Server Side Request Forgery (SSRF)",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi06",
+          "name": "ASI06: Memory and Context Poisoning",
+          "plugins": [
+            {
+              "id": "agentic:memory-poisoning",
+              "name": "Agentic Memory Poisoning",
+              "severity": "high"
+            },
+            {
+              "id": "cross-session-leak",
+              "name": "Cross-Session Leak",
+              "severity": "medium"
+            },
+            {
+              "id": "indirect-prompt-injection",
+              "name": "Indirect Prompt Injection",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi07",
+          "name": "ASI07: Insecure Inter-Agent Communication",
+          "plugins": [
+            {
+              "id": "imitation",
+              "name": "Imitation",
+              "severity": "low"
+            },
+            {
+              "id": "hijacking",
+              "name": "Hijacking",
+              "severity": "high"
+            },
+            {
+              "id": "indirect-prompt-injection",
+              "name": "Indirect Prompt Injection",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi08",
+          "name": "ASI08: Cascading Failures",
+          "plugins": [
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Misinformation & Disinformation",
+              "severity": "medium"
+            },
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            },
+            {
+              "id": "divergent-repetition",
+              "name": "Divergent Repetition",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi09",
+          "name": "ASI09: Human Agent Trust Exploitation",
+          "plugins": [
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "imitation",
+              "name": "Imitation",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Misinformation & Disinformation",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "owasp:agentic:asi10",
+          "name": "ASI10: Rogue Agents",
+          "plugins": [
+            {
+              "id": "rbac",
+              "name": "Role-Based Access Control (RBAC)",
+              "severity": "high"
+            },
+            {
+              "id": "excessive-agency",
+              "name": "Goal Misalignment",
+              "severity": "medium"
+            },
+            {
+              "id": "goal-misalignment",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "hijacking",
+              "name": "Hijacking",
+              "severity": "high"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iso:42001",
+      "name": "ISO/IEC 42001",
+      "description": "AI management framework covering accountability, fairness, privacy, robustness, security, safety, and transparency.",
+      "controls": [
+        {
+          "id": "iso:42001:accountability",
+          "name": "Accountability",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "hijacking",
+              "name": "Hijacking",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "iso:42001:fairness",
+          "name": "Fairness & Bias",
+          "plugins": [
+            {
+              "id": "bias:age",
+              "name": "Age Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "bias:disability",
+              "severity": "low"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "bias:race",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:hate",
+              "name": "Hate Speech",
+              "severity": "critical"
+            }
+          ]
+        },
+        {
+          "id": "iso:42001:privacy",
+          "name": "Privacy",
+          "plugins": [
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII Exposure via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "Direct PII Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII Exposure in Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII Exposure via Social Engineering",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "iso:42001:robustness",
+          "name": "Robustness",
+          "plugins": [
+            {
+              "id": "ascii-smuggling",
+              "name": "ASCII Smuggling",
+              "severity": "low"
+            },
+            {
+              "id": "prompt-extraction",
+              "name": "Prompt Extraction",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "iso:42001:security",
+          "name": "Security",
+          "plugins": [
+            {
+              "id": "shell-injection",
+              "name": "Shell Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            },
+            {
+              "id": "ssrf",
+              "name": "Server Side Request Forgery (SSRF)",
+              "severity": "high"
+            },
+            {
+              "id": "debug-access",
+              "name": "Debug Access",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "iso:42001:safety",
+          "name": "Safety & Ethical Use",
+          "plugins": [
+            {
+              "id": "harmful:chemical-biological-weapons",
+              "name": "Chemical & Biological Weapons",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:child-exploitation",
+              "name": "Child Exploitation",
+              "severity": "critical"
+            },
+            {
+              "id": "harmful:violent-crime",
+              "name": "Violent Crime",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:cybercrime",
+              "name": "Cybercrime",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:cybercrime:malicious-code",
+              "name": "Malicious Code Generation",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "iso:42001:transparency",
+          "name": "Transparency & Trust",
+          "plugins": [
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Misinformation & Disinformation",
+              "severity": "medium"
+            },
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            },
+            {
+              "id": "imitation",
+              "name": "Imitation",
+              "severity": "low"
+            },
+            {
+              "id": "unverifiable-claims",
+              "name": "Unverifiable Claims",
+              "severity": "medium"
+            },
+            {
+              "id": "politics",
+              "name": "Politics",
+              "severity": "low"
+            },
+            {
+              "id": "religion",
+              "name": "Religion",
+              "severity": "low"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gdpr",
+      "name": "EU GDPR",
+      "description": "GDPR key articles mapped to AI/LLM plugin tests with severities.",
+      "controls": [
+        {
+          "id": "gdpr:art5",
+          "name": "Art. 5: Principles relating to processing of personal data",
+          "plugins": [
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII Exposure via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "Direct PII Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII Exposure in Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII Exposure via Social Engineering",
+              "severity": "high"
+            },
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            },
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Misinformation & Disinformation",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "gdpr:art9",
+          "name": "Art. 5: Processing of special categories of personal data",
+          "plugins": [
+            {
+              "id": "pii:direct",
+              "name": "Direct PII Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII Exposure via Social Engineering",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "bias:age",
+              "name": "Age Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "bias:disability",
+              "severity": "low"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "bias:race",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "gdpr:art15",
+          "name": "Art. 15: Right of access by the data subject",
+          "plugins": [
+            {
+              "id": "pii:api-db",
+              "name": "PII Exposure via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII Exposure in Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "rbac",
+              "name": "Role-Based Access Control (RBAC)",
+              "severity": "high"
+            },
+            {
+              "id": "bola",
+              "name": "Broken Object-Level Authorization (BOLA)",
+              "severity": "high"
+            },
+            {
+              "id": "bfla",
+              "name": "Broken Function-Level Authorization",
+              "severity": "high"
+            }
+          ]
+        },
+        {
+          "id": "gdpr:art17",
+          "name": "Art. 17: Right to erasure (right to be forgotten)",
+          "plugins": [
+            {
+              "id": "pii:api-db",
+              "name": "PII Exposure via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "Direct PII Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII Exposure in Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "cross-session-leak",
+              "name": "Cross-Session Leak",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "gdpr:art22",
+          "name": "Art. 22: Automated individual decision-making, including profiling",
+          "plugins": [
+            {
+              "id": "bias:age",
+              "name": "Age Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "bias:disability",
+              "severity": "low"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "bias:race",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:hate",
+              "name": "Hate Speech",
+              "severity": "critical"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "gdpr:art25",
+          "name": "Art. 25: Data protection by design and by default",
+          "plugins": [
+            {
+              "id": "harmful:privacy",
+              "name": "Privacy Violation",
+              "severity": "high"
+            },
+            {
+              "id": "pii:api-db",
+              "name": "PII Exposure via API/Database",
+              "severity": "high"
+            },
+            {
+              "id": "pii:direct",
+              "name": "Direct PII Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "pii:session",
+              "name": "PII Exposure in Session Data",
+              "severity": "high"
+            },
+            {
+              "id": "pii:social",
+              "name": "PII Exposure via Social Engineering",
+              "severity": "high"
+            },
+            {
+              "id": "prompt-extraction",
+              "name": "Prompt Extraction",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "gdpr:art32",
+          "name": "Art. 32 Security of processing",
+          "plugins": [
+            {
+              "id": "shell-injection",
+              "name": "Shell Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            },
+            {
+              "id": "ssrf",
+              "name": "Server Side Request Forgery (SSRF)",
+              "severity": "high"
+            },
+            {
+              "id": "debug-access",
+              "name": "Debug Access",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:cybercrime",
+              "name": "Cybercrime",
+              "severity": "low"
+            },
+            {
+              "id": "rbac",
+              "name": "Role-Based Access Control (RBAC)",
+              "severity": "high"
+            },
+            {
+              "id": "bfla",
+              "name": "Broken Function-Level Authorization",
+              "severity": "high"
+            },
+            {
+              "id": "bola",
+              "name": "Broken Object-Level Authorization (BOLA)",
+              "severity": "high"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dod:ai:ethics",
+      "name": "DoD AI Ethical Principles",
+      "description": "U.S. Department of Defense (DoD) AI ethical principles",
+      "controls": [
+        {
+          "id": "dod:ai:ethics:01",
+          "name": "Responsible: personnel exercise judgment and remain accountable for AI outcomes",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "goal-misalignment",
+              "name": "Overreliance",
+              "severity": "low"
+            },
+            {
+              "id": "hijacking",
+              "name": "Hijacking",
+              "severity": "high"
+            },
+            {
+              "id": "overreliance",
+              "name": "Overreliance",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "dod:ai:ethics:02",
+          "name": "Equitable: AI behavior should minimize unintended bias and discriminatory outcomes.",
+          "plugins": [
+            {
+              "id": "bias:age",
+              "name": "Age Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:disability",
+              "name": "bias:disability",
+              "severity": "low"
+            },
+            {
+              "id": "bias:gender",
+              "name": "Gender Bias",
+              "severity": "low"
+            },
+            {
+              "id": "bias:race",
+              "name": "bias:race",
+              "severity": "low"
+            },
+            {
+              "id": "harmful:hate",
+              "name": "Hate Speech",
+              "severity": "critical"
+            }
+          ]
+        },
+        {
+          "id": "dod:ai:ethics:03",
+          "name": "Traceable: methodology and outputs should be auditable and attributable.",
+          "plugins": [
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Misinformation & Disinformation",
+              "severity": "medium"
+            },
+            {
+              "id": "hallucination",
+              "name": "Hallucination",
+              "severity": "medium"
+            },
+            {
+              "id": "rag-source-attribution",
+              "name": "RAG Source Attribution",
+              "severity": "high"
+            },
+            {
+              "id": "unverifiable-claims",
+              "name": "Unverifiable Claims",
+              "severity": "medium"
+            }
+          ]
+        },
+        {
+          "id": "dod:ai:ethics:04",
+          "name": "ASI04: Agentic Supply Chain Vulnerabilities",
+          "plugins": [
+            {
+              "id": "harmful:misinformation-disinformation",
+              "name": "Misinformation & Disinformation",
+              "severity": "medium"
+            },
+            {
+              "id": "shell-injection",
+              "name": "Shell Injection",
+              "severity": "high"
+            },
+            {
+              "id": "sql-injection",
+              "name": "SQL Injection",
+              "severity": "high"
+            },
+            {
+              "id": "harmful:unsafe-practices",
+              "name": "Dangerous Activity Content",
+              "severity": "low"
+            },
+            {
+              "id": "ssrf",
+              "name": "Server Side Request Forgery (SSRF)",
+              "severity": "high"
+            },
+            {
+              "id": "debug-access",
+              "name": "Debug Interface Exposure",
+              "severity": "high"
+            },
+            {
+              "id": "reasoning-dos",
+              "name": "Reasoning DoS",
+              "severity": "low"
+            }
+          ]
+        },
+        {
+          "id": "dod:ai:ethics:05",
+          "name": "Governable: operators should be able to detect, control, and disable unintended behavior.",
+          "plugins": [
+            {
+              "id": "excessive-agency",
+              "name": "Excessive Agency",
+              "severity": "medium"
+            },
+            {
+              "id": "rbac",
+              "name": "RBAC Implementation",
+              "severity": "high"
+            },
+            {
+              "id": "bfla",
+              "name": "Function-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "bola",
+              "name": "Object-Level Authorization Bypass",
+              "severity": "high"
+            },
+            {
+              "id": "indirect-prompt-injection",
+              "name": "Indirect Prompt Injection",
+              "severity": "high"
+            },
+            {
+              "id": "hijacking",
+              "name": "Hijacking",
+              "severity": "high"
+            },
+            {
+              "id": "system-prompt-override",
+              "name": "System Prompt Override",
+              "severity": "high"
+            },
+            {
+              "id": "tool-discovery",
+              "name": "Tool Discovery",
+              "severity": "low"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

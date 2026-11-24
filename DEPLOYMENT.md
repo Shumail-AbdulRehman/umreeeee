@@ -2,14 +2,16 @@
 
 ## GitHub repository
 
-For a separate backend repository, upload **the contents of `backend/`** so that
-`Procfile`, `.python-version`, `requirements.txt`, `app/`, and `scripts/` are at its root.
+For a separate backend repository, use **the contents of `backend/`** so that
+`Procfile`, `.python-version`, `requirements.txt`, `app/`, `promptfoo_bridge/`, and
+`scripts/` are at its root. Copy the project-root `package.json`, `package-lock.json`,
+`.node-version`, and `app.json` into that repository root for Promptfoo.
 Include hidden configuration files, but never `.env`, `.venv`, database dumps, or model caches.
 The app uses Python 3.12 and the `heroku/python` buildpack.
 
 You can also deploy the complete project repository: its root Procfile changes into
 `backend/`, and its root requirements file includes `backend/requirements.txt`.
-Explicitly select `heroku/python`; no Node buildpack is needed for the API.
+Configure both buildpacks for the release that includes Promptfoo.
 
 ## Services and configuration
 
@@ -90,14 +92,58 @@ heroku ps:scale web=1 worker=1 dispatcher=1 recovery=1 --app YOUR-APP
 `dispatcher` publishes persisted jobs; `worker` consumes them. Both are required for Red
 Team execution and use separate dynos. Without these processes, Red Team jobs remain pending.
 
-`recovery` runs `python -m app.queue.recovery` as its own dyno. A crashed worker can leave a
-job marked running; without this process, such jobs are recovered only when the web process
-restarts. The recovery loop reconciles durable job states every 15 seconds and prints a counts
-dictionary on each cycle (keys `dispatch_reset`, `pre_call_reset`, `response_resume`,
-`uncertain_finalized` and `parent_reconciled`). It shares the same MongoDB, broker and
-encryption keys as `worker` and `dispatcher`. It never replays an uncertain provider call: a
-job whose provider outcome cannot be confirmed is finalized as `execution_outcome_unknown`,
-because the original call may already have incurred cost.
+`recovery` runs `python -m app.queue.recovery` as its own dyno. It checks durable job
+state every 15 seconds and reports `dispatch_reset`, `generating_requeued`,
+`interrupted_failed`, and `parent_reconciled`. A job that loses its worker before a
+suite is available can be requeued. An interrupted evaluation is closed as failed
+with the reason `interrupted`, keeping imported rows.
+
+### promptfoo runtime (Red Team engine)
+
+Red Team scans run the pinned promptfoo CLI (`promptfoo` `0.126.0` in the repository-root `package.json`) as a
+subprocess of `worker`. Locally: run `npm ci` in the repository root (Node 24; `.node-version`), then
+`cd backend && python -m scripts.check_promptfoo_runtime` — it must report `"available": true` and
+`"cloud_key_configured": true`.
+
+Configuration (backend `.env` or Heroku config vars):
+
+- `PROMPTFOO_API_KEY` — the owner's promptfoo Cloud user API token. The worker runs
+  `promptfoo auth login --host <PROMPTFOO_CLOUD_HOST> --api-key <key>` inside a private per-run config directory before
+  generating test cases. Login requires no email verification. Keep the key out of version control.
+- `PROMPTFOO_CLOUD_HOST` — optional, defaults to `https://www.promptfoo.app`.
+
+On Heroku Cedar, Node must build first and Python last so the slug contains
+`node_modules/.bin/promptfoo`. The root `app.json` records this order for new apps
+and Review Apps. For an existing app, inspect its buildpacks and add Node if
+Python is its only buildpack:
+
+```sh
+heroku buildpacks --app YOUR-APP
+heroku buildpacks:add --index 1 heroku/nodejs --app YOUR-APP
+```
+
+Keep any other required buildpacks in the list and leave Python last. Set
+`PROMPTFOO_API_KEY` and `RABBITMQ_URL` in Heroku Config Vars before deploying the
+branch. After the first release, enable the processes described above. The
+recommended worker size is Standard-2X (1 GB) on a compatible paid tier:
+
+```sh
+heroku ps:type worker=standard-2x --app YOUR-APP
+```
+
+Verify the pinned runtime after release. The checker reports only whether a
+Cloud key is configured. It performs a local version check and does not
+authenticate to Promptfoo Cloud:
+
+```sh
+# Combined repository
+heroku run --app YOUR-APP 'cd backend && python -m scripts.check_promptfoo_runtime'
+# Standalone backend repository
+heroku run --app YOUR-APP 'python -m scripts.check_promptfoo_runtime'
+```
+
+Look for `available: true`, version `0.126.0` and `cloud_key_configured: true`.
+
 Normal Prompt Studio runs do not require RabbitMQ. The application also needs periodic
 content cleanup: schedule `python -m scripts.expire_content` through Heroku Scheduler
 (or `cd backend && python -m scripts.expire_content` for the complete repository).

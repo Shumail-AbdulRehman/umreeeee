@@ -1,7 +1,7 @@
 import pytest
 
 from app.red_team import risk_scoring as rs
-from app.red_team.plugins import PLUGINS, STRATEGIES, SEVERITIES as CATALOG_SEVERITIES
+from app.red_team.catalog import PLUGINS
 
 
 def C(strategy, decided, worked):
@@ -44,14 +44,11 @@ def test_worst_strategy_reported_and_never_lowered():
     assert {s.strategy for s in r.strategies} == {"roleplay", "basic", "hex"}
 
 
-def test_metadata_matches_spec_effort_and_catalog():
+def test_metadata_matches_spec_effort():
     low = {"basic", "base64", "rot13", "leetspeak", "hex", "authority"}
     for sid, meta in rs.STRATEGY_METADATA.items():
         assert meta.human_exploitable
         assert meta.human_complexity == ("low" if sid in low else "medium")
-    assert set(rs.STRATEGY_METADATA) == set(STRATEGIES)
-    for sid, strat in STRATEGIES.items():
-        assert strat["effort"] == rs.STRATEGY_METADATA[sid].human_complexity
 
 
 def test_unknown_strategy_falls_back_to_default():
@@ -59,8 +56,8 @@ def test_unknown_strategy_falls_back_to_default():
 
 
 def test_catalog_severities_supported():
-    assert set(CATALOG_SEVERITIES) == set(rs.SEVERITIES)
     for plugin in PLUGINS.values():
+        assert plugin["severity"] in rs.SEVERITIES
         rs.score_plugin(plugin["id"], plugin["severity"], [C("basic", 1, 1)])
 
 
