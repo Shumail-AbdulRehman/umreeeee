@@ -4,7 +4,7 @@ Source: `design/red-team/v3/` (approved 2026-11-11). Adapted from `specs-red-tea
 
 ## Direction
 
-Calm Operate-mode admin UI. On a stored report prioritize what changed with policies, what evidence supports the decision, and what coverage is missing. No generic dashboard filler, decorative gauges, fake live activity or implied certification. State “Live evaluation is unavailable” where appropriate; distinguish fixtures, historical reports, absent data and zero.
+Calm Operate-mode admin UI. On a stored report prioritize what changed with policies, what evidence supports the decision, and what coverage is missing. No generic dashboard filler, decorative gauges, fake live activity or implied certification. When promptfoo is not ready, state the specific reason (runtime missing, Cloud key missing); distinguish running, historical reports, absent data and zero. The promptfoo config preview (spec 11) uses the mono font in a labelled scroll region, like prompt and reply text.
 
 ## Colour tokens
 
@@ -50,6 +50,7 @@ Keep the app's shell, sidebar and topbar. `tests.html` leads with readiness, fil
 
 ## Component conventions
 
+- Use “automated security testing” for the overall workflow. Use “test launch” for starting a run and “Launch test” for the action. Use “test case” for an individual evaluation, “test prompt” for its input, and “case details” for the result dialog. Label the report metric “Test case failure rate” and count only cases with a pass or fail verdict in its denominator.
 - Use existing `ui/button`, inputs, badges, semantic table and Radix dialog; use one existing severity/status label map. Primary for New test/Save draft, outline for secondary, danger for the cancel confirmation only. Disabled launch has explanatory text, not a mystery button.
 - Show source and evidence with every decision: policy block vs grader verdict, not “AI verdict.” Prompt/reply are plain text with a clear retention fallback. Missing score uses existing “Not scored” accessible text; rates of zero remain visible.
 - Label loading, empty and failure separately. A cancel dialog names consequences and preserves finished results; never use `window.confirm`. Plain copy names the state and action rather than praising the user or the engine.

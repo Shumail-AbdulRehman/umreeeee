@@ -1,11 +1,11 @@
 # Spec 18 — Red Team page integration
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 07, Spec 11, Spec 12, Spec 13, Spec 14, Spec 15
 **Model:** Heavy — `claude-opus-5-5` · `gpt-6.2-sol` · `gemini-4-argon`
 **Issue:** —
 **Owns:** `Frontend/src/pages/RedTeamPage.jsx`, `Frontend/src/pages/RedTeamPage.test.jsx`, `Frontend/src/pages/red-team.css`, `Frontend/src/hooks/useRedTeamTest.js`, `Frontend/src/hooks/useRedTeamTest.test.jsx`, `specs-promptfoo/inventory/18-red-team-page-integration.md`
-**Reuses:** `design/red-team/v3/tests.html`, `design/red-team/v3/new-test.html`, `design/red-team/v3/running.html`, `design/red-team/v3/report.html`, `design/red-team/v3/states.html`, `DESIGN-SYSTEM.md#layout-conventions`, `DESIGN-SYSTEM.md#states-and-motion`, `DESIGN-SYSTEM.md#accessibility-floor`, `Frontend/src/components/LoadingSurface.jsx`, `Frontend/src/services/redTeam/redTeamService.js`
+**Reuses:** `Frontend/src/features/red-team/ConfigPreview.jsx`, `design/red-team/v3/tests.html`, `design/red-team/v3/new-test.html`, `design/red-team/v3/running.html`, `design/red-team/v3/report.html`, `design/red-team/v3/states.html`, `DESIGN-SYSTEM.md#layout-conventions`, `DESIGN-SYSTEM.md#states-and-motion`, `DESIGN-SYSTEM.md#accessibility-floor`, `Frontend/src/components/LoadingSurface.jsx`, `Frontend/src/services/redTeam/redTeamService.js`
 
 ## Goal
 
@@ -13,7 +13,7 @@ Compose the editor, live run and report views in the existing Red Team route, ho
 
 ## Scope
 
-- Compose the list, editor, progress, summary, plugin/strategy breakdown, compliance, results, detail and state views from specs 11–15; rebuild from incumbent components, not the reviewed prototypes. Preserve current hash navigation, browser back behavior, edit/draft, cancel, clone and export callbacks; wire Launch from the editor (save the draft if changed, then `launchRedTeamTest` with one stable `Idempotency-Key` per draft id and version, as the current page does) and remove the legacy-report branch.
+- Compose the list, editor, progress, summary, plugin/strategy breakdown, compliance, results, detail and state views from specs 11–15; rebuild from incumbent components, not the reviewed prototypes. Preserve current hash navigation, browser back behavior, edit/draft, cancel, clone and export callbacks; wire Launch from the editor (save the draft if changed, then `launchRedTeamTest` with one stable `Idempotency-Key` per draft id and version, as the current page does) and remove the legacy-report branch. Wire the editor's `onPreview(values)` to spec 07 `previewRedTeamConfig` (unsaved values) or `getRedTeamTestConfigPreview(id)` (stored draft), keep only the latest response, and pass `yaml`, loading, error and stale state to `ConfigPreview`.
 - Poll queued, generating, running and cancelling; stop at terminal/unmount and discard stale results when the test ID or filters change. Reset result filters and detail state on navigation; do not request a report while editing an unsaved draft. Use the latest request for report and row detail, including after a previous response fails.
 - Retain the existing `InlineLoadingBar` behavior (page change of 2026-11-20): hide report/results until the corresponding test's report and result reads resolve; a known failure gets a specific retry/state view, not stale rows or a perpetual spinner. Keep report loading, row detail loading and empty results separate.
 - Use existing tokens only, no raw colour values; honor reduced motion for loading and transitions. Preserve keyboard order and visible focus, restore focus on dialog close, and land on a meaningful heading after intentional navigation without shifting focus on poll ticks. Copy is plain and tied to the actual state, e.g. “Could not load results.” No generic filler.
@@ -37,8 +37,12 @@ Compose the editor, live run and report views in the existing Red Team route, ho
 
 ## Done when
 
-- [ ] `cd Frontend && npx vitest run src/pages/RedTeamPage.test.jsx src/hooks/useRedTeamTest.test.jsx` covers list, editor, queued/generating/running, report/failed, loading before payload, stale response, terminal/unmount polling cleanup, focus, and disabled launch. [unit]
+- [ ] `cd Frontend && npx vitest run src/pages/RedTeamPage.test.jsx src/hooks/useRedTeamTest.test.jsx` covers list, editor with config preview (latest response wins, error state), queued/generating/running, report/failed, loading before payload, stale response, terminal/unmount polling cleanup, focus, and disabled launch. [unit]
 - [ ] No legacy report branch or raw color values; token, focus and reduced-motion rules hold. [static]
 - [ ] `cd Frontend && npx vitest run` passes; log the count. [unit]
 - [ ] `cd Frontend && npm run lint` passes with no errors or warnings. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+- **2026-11-23:** Composed the Promptfoo-only page and removed the legacy report branch. Focused page/hook/preview suite: 31 passed; full frontend suite: 298 passed; lint and build passed.

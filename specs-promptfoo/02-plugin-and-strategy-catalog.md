@@ -5,11 +5,11 @@
 **Model:** Standard — `claude-sonnet-5-5` · `gpt-6.2-sol` · `gemini-3.8-flash`
 **Issue:** —
 **Owns:** `backend/scripts/extract_promptfoo_catalog.py`, `backend/app/red_team/promptfoo_catalog.json`, `backend/app/red_team/catalog.py`, `backend/tests/unit/test_promptfoo_catalog.py`, `specs-promptfoo/inventory/02-plugin-and-strategy-catalog.md`
-**Reuses:** `backend/app/red_team/catalog_schema.py`, `backend/app/red_team/risk_scoring.py`, `INVENTORY.md#red-team-domain`
+**Reuses:** `backend/app/red_team/risk_scoring.py`, `INVENTORY.md#red-team-domain`
 
 ## Goal
 
-Commit a curated promptfoo plugin and strategy catalog, extracted from the installed package, that drives the editor's choices, the server-side validation, the attack-call estimate and the report labels.
+Commit a curated promptfoo plugin and strategy catalog, extracted from the installed package, that drives the editor's choices, the server-side validation, the target-call estimate and the report labels.
 
 ## Scope
 
@@ -24,7 +24,7 @@ Commit a curated promptfoo plugin and strategy catalog, extracted from the insta
 
 ## Reuse first
 
-- Reuse the validation approach from `backend/app/red_team/catalog_schema.py` and severity vocabulary in `backend/app/red_team/risk_scoring.py`; no runtime imports of the legacy catalog.
+- Reuse the severity vocabulary in `backend/app/red_team/risk_scoring.py`; no runtime imports of the legacy catalog.
 - Treat the installed artifact from spec 01 as the source of truth for present IDs and display metadata; do not infer a missing ID or import provider implementations.
 
 ## Steps

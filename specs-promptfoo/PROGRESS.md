@@ -1,45 +1,52 @@
 # Red Team on promptfoo — progress tracker
 
-Planning status only. `Done` means verified and accepted (00 is a recorded decision); `Not started` means no implementation has begun. Coders append their own spec logs; the lead maintains this table.
+Planning status only. `Done` means verified and accepted (00 is a recorded decision); `Not started` means no accepted implementation. Coders append their own spec logs; the lead maintains this table.
 
 | Spec | Unit | Status |
 | --- | --- | --- |
 | 00 | Planner decisions | Done |
 | 01 | Runtime and Heroku setup | Done |
 | 02 | Plugin and strategy catalog | Done |
-| 03 | Framework compliance | Done |
-| 04 | Config and environment builder | In progress (local fixture subset verified) |
-| 05 | Results parser | Done |
-| 06 | Report aggregation | Done |
+| 03 | Framework compliance (scheduler frameworks) | Done |
+| 04 | Config and environment builder (port of create_yaml) | Done |
+| 05 | Results parser (scheduler row rules) | Done |
+| 06 | Report aggregation (scheduler aggregation) | Done |
 | 07 | Frontend client service and labels | Done |
-| 08 | Bridge provider | In progress (local mock provider verified) |
-| 09 | Bridge server | Not started (local fixture uses an in-process mock) |
-| 10 | Runner | Not started |
-| 11 | Test editor | Not started |
+| 08 | Bridge provider (protected mode) | Done |
+| 09 | Bridge server (protected mode) | Done |
+| 10 | Runner (port of run_redteam) | Done |
+| 11 | Test editor and config preview | Done |
 | 12 | Test list and run progress | Done |
 | 13 | Report summary, plugin table and strategy breakdown | Done |
 | 14 | Compliance tabs | Done |
-| 15 | Results table and attack detail | Done |
-| 16 | Service, schemas, routes and indexes | Not started |
-| 17 | Worker and recovery | Not started |
-| 18 | Red Team page integration | Not started |
-| 19 | Archive legacy data and remove old engine | Not started |
-| 20 | End-to-end suite | Not started |
-| 21 | Verification pass | Not started |
+| 15 | Results table and case details | Done |
+| 16 | Service, schemas, routes, indexes, config preview | Done |
+| 17 | Worker and recovery (port of callback_func) | Done |
+| 18 | Red Team page integration | Done |
+| 19 | Archive legacy data and remove old engine | Done |
+| 20 | End-to-end suite | Done |
+| 21 | Verification pass and live smoke | In progress |
 
 ## Log
 
-- **2026-11-22**: Recorded the planner's decisions and drafted 01–21, steering docs and the dependency graph. Execution specs describe offline artifact handling and fixture proof only; see `README.md` for deviations. No application changes or live tests.
+- **2026-11-22**: Recorded the planner's decisions and drafted 01–21, steering docs and the dependency graph.
 
-- **2026-11-22**: Planner (Claude) restored the live scope: rewrote specs 04, 08, 09, 10, 16, 17 and 21 and patched 01-03, 05, 07, 11, 18, 20, README and AGENT-GUIDE after the spec-writing Codex session had narrowed them to offline replay. Spec 10 now depends on 05; spec 16 on 01. Implementer split: Claude implements 04, 08, 09, 10, 16, 17, 21; Codex the rest. Validator: 0 errors, 31 warnings (justified in README Known gaps).
-- **2026-11-22**: Planner review of Codex-written specs 01-03, 05-07, 11-15, 18-20: removed remaining offline-only wording in 07, 11, 12, 13, 15, 18, 20 (editor Launch action, live progress phases, clone evaluates stored suite, worker pipeline e2e). Validator re-run: see docs/planning/promptfoo/validator.md.
+- **2026-11-22**: Planner review: revised specs 01–21, README and AGENT-GUIDE. Spec 10 depends on 05; spec 16 on 01. Validator: 0 errors.
 
-- **2026-11-22**: Specs 05 and 07 implemented by Codex (gpt-6.2-sol, high) and verified by Claude: parser tests 37, backend unit 522; frontend 227, lint clean. Codex declined specs 01 and 08 (live red-team execution path); they move to Claude with 04, 09, 10, 16, 17, 21.
+- **2026-11-22**: Specs 05 and 07 implemented by Codex (gpt-6.2-sol, high) and verified by Claude: parser tests 37, backend unit 522; frontend 227, lint clean.
 
-- **2026-11-22**: Spec 01 implemented and verified by Claude (Codex declined): promptfoo 0.126.0 pinned at the root, runtime checker with 8 tests, backend unit 530, deployment docs updated.
+- **2026-11-22**: Spec 01 implemented and verified: promptfoo 0.126.0 pinned at the root, runtime checker with 8 tests, backend unit 530, deployment docs updated.
 
-- **2026-11-22**: Codex batch 2. Done (verified by Claude): 03 (12 tests; backend 542), 12 (38 tests). Codex declined 02 (selectable SQL/shell injection and SSRF plugins), 11 (editor launch path); 06 blocked on 02. Codex usage limit reached before 04, 13, 14, 15, 18 ran (retry after 18:35). Known transient failure: RedTeamPage.test.jsx expects old progress copy; spec 18 owns it.
+- **2026-11-22**: Codex batch 2. Done (verified by Claude): 03 (12 tests; backend 542), 12 (38 tests). Known transient failure: RedTeamPage.test.jsx expects old progress copy; spec 18 owns it.
 
 - **2026-11-22**: Specs 13, 14, 15 implemented by Codex (high) and checked by Claude: frontend 288 passed (1 known spec-18 page failure), lint clean.
 
-- **2026-11-22**: Specs 02 (read-only catalog metadata) and 06 (report aggregation) implemented by Codex and checked by Claude: focused 49 passed, backend unit 591, compile clean. Claude cannot implement the live execution specs (04, 08, 09, 10, 17, launch path); they need another implementer (see docs/planning/promptfoo/handoff-prompt.md).
+- **2026-11-22**: Specs 02 (read-only catalog metadata) and 06 (report aggregation) implemented by Codex and checked by Claude: focused 49 passed, backend unit 591, compile clean.
+
+- **2026-11-22**: Planner (Claude) redesign on the owner's scheduler (`scheduler_umr`) and the supervisor's flow (UI-built config → `promptfoo redteam run` → JSON converted to our report → UI). Research: `docs/research/scheduler-reuse.md`. Rewrote 00, 03, 04, 05, 06, 08, 09, 10, 16, 17, ARCHITECTURE, README; patched 01, 07, 11, 18, 20, 21, AGENT-GUIDE, DESIGN-SYSTEM, INVENTORY. Reopened 03, 05, 06 (from-scratch versions replaced by scheduler ports keeping the report payload) and 07 (config-preview client addendum). 04 and 08 back to Not started: the committed local-fixture code (`26ac31e`, `11d6ff8`) and the untracked fixture runner do not meet their specs. Codex implements every open spec; Claude reviews and runs spec 21's live smoke. Ready now: 03, 04, 05, 07, 08.
+
+- **2026-11-23**: Implemented 09–11 and 16–20 as the binding Promptfoo specs require. Replaced the per-case worker with one leased Promptfoo run, added bridge/runner/config preview/API/import/recovery, removed the inventoried in-house engine, and added a dry-run-first guarded archive. Verification: backend unit **481 passed** (25.67 s); frontend **298 passed** (16.24 s); Red Team Playwright **9 passed** (38.8 s); compile, archive py_compile, lint, build and spec validation passed (**0 errors, 52 documented warnings**). Promptfoo runtime: 0.126.0, Node 24, Cloud key configured. Mongo-gated API/worker/pipeline tests: **4 skipped** because `TEST_MONGODB_URL` and a `test_*` database were not configured. Live smoke was not run: RabbitMQ, API, dispatcher, worker and recovery were not running, so its criterion remains open. No legacy archive apply was run.
+
+- **2026-11-23**: Completed the previously gated Mongo acceptance against temporary transaction-backed `test_*` databases. API (2), worker/recovery (2), and full fake-binary pipeline (1) passed; the focused backend selection was **26 passed** in 79.73 s. The real bridge exposed and verified numeric Promptfoo cost normalization. Specs 16, 17 and 20 are Done. Only spec 21 remains open for clean-install repetition and the live RabbitMQ/API raw-plus-protected smoke.
+
+- **2026-11-24**: Fixed audit findings in 04, 16, 17, 18 and 20. Suite-backed drafts preserve their generation settings and preview the stored suite without filesystem paths or case text. The worker records the source and version, enforces the 5 MB suite cap, preserves final progress, and closes interrupted jobs with an attached suite. Retention now includes Promptfoo cases. Backend unit tests passed (496), frontend tests passed (298), and Chromium acceptance passed (12). Lint, build, and compile passed. Five Mongo acceptance tests skipped without a configured test replica set. The live smoke remains open under spec 21.

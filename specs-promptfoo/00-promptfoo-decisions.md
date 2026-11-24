@@ -5,60 +5,65 @@
 **Model:** Heavy — `claude-opus-5-5` · `gpt-6.2-sol` · `gemini-4-argon`
 **Issue:** —
 **Owns:** —
-**Reuses:** `docs/planning/promptfoo/brief.md`, `docs/planning/promptfoo/intake.md`, `docs/research/promptfoo-redteam.md`, `docs/research/promptfoo-integration.md`, `docs/research/promptfoo-local-probe.md`, `design/red-team/v3/`
+**Reuses:** `docs/planning/promptfoo/brief.md`, `docs/planning/promptfoo/intake.md`, `docs/research/scheduler-reuse.md`, `docs/research/promptfoo-redteam.md`, `docs/research/promptfoo-integration.md`, `docs/research/promptfoo-local-probe.md`, `design/red-team/v3/`
 
 ## Goal
 
-Record every decision the promptfoo specs inherit, with what lost and why, so no implementing Codex session re-decides them.
+Record every decision the promptfoo specs inherit, with what lost and why, so no implementing session re-decides them. Revised on 2026-11-22 to build the Red Team on the owner's working scheduler (`docs/research/scheduler-reuse.md`), following the supervisor's flow.
 
 ## Scope
 
-**Engine.** promptfoo `0.126.0` (MIT), pinned exactly in a root `package.json` with a Linux-generated `package-lock.json`, run as a CLI subprocess by the existing Python red-team worker: `redteam generate` writes the attack suite, `redteam eval` runs and grades it. Lost: the in-house engine (owner: "remove our custom logic"); the experimental JS API `promptfoo.redteam.run` (JavaScript-only, typed differently from the docs); `npx promptfoo@latest` (unpinned); Option A, promptfoo as an external tool (rejected by the owner).
+**Flow (supervisor, binding).** The admin builds a red-team config in our UI, in the shape promptfoo supports; the worker runs `promptfoo redteam run` on that config; promptfoo's results JSON is converted into our report format and shown in the UI. Lost: the in-house engine; Option A (promptfoo as an external tool).
 
-**Attack generation: promptfoo hosted generation** (owner: "just go with the full promptfoo one"). The worker logs in to promptfoo Cloud with the owner's user API token (`PROMPTFOO_API_KEY`, host `PROMPTFOO_CLOUD_HOST`, default `https://www.promptfoo.app`) by running `promptfoo auth login` inside each run's private config dir; verified on 2026-11-22 (local probe, "Cloud API-key login"): the env var alone still triggers the email prompt, the login does not. Lost: local generation (the 2026-11-22 probe got 0 tests: `hijacking` is remote-only and Groq gpt-oss refused to write attacks); the `CI` placeholder-email bypass (hosted-API behaviour with a null email is unverified).
+**Reuse the scheduler, do not re-invent.** The owner's scheduler (`scheduler_umr`, permission held) is the reference implementation. Its `create_yaml`/`format_purpose` become the config builder (spec 04), `run_redteam` the runner (spec 10), `callback_func` the worker flow (spec 17), `parse_redteam_json` the parser and report (specs 05, 06) and `FRAMEWORKS` the framework data (spec 03). Its eight documented defects are fixed, not copied. Lost: the earlier from-scratch parser, report and framework extraction (replaced by ports that keep the report payload the finished UI specs 13–15 render).
 
-**Grading: local, on an organization integration** chosen per test (the "grader"), passed to promptfoo as its grading provider. `OPENAI_API_KEY` is never placed in the subprocess environment, because its presence silently switches generation to local. Lost: promptfoo's hosted grading (sends target replies to promptfoo).
+**Engine.** promptfoo `0.126.0` (MIT), pinned in the root `package.json`, invoked by absolute path `<repo>/node_modules/.bin/promptfoo` as a subprocess of the Python red-team worker. First run of a test: `redteam run` (generation and evaluation). A clone that reuses a stored suite: `redteam eval` on the stored tests. Lost: the scheduler's forked promptfoo build and nvm paths; the JS API.
 
-**Target routing: the bridge.** promptfoo's target is a thin, standard-library-only Python provider that forwards each attack over loopback HTTP to a bridge server running inside the worker process, which executes it through the existing services: raw → `ProviderService`, protected → `ProtectedPromptService.execute_protected` with the frozen launch snapshot. Lost: a provider that imports the backend (a second ~300 MiB Python process per worker); promptfoo's HTTP provider to the public API (no per-call idempotency key, Heroku 30 s router limit); `exec:` (no token usage or guardrails).
+**Test case generation through promptfoo Cloud.** The runner logs in inside each run's private `PROMPTFOO_CONFIG_DIR` with `promptfoo auth login --host <PROMPTFOO_CLOUD_HOST> --api-key <PROMPTFOO_API_KEY>` (verified headless, local probe "Cloud API-key login"); being logged in makes generation remote. No email-verification step. Lost: the scheduler's private generation server (`PROMPTFOO_REMOTE_GENERATION_URL`, company infrastructure); local generation (aligned models refuse; 0 tests in the probe).
 
-**Verdict authority.** A protected-mode block whose matched rule is outside `system_prompt` decides `pass` with source `policy`. Otherwise promptfoo's grader decides: `gradingResult.pass` true → `pass`/`grader`, false → `fail`/`grader`. Provider errors, grader errors and missing results → `error`. promptfoo PASS means the target defended.
+**Grading: the organization's own integration**, chosen per test, set only as `defaultTest.options.provider`. Never `redteam.provider` (it would also generate follow-up prompts for multi-turn strategies) and never `OPENAI_API_KEY` in the subprocess. Lost: promptfoo hosted grading (sends target replies to promptfoo; the scheduler used it implicitly).
 
-**Raw versus protected stays.** A generated suite is stored once and reused by its clone, so the paired run sends the identical attacks (promptfoo generation is not reproducible). Pairing is by suite and promptfoo test index.
+**Targets.** Raw mode uses promptfoo's built-in provider for the integration exactly as the scheduler does (`groq:<model>`, `openai:chat:<model>` …, key in the target `config`). Protected mode uses a small bridge: a standard-library Python provider forwarding each test prompt over loopback to a server inside the worker that calls `ProtectedPromptService.execute_protected` with the frozen policy snapshot. Lost: a bridge for raw mode (unneeded); promptfoo's `http` provider to `/api/prompts/run` (needs a user JWT, uses live rather than frozen policies, returns 202 polling).
 
-**Catalog.** A curated, committed catalog derived from the installed promptfoo package: about 20 plugins that need no extra per-plugin config, all single-turn encodings, and the hosted strategies the owner wants (`jailbreak:meta`, `jailbreak:composite`, `crescendo`, `goat`, `multilingual` only if the research shows it is a strategy id in 0.126.0). Plugins that need extra config (`indirect-prompt-injection`, `policy`, `intent`, domain plugins) are out of v1. Lost: exposing every promptfoo plugin (100+, many needing config).
+**Verdict authority.** promptfoo PASS means the target defended. Protected-mode block outside `system_prompt` → `pass`/`policy`. Otherwise `gradingResult.pass` true → `pass`/`grader`, false → `fail`/`grader`; no `gradingResult` (error row) → `error`/`none` (scheduler rule).
 
-**Scoring and compliance.** promptfoo's per-plugin risk formula already ported in `backend/app/red_team/risk_scoring.py` stays (promptfoo does not ship it in its output or exports). Framework mappings are extracted from the installed promptfoo package by a committed script, not hand-written; a framework control is compliant only when every mapped decided attack defended (promptfoo's rule).
+**Raw versus protected.** The sanitized generated suite is stored once; a clone evaluates the same tests against its own target, so the paired report compares identical test cases. Pairing is by suite and promptfoo `testIdx`.
 
-**Limits.** Attacks are capped at 200 generated tests per test; tests per plugin 1-10; eval concurrency 2; one promptfoo run per worker at a time; overall run timeout 2 hours.
+**Results.** The eval writes `results.jsonl` (streamed, used only for live progress counts) and `results.json` (final, imported once, scheduler style) through the config's `outputPath` list.
 
-**Execution model.** One queue job per test (not per attack). The existing outbox dispatcher, lease fencing and recovery process stay. An interrupted run is never replayed: generation-phase interruptions requeue; eval-phase interruptions finalize the test as `failed` with reason `interrupted`, keeping imported results.
+**Catalog.** The committed catalog from spec 02 (24 plugins, 15 strategies) stays the source of names, groups (the scheduler's "parent" category) and severities. Frameworks: all nine of the scheduler's (`nist_ai_rmf`, `eu:ai-act`, `owasp:llm`, `owasp:api`, `mitre:atlas`, `owasp:agentic`, `iso:42001`, `gdpr`, `dod:ai:ethics`).
 
-**Legacy data.** Existing red-team tests of the old engine are exported to a JSON file and then deleted by a one-off script with dry-run and apply modes; no legacy screens remain.
+**Limits.** Estimated target calls ≤ 200 per test; tests per plugin 1–10; eval concurrency 2; one promptfoo run per worker; run timeout 2 hours.
 
-**Deployment.** Heroku buildpacks `heroku/nodejs` (index 1) then `heroku/python`; `engines.node` `24.x`; the worker dyno is Standard-2X (1 GB) because Node alone uses ~315 MiB; promptfoo is invoked by absolute path `<repo>/node_modules/.bin/promptfoo`. Slug limit is 1000 MB compressed; promptfoo adds ~130 MB compressed.
+**Execution model.** One queue job per test. Existing outbox, lease fencing and recovery stay. Interrupted before the suite exists → requeue; after → finalize `failed`/`interrupted` (never replay target calls).
 
-**Design.** The approved `design/red-team/v3/` screens (list, new test, running, report, states) remain the visual source of truth. The owner's request for a good, non-generic design is met by reusing that design, which already went through gpt-taste, animate and impeccable, plus a polish spec for the new promptfoo-specific parts. Lost: a new three-stage design pass (the owner's usage limit).
+**Legacy data.** Old-engine tests are archived to JSON and deleted by a one-off dry-run-first script (spec 19).
 
-**Testing.** Backend pytest with fakes: a fake `promptfoo` executable (a small script that writes the same files) for runner and worker tests; no live promptfoo, provider or RabbitMQ in automated tests. Frontend Vitest + Testing Library; Playwright with intercepted APIs in the e2e spec only. One live smoke run is a `[requires:]` criterion in the verification pass.
+**Deployment.** Local only for now. Heroku notes from spec 01 stay documentation.
 
-**Implementer.** Codex (`gpt-6.2-sol`) implements every spec; Claude reviews.
+**Design.** `design/red-team/v3/` remains the visual source. The editor adds a read-only "promptfoo config" preview (redacted YAML) so the admin sees the config the UI generated.
+
+**Testing.** Pytest with fakes (fake `promptfoo` executable, fake services); Vitest + Testing Library; Playwright with intercepted APIs only in spec 20. One live smoke run through the app API in spec 21.
+
+**Implementer.** Codex (`gpt-6.2-sol`) implements every open spec; Claude reviews and runs the spec 21 live smoke. Live behaviour is the scope.
 
 ## Explicit non-scope
 
-- Writing the catalog content → spec 02.
-- The Heroku buildpack and dyno changes → spec 01.
+- Writing the config builder → spec 04.
+- Writing the parser and report → spec 05 and spec 06.
 - Deleting the old engine → spec 19.
 
 ## Steps
 
-1. Confirm each decision against the three research files and the intake.
+1. Confirm each decision against `docs/research/scheduler-reuse.md`, the three promptfoo research files and the intake.
 2. Leave this file as the record; a changed decision needs a new decision spec.
 
 ## Done when
 
-- [x] Every decision names what lost and why, and matches the intake answers. [static]
-- [x] `python3 /home/shumail/.claude/skills/plan-project/scripts/validate-specs.py specs-promptfoo` reports no errors for this file. [static]
+- [x] Every decision names what lost and why, and matches the intake answers (rows 7–10 added 2026-11-22). [static]
+- [x] `python3 .ai/plan-project/scripts/validate-specs.py specs-promptfoo` reports no errors for this file. [static]
 
 ## Log
 
 - **2026-11-22**: Recorded the planner's decisions. This completed decision record has no implementation issue.
+- **2026-11-22**: Revised for the scheduler-based flow (owner and supervisor): reuse `scheduler_umr`, `redteam run`, raw via built-in providers, protected via a small bridge, grader only in `defaultTest.options.provider`, scheduler frameworks.

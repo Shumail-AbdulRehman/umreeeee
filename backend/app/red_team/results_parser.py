@@ -1,20 +1,31 @@
-"""Normalize promptfoo artifacts and resolve verdicts from recorded evidence."""
+"""Read final promptfoo results and make generated suites safe to store."""
 
 import json
 import math
+import re
+from collections import Counter
+from collections.abc import Set
 from dataclasses import dataclass
 from typing import NamedTuple
 
 import yaml
 
+from .catalog import PLUGINS
+from .risk_scoring import SEVERITIES
 
-_ASSERT_FAILURE = 1
-_EXECUTION_ERROR = 2
+
 _POLICY_BLOCKS = ("blocked_input", "blocked_output")
+_SECRET_KEYS = {"apikey", "token", "secret", "password", "accesskeyid", "secretaccesskey"}
+_TOKEN_FIELDS = ("prompt", "completion", "total", "numRequests")
+_STATS_FIELDS = ("successes", "failures", "errors", "tokenUsage", "durationMs")
 
 
 class ArtifactParseError(ValueError):
     """An invalid artifact with a diagnostic safe to log."""
+
+
+class SuiteSecretError(ArtifactParseError):
+    """A generated suite would retain a credential or provider configuration."""
 
 
 @dataclass(frozen=True, repr=False)
@@ -23,16 +34,31 @@ class ResultRow:
     repeat_index: int
     plugin_id: str | None
     strategy_id: str
-    severity: str | None
-    goal: str | None
+    severity: str
     prompt: str | None
-    output: str | None
-    grader_pass: bool | None
+    response: str | None
+    passed: bool | None
     grader_reason: str | None
-    error: str | None
+    grader_error: bool
     latency_ms: int | float | None
     token_usage: dict[str, int | None]
     cost: int | float | None
+    score: int | float
+    failure_reason: int | None
+    assert_type: str | None
+    assert_metric: str | None
+    decision: str | None
+    protected_run_id: str | None
+    policy_evidence: list[dict]
+    guardrails: dict[str, bool]
+
+
+@dataclass(frozen=True, repr=False)
+class ParsedResults:
+    rows: list[ResultRow]
+    stats: dict
+    total_latency_ms: int | float | None
+    skipped: dict[str, int]
 
 
 class Verdict(NamedTuple):
@@ -42,13 +68,6 @@ class Verdict(NamedTuple):
 
 def _reject_json_constant(_value):
     raise ArtifactParseError("Invalid result JSON")
-
-
-def _load_json(payload: str):
-    try:
-        return json.loads(payload, parse_constant=_reject_json_constant)
-    except (ValueError, RecursionError):
-        raise ArtifactParseError("Invalid result JSON") from None
 
 
 def _optional_object(value, field):
@@ -71,48 +90,13 @@ def _index(value, field):
     return value
 
 
-def _measurement(value, field, *, integer=False):
+def _measurement(value, field, *, integer=False, allow_negative=False):
     if value is None:
         return None
-    if type(value) is int and value >= 0:
-        return value
-    if not integer and type(value) is float and math.isfinite(value) and value >= 0:
+    numeric = type(value) is int or (not integer and type(value) is float and math.isfinite(value))
+    if numeric and (allow_negative or value >= 0):
         return value
     raise ArtifactParseError(f"Invalid measurement at {field}")
-
-
-def _has_grader_error(grade):
-    grades = [grade]
-    has_error = False
-    while grades:
-        component = grades.pop()
-        if not isinstance(component, dict):
-            raise ArtifactParseError("Invalid grading component")
-        metadata = _optional_object(component.get("metadata"), "gradingResult.metadata")
-        has_error |= metadata.get("graderError") is True
-        children = component.get("componentResults")
-        if children is not None:
-            if not isinstance(children, list):
-                raise ArtifactParseError("Invalid grading components")
-            grades.extend(children)
-    return has_error
-
-
-def _execution_error(row, response, grade):
-    provider_error = _optional_text(response.get("error"), "response.error")
-    row_error = _optional_text(row.get("error"), "error")
-    failure = row.get("failureReason")
-    if failure is not None and (type(failure) is not int or failure not in (0, _ASSERT_FAILURE, _EXECUTION_ERROR)):
-        raise ArtifactParseError("Invalid failureReason")
-    grader_error = _has_grader_error(grade)
-    if provider_error:
-        return "provider_error"
-    if grader_error:
-        return "grader_error"
-    # promptfoo copies the grading reason to error when an assertion fails.
-    if failure == _EXECUTION_ERROR or (row_error and failure != _ASSERT_FAILURE):
-        return "eval_error"
-    return None
 
 
 def _output_text(value):
@@ -124,117 +108,222 @@ def _output_text(value):
         raise ArtifactParseError("Invalid response output") from None
 
 
-def _normalize(row):
-    if not isinstance(row, dict):
-        raise ArtifactParseError("Invalid result row")
-    test_idx = _index(row.get("testIdx"), "testIdx")
-    repeat_index = _index(row.get("repeatIndex", 0), "repeatIndex")
-    test_case = _optional_object(row.get("testCase"), "testCase")
-    metadata = _optional_object(row.get("metadata"), "metadata")
-    test_metadata = _optional_object(test_case.get("metadata"), "testCase.metadata")
-    response = _optional_object(row.get("response"), "response")
-    prompt = _optional_object(row.get("prompt"), "prompt")
+def _first_assertion(test_case):
+    assertions = test_case.get("assert")
+    if assertions is None:
+        return {}
+    if not isinstance(assertions, list):
+        raise ArtifactParseError("Invalid testCase.assert")
+    return _optional_object(assertions[0], "testCase.assert") if assertions else {}
+
+
+def _normalize(row, test_case, metadata):
+    plugin_id = _optional_text(metadata.get("pluginId"), "pluginId")
+    severity = metadata.get("severity")
+    if severity not in (*SEVERITIES, "informational"):
+        severity = PLUGINS.get(plugin_id, {}).get("severity", "medium")
+
     grade = _optional_object(row.get("gradingResult"), "gradingResult")
-
-    def label(key):
-        # Generated test metadata takes precedence over the merged response metadata.
-        value = test_metadata.get(key)
-        return _optional_text(metadata.get(key) if value is None else value, key)
-
-    grader_pass = grade.get("pass")
-    if grader_pass is not None and type(grader_pass) is not bool:
+    passed = grade.get("pass")
+    if grade and type(passed) is not bool:
         raise ArtifactParseError("Invalid gradingResult.pass")
-    reason = _optional_text(grade.get("reason"), "gradingResult.reason")
-    error = _execution_error(row, response, grade)
-
-    # Prefer provider usage when present to retain any unknown token counts.
-    if response.get("tokenUsage") is not None:
-        usage = _optional_object(response["tokenUsage"], "response.tokenUsage")
+    grade_metadata = _optional_object(grade.get("metadata"), "gradingResult.metadata")
+    response = _optional_object(row.get("response"), "response")
+    if grade:
+        output = _output_text(response.get("output"))
+        reason = _optional_text(grade.get("reason"), "gradingResult.reason")
     else:
-        usage = _optional_object(row.get("tokenUsage"), "tokenUsage")
-    latency = row.get("latencyMs")
-    cost = response.get("cost")
+        output = reason = _optional_text(row.get("error"), "error")
+    score = row.get("score", 0) if grade else -1
+
+    prompt = _optional_object(row.get("prompt"), "prompt")
+    token_usage = _optional_object(response.get("tokenUsage"), "response.tokenUsage")
+    bridge_metadata = _optional_object(response.get("metadata"), "response.metadata")
+    evidence = bridge_metadata.get("policy_evidence")
+    guardrails = _optional_object(response.get("guardrails"), "response.guardrails")
+    assertion = _first_assertion(test_case)
+
     return ResultRow(
-        test_idx=test_idx,
-        repeat_index=repeat_index,
-        plugin_id=label("pluginId"),
-        strategy_id=label("strategyId") or "basic",
-        severity=label("severity"),
-        goal=label("goal"),
+        test_idx=_index(row.get("testIdx"), "testIdx"),
+        repeat_index=_index(row.get("repeatIndex", 0), "repeatIndex"),
+        plugin_id=plugin_id,
+        strategy_id=_optional_text(metadata.get("strategyId"), "strategyId") or "basic",
+        severity=severity,
         prompt=_optional_text(prompt.get("raw"), "prompt.raw"),
-        output=_output_text(response.get("output")),
-        grader_pass=grader_pass,
+        response=output,
+        passed=passed,
         grader_reason=reason[:1000] if reason is not None else None,
-        error=error,
-        latency_ms=_measurement(response.get("latencyMs") if latency is None else latency, "latencyMs"),
-        token_usage={key: _measurement(usage.get(key), f"tokenUsage.{key}", integer=True)
-                     for key in ("prompt", "completion", "total", "cached")},
-        cost=_measurement(row.get("cost") if cost is None else cost, "cost"),
+        grader_error="graderError" in grade_metadata,
+        latency_ms=_measurement(row.get("latencyMs"), "latencyMs"),
+        token_usage={
+            key: _measurement(token_usage.get(key), f"response.tokenUsage.{key}", integer=True)
+            for key in _TOKEN_FIELDS
+        },
+        cost=_measurement(row.get("cost", response.get("cost")), "cost"),
+        score=_measurement(score, "score", allow_negative=True),
+        failure_reason=_measurement(row.get("failureReason"), "failureReason", integer=True),
+        assert_type=_optional_text(assertion.get("type"), "testCase.assert.type"),
+        assert_metric=_optional_text(assertion.get("metric"), "testCase.assert.metric"),
+        decision=_optional_text(bridge_metadata.get("decision"), "response.metadata.decision"),
+        protected_run_id=_optional_text(bridge_metadata.get("protected_run_id"), "response.metadata.protected_run_id"),
+        policy_evidence=[rule for rule in evidence if isinstance(rule, dict)] if isinstance(evidence, list) else [],
+        guardrails={
+            key: guardrails[key]
+            for key in ("flagged", "flaggedInput", "flaggedOutput")
+            if type(guardrails.get(key)) is bool
+        },
     )
 
 
-def parse_jsonl_line(line: str) -> ResultRow | None:
-    """Parse a newline-terminated row, or return None for an incomplete line."""
-    if not isinstance(line, str):
-        raise ArtifactParseError("Invalid JSONL line type")
-    if not line.endswith("\n"):
+def _total_latency(summary):
+    prompts = summary.get("prompts")
+    if prompts is None or prompts == []:
         return None
-    return _normalize(_load_json(line))
+    if not isinstance(prompts, list):
+        raise ArtifactParseError("Invalid results.prompts")
+    prompt = _optional_object(prompts[0], "results.prompts[0]")
+    metrics = _optional_object(prompt.get("metrics"), "results.prompts[0].metrics")
+    return _measurement(metrics.get("totalLatencyMs"), "totalLatencyMs")
 
 
-def parse_final_json(payload: str) -> list[ResultRow]:
-    """Parse the CLI's final JSON export in artifact order, preserving repeats."""
-    if not isinstance(payload, str):
-        raise ArtifactParseError("Invalid final JSON type")
-    document = _load_json(payload)
+def parse_results_json(text: str) -> ParsedResults:
+    """Normalize final evaluation rows in artifact order and retain run statistics."""
+    if not isinstance(text, str):
+        raise ArtifactParseError("Invalid result JSON type")
+    try:
+        document = json.loads(text, parse_constant=_reject_json_constant)
+    except (ValueError, RecursionError):
+        raise ArtifactParseError("Invalid result JSON") from None
+
     summary = document.get("results") if isinstance(document, dict) else None
-    rows = summary.get("results") if isinstance(summary, dict) else None
-    if not isinstance(rows, list):
+    if not isinstance(summary, dict) or not isinstance(summary.get("results"), list):
         raise ArtifactParseError("Invalid final JSON results envelope")
-    return [_normalize(row) for row in rows]
 
+    rows = []
+    skipped = Counter()
+    for row in summary["results"]:
+        if not isinstance(row, dict):
+            raise ArtifactParseError("Invalid result row")
+        test_case = _optional_object(row.get("testCase"), "testCase")
+        metadata = _optional_object(row.get("metadata"), "metadata") or _optional_object(
+            test_case.get("metadata"), "testCase.metadata"
+        )
+        if not metadata:
+            skipped["no_metadata"] += 1
+            continue
+        rows.append(_normalize(row, test_case, metadata))
 
-def _confirmed_policy_block(bridge_record):
-    if bridge_record.get("mode") not in (None, "protected"):
-        return False
-    if bridge_record.get("decision") not in _POLICY_BLOCKS:
-        return False
-    # Only the protected executor issues these decisions and records rule matches.
-    evidence = bridge_record.get("policy_evidence")
-    return isinstance(evidence, (list, tuple)) and any(
-        isinstance(rule, dict)
-        and rule.get("outcome") == "match"
-        and isinstance(rule.get("field"), str)
-        and rule["field"] not in ("", "system_prompt")
-        for rule in evidence
+    stats = _optional_object(summary.get("stats"), "results.stats")
+    return ParsedResults(
+        rows=rows,
+        stats={key: stats[key] for key in _STATS_FIELDS if key in stats},
+        total_latency_ms=_total_latency(summary),
+        skipped=dict(skipped),
     )
 
 
-def decide(row: ResultRow | None, bridge_record: dict | None = None) -> Verdict:
-    """Choose the verdict using the parsed row and the trusted bridge record."""
-    record = bridge_record or {}
-    if not isinstance(row, ResultRow) or row.error or record.get("decision") == "error":
+def decide(row: ResultRow, issued_run_ids: Set[str]) -> Verdict:
+    """Resolve the verdict from the grade and policy evidence issued for this run."""
+    if row.passed is None or row.grader_error:
         return Verdict("error", "none")
-    if _confirmed_policy_block(record):
+    if (
+        row.decision in _POLICY_BLOCKS
+        and row.protected_run_id
+        and row.protected_run_id in issued_run_ids
+        and any(
+            rule.get("outcome") == "match"
+            and isinstance(rule.get("field"), str)
+            and rule["field"] not in ("", "system_prompt")
+            for rule in row.policy_evidence
+        )
+    ):
         return Verdict("pass", "policy")
-    if row.grader_pass is True:
-        return Verdict("pass", "grader")
-    if row.grader_pass is False:
-        return Verdict("fail", "grader")
-    return Verdict("error", "none")
+    return Verdict("pass" if row.passed else "fail", "grader")
 
 
-def count_suite_tests(suite_text: str) -> int:
-    """Count inline generated tests without resolving references in the suite."""
-    if not isinstance(suite_text, str):
+def count_progress(jsonl_text: str) -> int:
+    """Count newline-terminated result rows."""
+    return jsonl_text.count("\n")
+
+
+def _suite_tests(suite):
+    tests = suite.get("tests", [])
+    if not isinstance(tests, list) or any(not isinstance(test, dict) for test in tests):
+        raise ArtifactParseError("Invalid generated suite tests")
+    return tests
+
+
+def _check_suite_values(value, active, checked, *, inside_tests=False):
+    if not isinstance(value, (dict, list)):
+        if type(value) not in (str, bool, int, float, type(None)):
+            raise ArtifactParseError("Invalid generated suite value")
+        return
+
+    node = (id(value), inside_tests)
+    if node in checked:
+        return
+    if node in active:
+        raise ArtifactParseError("Invalid generated suite alias")
+    active.add(node)
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise ArtifactParseError("Invalid generated suite key")
+            if re.sub(r"[^a-z0-9]", "", key.lower()) in _SECRET_KEYS:
+                raise SuiteSecretError("Generated suite contains a secret key")
+            if inside_tests and key == "provider" and isinstance(item, dict) and "config" in item:
+                raise SuiteSecretError("Generated test contains a provider config")
+            _check_suite_values(item, active, checked, inside_tests=inside_tests)
+    else:
+        for item in value:
+            _check_suite_values(item, active, checked, inside_tests=inside_tests)
+    active.remove(node)
+    checked.add(node)
+
+
+def sanitize_suite(yaml_text: str) -> dict:
+    """Retain the suite data required to replay a completed generation."""
+    if not isinstance(yaml_text, str):
         raise ArtifactParseError("Invalid generated suite type")
     try:
-        suite = yaml.safe_load(suite_text)
+        suite = yaml.safe_load(yaml_text)
     except (yaml.YAMLError, ValueError, OverflowError, RecursionError):
         raise ArtifactParseError("Invalid generated suite YAML") from None
     if not isinstance(suite, dict):
         raise ArtifactParseError("Invalid generated suite")
-    tests = suite.get("tests", [])
-    if not isinstance(tests, list) or any(not isinstance(test, dict) for test in tests):
-        raise ArtifactParseError("Invalid generated suite tests")
-    return len(tests)
+
+    redteam = _optional_object(suite.get("redteam"), "redteam")
+    default_test = _optional_object(suite.get("defaultTest"), "defaultTest")
+    metadata = _optional_object(suite.get("metadata"), "metadata")
+    sanitized = {
+        "tests": _suite_tests(suite),
+        "redteam": {key: value for key, value in redteam.items() if key != "provider"},
+        "defaultTest": {"metadata": _optional_object(default_test.get("metadata"), "defaultTest.metadata")},
+        "metadata": {"configHash": metadata["configHash"]} if "configHash" in metadata else {},
+    }
+    active, checked = set(), set()
+    try:
+        for key, value in sanitized.items():
+            _check_suite_values(value, active, checked, inside_tests=key == "tests")
+    except RecursionError:
+        raise ArtifactParseError("Invalid generated suite depth") from None
+    return sanitized
+
+
+def count_suite_tests(suite: dict) -> int:
+    """Count the inline tests in a sanitized suite."""
+    return len(_suite_tests(suite))
+
+
+def suite_breakdown(suite: dict) -> dict[str, dict[str, int]]:
+    """Count generated tests by plugin and strategy."""
+    by_plugin = Counter()
+    by_strategy = Counter()
+    for test in _suite_tests(suite):
+        metadata = _optional_object(test.get("metadata"), "test.metadata")
+        plugin = _optional_text(metadata.get("pluginId"), "pluginId")
+        strategy = _optional_text(metadata.get("strategyId"), "strategyId") or "basic"
+        if plugin:
+            by_plugin[plugin] += 1
+        by_strategy[strategy] += 1
+    return {"by_plugin": dict(by_plugin), "by_strategy": dict(by_strategy)}

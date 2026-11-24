@@ -48,6 +48,9 @@
 .rt-panel-body { padding: 16px 18px; }
 .rt-panel-note { font-size: 12px; color: var(--rt-ink-muted); }
 .rt-panel-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 12px 18px 14px; border-top: 1px solid var(--rt-line-subtle); font-size: 12px; color: var(--rt-ink-muted); }
+.rt-config-preview { max-height: 320px; overflow: auto; border: 1px solid var(--rt-line); border-radius: 7px; background: var(--rt-surface-subtle); }
+.rt-config-preview pre { min-width: max-content; margin: 0; padding: 14px; color: var(--rt-ink-secondary); font: 12px/1.65 var(--font-mono); white-space: pre; }
+.rt-config-preview:focus-visible { outline: 2px solid var(--rt-accent); outline-offset: 3px; }
 
 /* Badges: verdict, status, level, severity, mode and control status share one shape */
 .rt-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border: 1px solid var(--rt-line); border-radius: 4px; font-size: 12px; font-weight: 500; line-height: 1.4; white-space: nowrap; color: var(--rt-ink-secondary); background: var(--rt-surface-subtle); }

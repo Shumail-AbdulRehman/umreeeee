@@ -110,7 +110,7 @@ Configuration (backend `.env` or Heroku config vars):
 
 - `PROMPTFOO_API_KEY` — the owner's promptfoo Cloud user API token. The worker runs
   `promptfoo auth login --host <PROMPTFOO_CLOUD_HOST> --api-key <key>` inside a private per-run config directory before
-  generating attacks; no email verification step is needed. Never commit it.
+  generating test cases. Login requires no email verification. Keep the key out of version control.
 - `PROMPTFOO_CLOUD_HOST` — optional, defaults to `https://www.promptfoo.app`.
 
 Heroku (only when the project is deployed; the current plan is local testing): the app needs both buildpacks, Node

@@ -28,6 +28,13 @@ import { beginTrackedRequest } from '../api/requestActivity'
  */
 
 /**
+ * @typedef {object} RedTeamConfigPreview
+ * @property {string} yaml Redacted configuration for display.
+ * @property {number} estimated_target_calls
+ * @property {number} generated_tests_estimate
+ */
+
+/**
  * @typedef {RedTeamTestConfig & {
  *   id: string, engine: 'promptfoo', promptfoo_version: string, suite_id: string | null,
  *   status: RedTeamStatus, counts: RedTeamCounts, progress: RedTeamProgress,
@@ -129,6 +136,14 @@ export const createRedTeamTest = (body) => apiRequest(testsPath, { method: 'POST
 
 /** @returns {Promise<{test: RedTeamTest}>} */
 export const getRedTeamTest = (id) => apiRequest(testPath(id))
+
+/** @param {RedTeamTestConfig} values @returns {Promise<RedTeamConfigPreview>} */
+export const previewRedTeamConfig = (values, testId) => apiRequest(`${root}/config-preview${testId ? '?' + new URLSearchParams({ test_id: testId }) : ''}`, {
+  method: 'POST', body: JSON.stringify(values),
+})
+
+/** @param {string} id @returns {Promise<RedTeamConfigPreview>} */
+export const getRedTeamTestConfigPreview = (id) => apiRequest(`${testPath(id)}/config-preview`)
 
 /** @param {string} id @param {RedTeamTestConfig & {version: number}} body @returns {Promise<{test: RedTeamTest}>} */
 export const updateRedTeamTest = (id, body) => apiRequest(testPath(id), { method: 'PUT', body: JSON.stringify(body) })

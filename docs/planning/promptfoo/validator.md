@@ -2,9 +2,9 @@ Validating /home/shumail/umer-FYP/FYP_Part_1/specs-promptfoo  (22 specs)
 
 Parallel schedule  (9 waves · widest 8 · 22 specs)
   W0  00
-  W1  01 05 07 08
+  W1  01 07 08
   W2  02 03 09 11 12 13 14 15
-  W3  04 06 18
+  W3  04 05 06 18
   W4  10 16
   W5  17
   W6  19
@@ -14,8 +14,32 @@ Parallel schedule  (9 waves · widest 8 · 22 specs)
 00-promptfoo-decisions.md
   WARN   Status is 'Done' but no GitHub issue is recorded
 
+01-promptfoo-runtime-and-heroku-setup.md
+  WARN   Status is 'Done' but no GitHub issue is recorded
+
 02-plugin-and-strategy-catalog.md
+  WARN   Status is 'Done' but no GitHub issue is recorded
+  WARN   Log has no dated entry
   WARN   creates 'backend/app/red_team/promptfoo_catalog.json' but no other spec mentions it — check it is not an endpoint or component with zero callers
+
+03-framework-compliance.md
+  WARN   creates 'backend/scripts/port_scheduler_frameworks.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
+  WARN   creates 'backend/tests/fixtures/scheduler_constants_sample.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
+
+12-test-list-and-run-progress.md
+  WARN   Status is 'Done' but no GitHub issue is recorded
+
+13-report-summary-plugin-table-strategy-breakdown.md
+  WARN   Status is 'Done' but no GitHub issue is recorded
+  WARN   Log has no dated entry
+
+14-compliance-tabs.md
+  WARN   Status is 'Done' but no GitHub issue is recorded
+  WARN   Log has no dated entry
+
+15-results-table-and-attack-detail.md
+  WARN   Status is 'Done' but no GitHub issue is recorded
+  WARN   Log has no dated entry
 
 16-service-schemas-routes-indexes.md
   WARN   creates 'backend/app/db/indexes.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
@@ -36,6 +60,7 @@ Parallel schedule  (9 waves · widest 8 · 22 specs)
   WARN   creates 'backend/app/red_team/plugins.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
   WARN   creates 'backend/app/red_team/strategies.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
   WARN   creates 'backend/app/services/red_team_report_service.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
+  WARN   creates 'backend/app/services/red_team_report_v3.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
   WARN   creates 'backend/tests/integration/test_red_team_flow.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
   WARN   creates 'backend/tests/integration/test_red_team_v3_api.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
   WARN   creates 'backend/tests/integration/test_red_team_v3_pipeline.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
@@ -54,5 +79,5 @@ Parallel schedule  (9 waves · widest 8 · 22 specs)
   WARN   creates 'backend/tests/unit/test_red_team_strategies.py' but no other spec mentions it — check it is not an endpoint or component with zero callers
   WARN   Depends on 16 is already implied through another dependency
 
-22 specs · 0 error(s) · 31 warning(s)
+22 specs · 0 error(s) · 44 warning(s)
 Warnings are not blocking — justify each one in README.md under 'Known gaps', or fix it.

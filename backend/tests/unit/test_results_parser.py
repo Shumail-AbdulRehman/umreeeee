@@ -5,180 +5,197 @@ import pytest
 
 from app.red_team.results_parser import (
     ArtifactParseError,
+    SuiteSecretError,
+    count_progress,
     count_suite_tests,
     decide,
-    parse_final_json,
-    parse_jsonl_line,
+    parse_results_json,
+    sanitize_suite,
+    suite_breakdown,
 )
 
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "promptfoo"
 
 
-def _row(**fields):
-    return parse_jsonl_line(json.dumps({"testIdx": 8, **fields}) + "\n")
+def _result(**fields):
+    row = {"testIdx": 0, "metadata": {"pluginId": "hijacking"}, **fields}
+    return parse_results_json(json.dumps({"results": {"results": [row]}})).rows[0]
 
 
-def _block(field="user_prompt", decision="blocked_input", **fields):
-    return {
-        "decision": decision,
-        "policy_evidence": [{"field": field, "outcome": "match"}],
-        **fields,
+def test_final_export_preserves_order_repeats_stats_and_verdicts():
+    parsed = parse_results_json((FIXTURES / "results.json").read_text(encoding="utf-8"))
+    assert [(row.test_idx, row.repeat_index) for row in parsed.rows] == [
+        (0, 0), (1, 0), (1, 1), (2, 0), (4, 0), (5, 0), (6, 0),
+    ]
+    assert parsed.skipped == {"no_metadata": 1}
+    assert parsed.stats == {
+        "successes": 2, "failures": 5, "errors": 1,
+        "tokenUsage": {"prompt": 4, "completion": 2, "total": 6, "numRequests": 1},
+        "durationMs": 20,
     }
+    assert parsed.total_latency_ms == 12
+    assert [decide(row, {"sample-issued"}) for row in parsed.rows] == [
+        ("pass", "grader"), ("fail", "grader"), ("error", "none"), ("error", "none"),
+        ("pass", "policy"), ("fail", "grader"), ("fail", "grader"),
+    ]
 
-
-def test_stream_and_final_export_normalize_the_same_rows():
-    lines = (FIXTURES / "results.jsonl").read_text(encoding="utf-8").splitlines(keepends=True)
-    rows = [parse_jsonl_line(line) for line in lines]
-    assert rows == parse_final_json((FIXTURES / "results.json").read_text(encoding="utf-8"))
-    assert [(row.test_idx, row.repeat_index) for row in rows] == [(0, 0), (1, 0), (1, 1)]
-    assert [decide(row) for row in rows] == [("pass", "grader"), ("fail", "grader"), ("error", "none")]
-
-    first, multi_turn, missing_grade = rows
-    assert (first.plugin_id, first.strategy_id, first.severity, first.goal) == (
-        "sample-plugin", "basic", "low", "Placeholder goal",
-    )
-    assert (first.prompt, first.output, first.grader_reason) == (
+    first, multi_turn, error, _, blocked, _, _ = parsed.rows
+    assert (first.plugin_id, first.strategy_id, first.severity) == ("hijacking", "basic", "low")
+    assert (first.prompt, first.response, first.grader_reason) == (
         "Placeholder input", "Placeholder output", "Placeholder pass",
     )
-    assert first.latency_ms == first.cost == 0
-    assert first.token_usage == {"prompt": 4, "completion": 0, "total": None, "cached": None}
-    assert multi_turn.strategy_id == "crescendo"
-    assert multi_turn.error is None
-    assert missing_grade.grader_pass is None
-    assert missing_grade.latency_ms is missing_grade.cost is None
-    assert all(value is None for value in missing_grade.token_usage.values())
+    assert (first.latency_ms, first.cost, first.score, first.failure_reason) == (12, 0.001, 1, 0)
+    assert first.token_usage == {"prompt": 4, "completion": 2, "total": 6, "numRequests": 1}
+    assert (first.assert_type, first.assert_metric) == ("promptfoo:redteam:hijacking", "Sample")
+
+    assert (multi_turn.plugin_id, multi_turn.strategy_id, multi_turn.severity) == ("hijacking", "crescendo", "high")
+    assert multi_turn.response == '{"message":"Placeholder output"}'
+    assert multi_turn.failure_reason == 1
+    assert error.response == error.grader_reason == "Placeholder execution error"
+    assert error.passed is None
+    assert error.score == -1
+    assert error.severity == "medium"
+    assert all(value is None for value in error.token_usage.values())
+
+    assert (blocked.decision, blocked.protected_run_id) == ("blocked_input", "sample-issued")
+    assert blocked.policy_evidence == [{"field": "user_prompt", "outcome": "match"}]
+    assert blocked.guardrails == {"flagged": True, "flaggedInput": True, "flaggedOutput": False}
+    assert "Placeholder input" not in repr(first)
+    assert "Placeholder input" not in repr(parsed)
 
 
-def test_metadata_and_row_measurements_fallback():
-    row = _row(
-        testCase={"metadata": {"pluginId": "sample-plugin"}},
-        metadata={"pluginId": "other-label", "strategyId": "goat", "goal": "Placeholder goal"},
-        response={"output": {"label": "Placeholder"}, "latencyMs": 12.5},
-        tokenUsage={"total": 4, "assertions": {"total": 8}},
-        cost=0.001,
-        unknown={"path": "Placeholder path"},
+@pytest.mark.parametrize(
+    ("decision", "field", "outcome", "ids", "expected"),
+    [
+        ("blocked_input", "user_prompt", "match", {"run"}, ("pass", "policy")),
+        ("blocked_output", "response_text", "match", {"run"}, ("pass", "policy")),
+        ("blocked_input", "system_prompt", "match", {"run"}, ("fail", "grader")),
+        ("blocked_input", "user_prompt", "clear", {"run"}, ("fail", "grader")),
+        ("blocked_input", "user_prompt", "match", set(), ("fail", "grader")),
+        ("allowed", "user_prompt", "match", {"run"}, ("fail", "grader")),
+    ],
+)
+def test_only_issued_non_system_matches_authorize_policy(decision, field, outcome, ids, expected):
+    row = _result(
+        response={"metadata": {
+            "decision": decision, "protected_run_id": "run",
+            "policy_evidence": [{"field": field, "outcome": outcome}],
+        }},
+        gradingResult={"pass": False},
     )
-    assert (row.plugin_id, row.strategy_id, row.goal) == ("sample-plugin", "goat", "Placeholder goal")
-    assert (row.latency_ms, row.token_usage["total"], row.cost) == (12.5, 4, 0.001)
-    assert row.output == '{"label":"Placeholder"}'
-    assert "assertions" not in row.token_usage
-    assert not hasattr(row, "unknown")
+    assert decide(row, ids) == expected
+
+
+def test_merged_row_metadata_cannot_authorize_policy():
+    row = _result(
+        metadata={
+            "pluginId": "hijacking", "decision": "blocked_input", "protected_run_id": "run",
+            "policy_evidence": [{"field": "user_prompt", "outcome": "match"}],
+        },
+        gradingResult={"pass": False},
+    )
+    assert decide(row, {"run"}) == ("fail", "grader")
+
+
+@pytest.mark.parametrize("grade", [None, {"pass": True, "metadata": {"graderError": True}}])
+def test_error_precedes_policy_block(grade):
+    row = _result(
+        response={"metadata": {
+            "decision": "blocked_input", "protected_run_id": "run",
+            "policy_evidence": [{"field": "user_prompt", "outcome": "match"}],
+        }},
+        gradingResult=grade,
+    )
+    assert decide(row, {"run"}) == ("error", "none")
+
+
+def test_reason_is_capped_for_grades_and_error_rows():
+    reason = "é" * 1100
+    assert _result(gradingResult={"pass": True, "reason": reason}).grader_reason == "é" * 1000
+    assert _result(error=reason).grader_reason == "é" * 1000
+    assert _result(error=reason).response == reason
 
 
 @pytest.mark.parametrize(
-    ("fields", "error"),
+    ("text", "diagnostic"),
     [
-        ({"response": {"error": "Placeholder provider error"}}, "provider_error"),
-        ({"failureReason": 2}, "eval_error"),
-        ({"error": "Placeholder eval error"}, "eval_error"),
-        ({"gradingResult": {"pass": False, "metadata": {"graderError": True}}}, "grader_error"),
-        ({"gradingResult": {"pass": True, "componentResults": [
-            {"componentResults": [{"metadata": {"graderError": True}}]},
-        ]}}, "grader_error"),
+        ('{"example": "Placeholder private text"', "Invalid result JSON"),
+        ('{"results": {"outputs": ["Placeholder private text"]}}', "Invalid final JSON results envelope"),
+        ('{"results": {"results": ["Placeholder private text"]}}', "Invalid result row"),
+        ('{"results": {"results": [{"testIdx": "Placeholder private text", "metadata": {"pluginId": "x"}}]}}',
+         "Invalid index at testIdx"),
+        ('{"results": {"results": [{"testIdx": 0, "metadata": {"pluginId": "x"}, "gradingResult": {"pass": 1}}]}}',
+         "Invalid gradingResult.pass"),
+        ('{"results": {"results": [], "stats": {"durationMs": NaN}}}', "Invalid result JSON"),
     ],
 )
-def test_execution_errors_override_confirmed_policy_and_grade(fields, error):
-    row = _row(**({"gradingResult": {"pass": True}} | fields))
-    assert row.error == error
-    assert decide(row, _block()) == ("error", "none")
-
-
-def test_bridge_execution_error_overrides_grade():
-    assert decide(_row(gradingResult={"pass": True}), {"decision": "error"}) == ("error", "none")
-
-
-@pytest.mark.parametrize(("decision", "field"), [("blocked_input", "user_prompt"), ("blocked_output", "response_text")])
-def test_confirmed_policy_block_overrides_failed_or_missing_grade(decision, field):
-    bridge_record = _block(field, decision, mode="protected")
-    for grade in ({"pass": False}, None):
-        assert decide(_row(gradingResult=grade), bridge_record) == ("pass", "policy")
-
-
-@pytest.mark.parametrize(
-    "bridge_record",
-    [
-        _block("system_prompt"),
-        _block(None),
-        _block(mode="raw"),
-        _block(decision="allowed"),
-        {"decision": "blocked_input", "policy_evidence": [{"field": "user_prompt", "outcome": "clear"}]},
-        {"decision": "blocked_input", "guardrails": {"flagged": True}},
-    ],
-)
-def test_unconfirmed_policy_uses_only_explicit_grade(bridge_record):
-    response = {"guardrails": {"flagged": True}}
-    assert decide(_row(response=response, gradingResult={"pass": False}), bridge_record) == ("fail", "grader")
-    assert decide(_row(response=response, success=True), bridge_record) == ("error", "none")
-
-
-def test_missing_or_malformed_result_overrides_policy():
-    assert decide(None, _block()) == ("error", "none")
-    assert decide({}, _block()) == ("error", "none")
-
-
-def test_partial_jsonl_waits_for_newline():
-    assert parse_jsonl_line('{"testIdx":') is None
-    assert parse_jsonl_line('{"testIdx":9}') is None
-    assert parse_jsonl_line('{"testIdx":9}\r\n').test_idx == 9
-
-
-@pytest.mark.parametrize(
-    ("line", "diagnostic"),
-    [
-        ('{"sample": "Placeholder private text"\n', "Invalid result JSON"),
-        ('["Placeholder private text"]\n', "Invalid result row"),
-        ('{"note": "Placeholder private text"}\n', "Invalid index at testIdx"),
-        ('{"testIdx": "Placeholder private text"}\n', "Invalid index at testIdx"),
-        ('{"testIdx": true}\n', "Invalid index at testIdx"),
-        ('{"testIdx": -1}\n', "Invalid index at testIdx"),
-        ('{"testIdx": 0, "repeatIndex": 1.0}\n', "Invalid index at repeatIndex"),
-        ('{"testIdx": 0, "repeatIndex": null}\n', "Invalid index at repeatIndex"),
-        ('{"testIdx": 0, "gradingResult": {"pass": 1}}\n', "Invalid gradingResult.pass"),
-        ('{"testIdx": 0, "latencyMs": NaN}\n', "Invalid result JSON"),
-        ('{"testIdx": 0, "cost": 1e999}\n', "Invalid measurement at cost"),
-    ],
-)
-def test_malformed_jsonl_has_payload_free_diagnostic(line, diagnostic):
+def test_malformed_artifacts_have_payload_free_diagnostics(text, diagnostic):
     with pytest.raises(ArtifactParseError) as caught:
-        parse_jsonl_line(line)
+        parse_results_json(text)
     assert str(caught.value) == diagnostic
-    if diagnostic == "Invalid result JSON":
-        assert caught.value.__suppress_context__
 
 
-def test_final_json_envelope_and_rows_are_validated():
-    assert parse_final_json('{"results": {"results": []}}') == []
-    with pytest.raises(ArtifactParseError, match="Invalid final JSON results envelope"):
-        parse_final_json('{"results": {"outputs": ["Placeholder private text"]}}')
-    with pytest.raises(ArtifactParseError, match="Invalid index at testIdx"):
-        parse_final_json('{"results": {"results": [{"testIdx": "Placeholder private text"}]}}')
+def test_empty_results_keep_missing_statistics_unknown():
+    parsed = parse_results_json('{"results": {"results": []}}')
+    assert parsed.rows == []
+    assert parsed.stats == parsed.skipped == {}
+    assert parsed.total_latency_ms is None
 
 
-def test_grader_reason_cap_and_safe_row_representation():
-    row = _row(gradingResult={"pass": True, "reason": "é" * 1100}, prompt={"raw": "Placeholder input"})
-    assert row.grader_reason == "é" * 1000
-    assert "Placeholder input" not in repr(row)
+def test_progress_counts_only_newline_terminated_rows():
+    stream = (FIXTURES / "results.jsonl").read_text(encoding="utf-8")
+    assert count_progress(stream + '{"testIdx":') == 8
+    assert count_progress('{"testIdx":9}\r\n') == 1
+    assert count_progress('{"testIdx":9}') == count_progress("") == 0
 
 
-def test_count_generated_inline_suite():
-    assert count_suite_tests((FIXTURES / "suite.yaml").read_text(encoding="utf-8")) == 2
-    assert count_suite_tests("tests: []") == 0
-    assert count_suite_tests("description: Placeholder suite") == 0
-    assert count_suite_tests("tests: [{vars: {prompt: 'file://placeholder.txt'}}]") == 1
+def test_sanitize_suite_keeps_tests_and_projects_generation_metadata():
+    suite = sanitize_suite((FIXTURES / "suite.yaml").read_text(encoding="utf-8"))
+    assert set(suite) == {"tests", "redteam", "defaultTest", "metadata"}
+    assert suite["defaultTest"] == {"metadata": {"purpose": "Placeholder purpose", "entities": []}}
+    assert suite["metadata"] == {"configHash": "sample-hash"}
+    assert suite["redteam"] == {
+        "purpose": "Placeholder purpose", "plugins": [{"id": "hijacking"}, {"id": "prompt-extraction"}],
+    }
+    assert [test["vars"]["prompt"] for test in suite["tests"]] == [
+        "Placeholder input A", "Placeholder input B", "Placeholder input C",
+    ]
+    assert count_suite_tests(suite) == 3
+    assert suite_breakdown(suite) == {
+        "by_plugin": {"hijacking": 2, "prompt-extraction": 1},
+        "by_strategy": {"basic": 2, "crescendo": 1},
+    }
+    assert "DECOY" not in repr(suite)
 
 
-@pytest.mark.parametrize(
-    ("suite", "diagnostic"),
-    [
-        ("tests: [Placeholder private text", "Invalid generated suite YAML"),
-        ("tests: !custom [Placeholder private text]", "Invalid generated suite YAML"),
-        ("- Placeholder private text", "Invalid generated suite"),
-        ("tests: file://placeholder.yaml", "Invalid generated suite tests"),
-        ("tests: ['file://placeholder.yaml']", "Invalid generated suite tests"),
-    ],
-)
-def test_suite_rejects_tags_paths_and_malformed_data(suite, diagnostic):
+@pytest.mark.parametrize("key", [
+    "apiKey", "api_key", "API-KEY", "token", "secret", "password", "accessKeyId", "secretAccessKey",
+])
+def test_sanitizer_rejects_nested_secret_keys(key):
+    with pytest.raises(SuiteSecretError, match="Generated suite contains a secret key") as caught:
+        sanitize_suite(f"tests: [{{vars: {{sample: [{{{key}: DECOY_VALUE}}]}}}}]")
+    assert "DECOY_VALUE" not in str(caught.value)
+
+
+@pytest.mark.parametrize("suite", [
+    "tests: [{provider: {id: example-provider, config: {}}}]",
+    "tests: [{options: {provider: {id: example-provider, config: {}}}}]",
+])
+def test_suite_rejects_configured_test_providers(suite):
+    with pytest.raises(SuiteSecretError, match="Generated test contains a provider config"):
+        sanitize_suite(suite)
+
+
+@pytest.mark.parametrize("suite", [
+    "tests: [Placeholder private text",
+    "tests: !custom [Placeholder private text]",
+    "- Placeholder private text",
+    "tests: file://placeholder.yaml",
+    "tests: [file://placeholder.yaml]",
+    "tests: &loop [{vars: *loop}]",
+])
+def test_suite_rejects_malformed_or_non_inline_tests(suite):
     with pytest.raises(ArtifactParseError) as caught:
-        count_suite_tests(suite)
-    assert str(caught.value) == diagnostic
+        sanitize_suite(suite)
+    assert "Placeholder private text" not in str(caught.value)

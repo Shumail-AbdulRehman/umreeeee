@@ -1,7 +1,8 @@
 import pytest
 
-from app.red_team.catalog import plugin_label, strategy_label
-from app.services.red_team_report import build_report
+from app.red_team.catalog import PLUGINS, plugin_label, strategy_label
+from app.red_team.risk_scoring import StrategyCounts, score_plugin, score_system
+from app.services.red_team_report import _delta, build_report
 
 
 def _test(**overrides):
@@ -32,8 +33,11 @@ def _attack(index, verdict="pass", **overrides):
 
 
 def _owasp(report):
-    framework = next(row for row in report["compliance"] if row["framework"] == "owasp")
-    return {control["id"]: control for control in framework["controls"]}
+    return next(row for row in report["compliance"] if row["framework"] == "owasp:llm")
+
+
+def _owasp_controls(report):
+    return {control["id"]: control for control in _owasp(report)["controls"]}
 
 
 def test_empty_terminal_report_keeps_null_rates_and_risk():
@@ -41,16 +45,16 @@ def test_empty_terminal_report_keeps_null_rates_and_risk():
 
     assert set(report) == {
         "risk", "attack_success", "decided", "threshold", "plugins", "strategies",
-        "compliance", "paired", "trend", "provisional", "engine",
+        "compliance", "paired", "trend", "provisional", "engine", "categories", "severity_counts",
     }
     assert report["attack_success"] == {"rate": None, "worked": 0, "decided": 0, "proven": 0, "judged": 0}
     assert report["engine"]["generated_tests"] == 0
     assert report["provisional"] is False
     assert report["risk"] is None
-    assert report["plugins"] == report["strategies"] == []
+    assert report["plugins"] == report["strategies"] == report["categories"] == []
     assert report["threshold"]["verdict"] == "insufficient_evidence"
     assert report["threshold"]["defended_rate"] is None
-    assert all(control["status"] == "not_tested" for control in _owasp(report).values())
+    assert all(control["status"] == "not_tested" for control in _owasp_controls(report).values())
 
 
 def test_all_defended_scores_zero_and_preserves_grader_display_metadata():
@@ -62,12 +66,15 @@ def test_all_defended_scores_zero_and_preserves_grader_display_metadata():
         "generated_tests": 1, "grader_model": "stored-grader",
     }
     assert report["risk"] == {"score": 0.0, "level": "none",
-                              "by_level": {"none": 1, "low": 0, "medium": 0, "high": 0, "critical": 0}}
+                              "by_level": {"none": 0, "low": 0, "medium": 0, "high": 0, "critical": 0}}
     assert report["plugins"][0]["risk_score"] == 0.0
+    assert report["plugins"][0]["level"] is None
     assert report["attack_success"]["rate"] == 0.0
     assert report["decided"]["policy"] == 1
     assert report["decided"]["grader"] == 0
-    assert _owasp(report)["owasp:llm:01"]["status"] == "passed"
+    assert _owasp_controls(report)["owasp:llm:01"]["status"] == "passed"
+    totals = _owasp(report)["totals"]
+    assert totals["coverage"] == round(100 * totals["passed"] / totals["total"], 2)
     assert build_report(_test(grader={"model": "stored-grader"}), [])["engine"]["grader_model"] == "stored-grader"
 
 
@@ -84,7 +91,7 @@ def test_critical_failure_uses_recorded_severity_and_compliance():
     assert report["strategies"][0]["name"] == strategy_label("basic")
     assert report["attack_success"]["judged"] == 1
     assert report["threshold"]["verdict"] == "below_threshold"
-    control = _owasp(report)["owasp:llm:01"]
+    control = _owasp_controls(report)["owasp:llm:01"]
     assert (control["status"], control["worked"], control["decided"]) == ("failed", 1, 1)
 
 
@@ -103,9 +110,9 @@ def test_errors_and_pending_are_excluded_at_every_level():
         )
     undecided = build_report(_test(), [_attack(0, "error")])
     assert undecided["risk"] is None
-    assert undecided["plugins"][0]["risk_score"] is None
+    assert undecided["plugins"][0]["risk_score"] == 0.0
     assert undecided["plugins"][0]["rate"] is None
-    assert _owasp(undecided)["owasp:llm:01"]["reason"] == "No mapped attack was decided"
+    assert _owasp_controls(undecided)["owasp:llm:01"]["reason"] == "Only errors recorded"
 
 
 @pytest.mark.parametrize(("decided", "expected"), [(79, "insufficient_evidence"), (80, "meets_threshold")])
@@ -150,6 +157,7 @@ def test_provisional_reports_keep_outcomes_but_no_terminal_scores(status):
     assert report["attack_success"]["rate"] == 1.0
     assert report["plugins"][0]["risk_score"] is None
     assert report["plugins"][0]["worst_strategy"] is None
+    assert report["categories"][0]["risk"] is None
 
 
 def test_historical_ids_keep_their_tallies_without_becoming_selections():
@@ -161,10 +169,10 @@ def test_historical_ids_keep_their_tallies_without_becoming_selections():
     assert plugins["indirect-prompt-injection"]["name"] == "indirect-prompt-injection"
     assert plugins["indirect-prompt-injection"]["worst_strategy_name"] == "obsolete"
     assert plugins["indirect-prompt-injection"]["rate"] == 1.0
-    assert _owasp(report)["owasp:llm:01"]["status"] == "not_tested"
+    assert _owasp_controls(report)["owasp:llm:01"]["status"] == "not_tested"
 
     selected = build_report(_test(plugins=["indirect-prompt-injection"]), [historical])
-    assert _owasp(selected)["owasp:llm:01"]["status"] == "failed"
+    assert _owasp_controls(selected)["owasp:llm:01"]["status"] == "failed"
 
 
 def test_missing_severity_on_a_historical_failure_keeps_risk_unknown():
@@ -231,9 +239,92 @@ def test_trend_accepts_an_eligible_run_or_report_from_the_caller():
     prior = _test(_id="prior", finished_at="2026-11-21T09:00:00Z")
     attacks = [_attack(1)]
     expected = {"test_id": "prior", "risk_score": 0.0, "risk_level": "none",
-                "attack_success_rate": 0.0, "finished_at": prior["finished_at"]}
+                "attack_success_rate": 0.0, "finished_at": prior["finished_at"],
+                "risk_delta": {"pct": 0.0, "direction": "neutral"},
+                "framework_deltas": {
+                    row["framework"]: {"pct": 0.0, "direction": "up" if row["totals"]["passed"] else "neutral"}
+                    for row in build_report(prior, attacks)["compliance"]
+                }}
 
     assert build_report(current, attacks)["trend"] is None
     assert build_report(current, attacks, previous=(prior, attacks))["trend"] == expected
     assert build_report(current, attacks, previous={**build_report(prior, attacks), "test": prior})["trend"] == expected
     assert build_report(current, attacks, previous=({**prior, "status": "running"}, attacks))["trend"] is None
+
+
+def test_scoring_inputs_only_include_decided_rows_from_failing_strategies(monkeypatch):
+    calls = []
+
+    def record(plugin, severity, counts):
+        calls.append((plugin, severity, counts))
+        return score_plugin(plugin, severity, counts)
+
+    monkeypatch.setattr("app.services.red_team_report.score_plugin", record)
+    attacks = [_attack(0, "fail"), _attack(1), _attack(2, "error"), _attack(3, strategy_id="base64")]
+    report = build_report(_test(), attacks)
+    severity = PLUGINS["prompt-extraction"]["severity"]
+    expected = score_plugin("prompt-extraction", severity, [StrategyCounts("basic", 2, 1)])
+
+    assert calls == [("prompt-extraction", severity, [StrategyCounts("basic", 2, 1)])]
+    assert report["plugins"][0]["risk_score"] == round(expected.score, 1)
+
+
+def test_categories_roll_up_risk_and_strategy_counts_and_report_failed_severities():
+    test = _test(plugins=["prompt-extraction", "hijacking", "pii:direct"])
+    attacks = [
+        _attack(0, "fail", severity="high"),
+        _attack(1, "fail", severity="unexpected", plugin_id="hijacking"),
+        _attack(2, "error", plugin_id="hijacking"),
+        _attack(3, strategy_id="base64", plugin_id="hijacking"),
+        _attack(4, "fail", severity="informational", plugin_id="pii:direct"),
+    ]
+    report = build_report(test, attacks)
+    security, privacy = report["categories"]
+    risk = score_system([
+        score_plugin(plugin, "high", [StrategyCounts("basic", 1, 1)])
+        for plugin in ("prompt-extraction", "hijacking")
+    ])
+    assert security == {
+        "group": "Security & access", "total": 4, "passed": 1, "failed": 2, "errors": 1, "rate": 0.667,
+        "risk": {"score": round(risk.score, 1), "level": risk.level},
+        "strategies": [
+            {"id": "base64", "total": 1, "passed": 1, "failed": 0, "errors": 0, "rate": 0.0},
+            {"id": "basic", "total": 3, "passed": 0, "failed": 2, "errors": 1, "rate": 1.0},
+        ],
+    }
+    assert privacy["group"] == "Data & privacy"
+    assert privacy["risk"] == {"score": 0.0, "level": "none"}
+    assert privacy["rate"] == 1.0
+    assert report["severity_counts"] == {"critical": 0, "high": 1, "medium": 1, "low": 0, "informational": 1}
+
+
+def test_engine_exposes_duration_and_usage_when_recorded():
+    usage = {"total": 0, "assertions": {"total": 4}}
+    engine = build_report(_test(stats={"durationMs": 0, "tokenUsage": usage}), [])["engine"]
+    assert engine["duration_ms"] == 0
+    assert engine["token_usage"] == usage
+
+
+@pytest.mark.parametrize(("current", "previous", "pct", "direction"), [
+    (0, 0, 0.0, "neutral"),
+    (3, 0, 100, "up"),
+    (0, 3, 100, "down"),
+    (4, 1, 100, "up"),
+    (2, 3, 33.33, "down"),
+    (3, 3, 0, "up"),
+])
+def test_scheduler_delta(current, previous, pct, direction):
+    assert _delta(current, previous) == {"pct": pct, "direction": direction}
+
+
+def test_trend_compares_risk_and_passed_controls():
+    prior = _test(_id="prior")
+    current = _test()
+    passed = [_attack(0)]
+    failed = [_attack(0, "fail")]
+    trend = build_report(current, failed, previous=(prior, passed))["trend"]
+    assert trend["risk_delta"] == {"pct": 100, "direction": "up"}
+    assert trend["framework_deltas"]["owasp:llm"] == {"pct": 100, "direction": "down"}
+    trend = build_report(current, passed, previous=(prior, failed))["trend"]
+    assert trend["risk_delta"] == {"pct": 100, "direction": "down"}
+    assert trend["framework_deltas"]["owasp:llm"] == {"pct": 100, "direction": "up"}

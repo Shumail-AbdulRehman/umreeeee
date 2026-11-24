@@ -4,7 +4,7 @@ Read [the shared contracts](README.md) and the Phase 2 completion record. This p
 
 ## 1. Completion target and prerequisites
 
-An organization administrator can choose a connected model, configure a bounded test, launch it, monitor persisted progress, cancel it, inspect per-attack evidence, and export a report. Raw-model testing and protected-platform testing are clearly distinguished. Queue failures, provider failures, and inconclusive evaluations never appear as successful protection.
+An organization administrator can choose a connected model, configure a bounded test, launch it, monitor persisted progress, cancel it, inspect test case evidence, and export a report. Raw-model testing and protected-platform testing are clearly distinguished. Queue failures, provider failures, and inconclusive evaluations never appear as successful protection.
 
 Reuse Phase 2 provider adapters, protected execution, content encryption, notifications, and policy snapshots. Do not create a second authentication system or model-calling stack. A regular user cannot configure tests or access test responses.
 
@@ -14,7 +14,7 @@ Before starting: Phase 2's idempotency, withheld-response rules, scoped history,
 
 | ID | Package | Checkpoint |
 |---|---|---|
-| P3-01 | Test schema, attack catalog, deterministic evaluator | Local fixtures produce explainable pass/fail/inconclusive results without provider calls. |
+| P3-01 | Test schema, test case catalog, deterministic evaluator | Local fixtures produce explainable pass/fail/inconclusive results without provider calls. |
 | P3-02 | Configuration API and durable launch | Launch creates immutable test/job records once, even on repeated requests. |
 | P3-03 | Broker dispatcher, worker, rate limits, recovery | Local RabbitMQ jobs execute with bounded retries and durable results. |
 | P3-04 | Console, progress, details, comparison, exports | All red-team workflows are usable from the UI. |
@@ -55,7 +55,7 @@ Before starting: Phase 2's idempotency, withheld-response rules, scoped history,
 - `Frontend/src/hooks/useRedTeamTest.js`.
 - Browser tests for launch, refresh, cancellation, result visibility, and export.
 
-Register the Red Team route in navigation/pageRegistry/App with admin permissions. Keep the existing hash router; support `#red-team?test=<id>` and optional attack/comparison identifiers.
+Register the Red Team route in navigation/pageRegistry/App with admin permissions. Keep the existing hash router; support `#red-team?test=<id>` and optional case or comparison identifiers.
 
 ## 4. Test data model
 
@@ -78,14 +78,14 @@ Required fields:
 | seed | Integer controlling deterministic template ordering and synthetic values. |
 | catalog_version, evaluator_version | Immutable implementation identifiers. |
 | config_snapshot | Model settings, integration display identity, server-owned instruction snapshot, policy context/version snapshots, rule capabilities. No credentials. |
-| manifest | Ordered job definitions or references with deterministic attack IDs and synthetic scenario parameters. |
+| manifest | Ordered job definitions or references with deterministic test case IDs and synthetic scenario parameters. |
 | status | draft, queued, running, cancelling, completed, partially_failed, failed, cancelled. |
 | version | Optimistic configuration concurrency, separate from job execution leases. |
 | execution_revision | Integer incremented by launch, cancellation, and job-finalization transactions to serialize parent state transitions. |
 | launch_key, launch_fingerprint | Idempotent launch identifiers. |
 | cancel_requested_at/by | Explicit cancellation request metadata. |
 | created_at, launched_at, finished_at | UTC timestamps. |
-| comparison_group_id | Optional ID linking deliberate cloned tests with the same attack/scenario manifest. |
+| comparison_group_id | Optional ID linking deliberate cloned tests with the same test case and scenario manifest. |
 
 Configure and validate a draft without external calls. Build a reproducible manifest from seed/catalog when saving or previewing. At launch, freeze the manifest, subject membership, system instruction, applicable policy revisions, and generation settings. Store snapshots without secrets. Credentials are fetched from the current integration at execution time, so rotation works; archive/suspension stops further calls.
 
@@ -119,7 +119,7 @@ Make admission a single shared service. Ordinary execution reserves immediately 
 
 Workspace callers do not wait indefinitely: return an actionable 429 with Retry-After when admission is unavailable. Red-team jobs reschedule without consuming a provider attempt. Explicitly note UI interference while tests use the same integration.
 
-## 5. Attack catalog and evaluation rubric
+## 5. Test case catalog and evaluation rubric
 
 ### 5.1 Bounded first-release catalog
 
@@ -156,7 +156,7 @@ The evaluator must be independent of the security detector being evaluated. Do n
 
 Each launch adds five controls that should produce compliant answers without a block. Control jobs are excluded from adversarial compliance score but report allowed, blocked, error, and inconclusive counts. A blanket-blocking policy must be visible as a high control-block rate, not celebrated as complete success.
 
-Distribute adversarial jobs deterministically across selected categories (difference at most one). Refuse num_attacks smaller than selected category count. Catalog sampling may repeat variants using distinct synthetic markers when count exceeds template count; disclose unique-template count and repetitions in the report.
+Distribute adversarial jobs deterministically across selected categories (difference at most one). Reject `num_attacks` values below the selected category count. Catalog sampling may repeat variants using distinct synthetic markers when count exceeds template count; disclose unique-template count and repetitions in the report.
 
 ## 6. API contracts
 
@@ -164,7 +164,7 @@ All endpoints below require org_admin/super_admin acting within their own compan
 
 | Endpoint | Contract |
 |---|---|
-| GET `/api/red-team/capabilities` | Catalog versions/categories, allowed attack counts, modes, broker/worker readiness, supported target constraints. Safe readiness only, no connection URLs. |
+| GET `/api/red-team/capabilities` | Catalog versions/categories, allowed test case counts, modes, broker/worker readiness, supported target constraints. Safe readiness only, no connection URLs. |
 | GET `/api/red-team/tests` | Paginated summaries; q/status/mode/integration_id/date filters. |
 | POST `/api/red-team/tests` | Create draft using model fields above; reject unknown fields. Return 201 `{test}`. |
 | GET `/api/red-team/tests/{id}` | Configuration, status, snapshot metadata, server-derived progress counters, safe dispatch health. |
@@ -173,7 +173,7 @@ All endpoints below require org_admin/super_admin acting within their own compan
 | POST `/api/red-team/tests/{id}/cancel` | Idempotent cancellation request; return state and explanation about a possible in-flight provider call. |
 | POST `/api/red-team/tests/{id}/clone` | New draft, same configuration/manifest seed; optional mode raw/protected for comparison; new test ID. |
 | GET `/api/red-team/tests/{id}/results` | Paginated job summaries; category/case_kind/verdict/state filters. |
-| GET `/api/red-team/tests/{id}/results/{job_id}` | Authorized safe detail, synthetic attack, evaluator explanation, allowed decrypted response before expiry. |
+| GET `/api/red-team/tests/{id}/results/{job_id}` | Authorized case details, synthetic test prompt, evaluator explanation, allowed decrypted response before expiry. |
 | GET `/api/red-team/tests/{id}/report` | Counts, score, threshold verdict, category breakdown, control results, limitations, snapshots; partial flag while nonterminal. |
 | GET `/api/red-team/tests/{id}/export` | Query format is json or csv; authorized bounded export of safe data, no keys/ciphertext or withheld/expired responses. |
 | GET `/api/red-team/comparisons` | Required query parameters raw_test_id and protected_test_id; only comparable tests in same company, otherwise 409 with explicit mismatch reason. |
@@ -233,7 +233,7 @@ For each message:
 8. Finalize job atomically under its lease token and parent-state checks; store one final verdict. Derive/reconcile parent progress and terminal state in a transaction. Commit before acknowledgement.
 9. Release integration lease conditionally with its token in finally handling. Do not reset pacing timestamps.
 
-A Python worker process is sufficient; never execute attack prompt text through a shell or Python eval. If a subprocess is used for bounded model inference, it receives structured data and fixed application entry points, never a prompt-derived command. Document this distinction in report corrections.
+A Python worker process is sufficient; never execute test prompt text through a shell or Python eval. If a subprocess is used for bounded model inference, it receives structured data and fixed application entry points, never a prompt-derived command. Document this distinction in report corrections.
 
 ## 8. Retries, leases, and cancellation
 
@@ -284,7 +284,7 @@ Derive authoritative counts from job rows. Cached counters are optional for disp
 For adversarial jobs only:
 
 - `passed_count`: verdict pass.
-- `unsafe_count`: verdict fail (a successful attack).
+- `unsafe_count`: verdict fail (the model failed the test case).
 - `inconclusive_count`: verdict inconclusive.
 - `error_count`: technical errors.
 - `cancelled_count`: cancelled jobs.
@@ -314,9 +314,9 @@ Example: 10 adversarial jobs yield 6 pass, 2 unsafe, 1 inconclusive, 1 error. Sc
 
 ## 10. Comparison and export
 
-Raw/protected comparison requires same company, integration/model identity, catalog/evaluator versions, attack manifest hash, seed, synthetic scenario/system instructions, and generation settings. Show differences in policy snapshot explicitly—the raw test has no enforcement, while the protected test identifies its rules. Do not compare unrelated runs simply because both used the same model label.
+Raw/protected comparison requires same company, integration/model identity, catalog/evaluator versions, test case manifest hash, seed, synthetic scenario/system instructions, and generation settings. Show differences in policy snapshot explicitly—the raw test has no enforcement, while the protected test identifies its rules. Do not compare unrelated runs simply because both used the same model label.
 
-For each attack_index, show raw verdict, protected verdict, prevention stage, and comparable/evaluable status. Aggregate improvement uses only paired evaluable jobs; show paired denominator and unpaired/error exclusions. Provider nondeterminism and elapsed time mean this is an observed comparison, not proof of universal effectiveness.
+For each `attack_index`, show raw verdict, protected verdict, prevention stage, and comparable/evaluable status. Aggregate improvement uses only paired evaluable jobs; show paired denominator and unpaired/error exclusions. Provider nondeterminism and elapsed time mean this is an observed comparison, not proof of universal effectiveness.
 
 JSON export includes test metadata, reproducibility fields, counts, rubric versions, safe findings, and permitted synthetic content. CSV uses proper quoting/newlines and neutralizes spreadsheet formula prefixes in text cells. Exports never contain provider keys, ciphertext, JWTs, private ordinary prompts, or withheld/expired responses. Apply identical tenant checks to export and UI detail.
 
@@ -344,9 +344,9 @@ On refresh, load persisted test state by ID. Display completed/total, queued/run
 
 ### Results and detail
 
-Show compliance score, attack success rate, evaluable coverage, controls, technical errors, and inconclusive outcomes. Use status labels plus color; do not rely on red/green alone. An insufficient-evidence state must be prominent even when the numeric score is high.
+Show compliance score, test case failure rate, evaluable coverage, controls, technical errors, and inconclusive outcomes. Use status labels plus color; do not rely on red/green alone. An insufficient-evidence state must be prominent even when the numeric score is high.
 
-Attack detail: scenario, category, synthetic prompt, mode, policy snapshot identifiers, verdict/reason, timing, attempts, and permitted response. Treat text as untrusted plain text with wrapping; never render model HTML/scripts. Withheld/expired text has an explicit explanation and no reveal/copy button.
+Case details include the scenario, category, synthetic prompt, mode, policy snapshot identifiers, verdict/reason, timing, attempts, and permitted response. Treat text as untrusted plain text with wrapping; never render model HTML/scripts. Withheld/expired text has an explicit explanation and no reveal/copy button.
 
 ## 12. Cross-app finishing work
 
@@ -366,7 +366,7 @@ Perform this pass after real workflows exist:
 
 ## 13. Tests
 
-Use fake providers for automated attacks and synthetic fixtures only. Broker integration tests may run against a dedicated local RabbitMQ vhost/queue prefix; do not purge shared queues. Database tests use the shared isolated fixture rules.
+Use fake providers for automated test cases and synthetic fixtures only. Broker integration tests may run against a dedicated local RabbitMQ vhost/queue prefix; do not purge shared queues. Database tests use the shared isolated fixture rules.
 
 | ID | Scenario | Required result |
 |---|---|---|

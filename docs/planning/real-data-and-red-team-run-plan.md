@@ -97,7 +97,7 @@ is wrongly counted as "defended". After the protected run, measure this (Phase 5
 1. Create a raw draft via `POST /api/red-team/tests`:
    `{"name":"Gemini baseline – raw","integration_id":<gemini id>,"model":<chosen model>,"mode":"raw","format":"plugins",
    "plugins":[all 8 ids],"strategies":["base64"],"tests_per_plugin":1,"seed":7,"temperature":0.2,"max_tokens":256,
-   "threshold_score":0.8,"judge":{"integration_id":<gemini id>,"model":<chosen model>}}` → 16 attacks + 5 controls.
+   "threshold_score":0.8,"judge":{"integration_id":<gemini id>,"model":<chosen model>}}` → 16 adversarial test cases and 5 controls.
    Launch with `POST /api/red-team/tests/{id}/launch` body `{"version":<version>}` and header `Idempotency-Key: <uuid4>`.
 2. Poll `GET /api/red-team/tests/{id}` every 15 s until status is `completed`, `partially_failed`, `failed` or `cancelled`.
    Expect ~5–10 minutes. If jobs stall, read the worker/dispatcher/recovery logs and report.
@@ -118,7 +118,7 @@ is wrongly counted as "defended". After the protected run, measure this (Phase 5
 2. Write `docs/planning/real-data-and-red-team-run-report.md` with:
    - what was created (groups, policy assignments, users, prompt count, conversations), with IDs;
    - Prompt Studio outcomes (allowed / blocked_input / blocked_output / errors) and violations created;
-   - for each red-team test: status, attack success rate, risk score/level, decided vs inconclusive, controls,
+   - for each red-team test: status, test case failure rate, risk score/level, decided vs inconclusive, controls,
      threshold verdict, judge calls, model calls, estimated cost;
    - raw vs protected comparison per plugin;
    - the scoring-flaw measurement from Phase 5 step 4, and a corrected "defended" figure excluding system-prompt-only blocks;

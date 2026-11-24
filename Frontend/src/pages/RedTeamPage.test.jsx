@@ -6,7 +6,7 @@ import * as api from '../services/redTeam/redTeamService'
 vi.mock('../services/redTeam/redTeamService', () => Object.fromEntries([
   'redTeamCapabilities', 'listRedTeamTests', 'createRedTeamTest', 'updateRedTeamTest', 'getRedTeamTest',
   'launchRedTeamTest', 'cancelRedTeamTest', 'cloneRedTeamTest', 'listRedTeamResults', 'getRedTeamResult',
-  'getRedTeamReport', 'compareRedTeamTests', 'downloadRedTeamExport',
+  'getRedTeamReport', 'downloadRedTeamExport', 'previewRedTeamConfig', 'getRedTeamTestConfigPreview',
 ].map((name) => [name, vi.fn()])))
 vi.mock('../services/integrations/llmIntegrationService', () => ({ fetchLLMIntegrations: async () => [
   { id: 'i', account_name: 'Fake', provider: 'ollama', status: 'active', models: ['fake'] },
@@ -15,7 +15,9 @@ vi.mock('../services/users/userManagementService', () => ({ fetchManagedUsers: a
 vi.mock('../components/AnalyticsChart', () => ({ default: () => <div>Category chart</div> }))
 
 const draft = { id: 'a', name: 'Synthetic baseline', version: 1, format: 'plugins', status: 'draft',
+  purpose: 'Test whether the assistant protects private personal information.',
   model: 'fake', integration_id: 'i', mode: 'raw', plugins: ['pii'], strategies: [], tests_per_plugin: 1,
+  grader: { integration_id: 'i', model: 'fake' },
   progress: { total_jobs: 6, terminal_jobs: 0, queued: 6, finished: 0 }, threshold_score: .8, seed: 1 }
 const report = { risk: { score: 0, level: 'none' }, attack_success: { rate: 0, worked: 0, decided: 1 },
   decided: { decided: 1, adversarial: 1 }, plugins: [], strategies: [], controls: {}, compliance: [
@@ -26,7 +28,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   window.history.replaceState(null, '', '#red-team')
   Object.defineProperty(document, 'hidden', { configurable: true, value: false })
-  api.redTeamCapabilities.mockResolvedValue({ plugins: [{ id: 'pii', name: 'Personal data leak', group: 'Privacy', severity: 'high' }],
+  api.redTeamCapabilities.mockResolvedValue({ promptfoo: { available: true, cloud_key_configured: true }, plugins: [{ id: 'pii', name: 'Personal data leak', group: 'Privacy', severity: 'high' }],
     strategies: [], frameworks: [], worker_observed: true, dispatcher_observed: true, broker_transport_reachable: true })
   api.listRedTeamTests.mockResolvedValue({ items: [], total: 0, page_size: 20 })
   api.getRedTeamTest.mockResolvedValue({ test: draft })
@@ -34,6 +36,8 @@ beforeEach(() => {
   api.listRedTeamResults.mockResolvedValue({ items: [], counts: {}, total: 0, page_size: 20 })
   api.updateRedTeamTest.mockResolvedValue({ test: { ...draft, version: 2 } })
   api.launchRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'queued', version: 2 } })
+  api.previewRedTeamConfig.mockResolvedValue({ yaml: 'redteam: {}' })
+  api.getRedTeamTestConfigPreview.mockResolvedValue({ yaml: 'redteam: {}' })
 })
 afterEach(() => vi.useRealTimers())
 
@@ -56,12 +60,14 @@ describe('Red Team composition', () => {
   it('prefills a draft', async () => {
     at('#red-team?test=a')
     expect((await screen.findByLabelText('Test name')).value).toBe(draft.name)
+    expect(api.getRedTeamReport).not.toHaveBeenCalled()
+    expect(api.listRedTeamResults).not.toHaveBeenCalled()
   })
   it('shows progress for a running test', async () => {
     api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'running' } })
     at('#red-team?test=a')
     expect(await screen.findByRole('progressbar')).toBeTruthy()
-    expect(screen.getByText('Not yet')).toBeTruthy()
+    expect(screen.getByText('No results recorded yet.')).toBeTruthy()
   })
   it('renders report sections and normalizes compliance totals', async () => {
     api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'completed' } })
@@ -70,20 +76,64 @@ describe('Red Team composition', () => {
     expect(screen.getByRole('tab', { name: /OWASP/ }).textContent).toContain('1 passed')
     expect(screen.getByRole('heading', { name: 'Results' })).toBeTruthy()
   })
-  it('preserves the legacy report', async () => {
-    api.getRedTeamTest.mockResolvedValue({ test: { ...draft, format: 'categories', status: 'completed',
-      score: { compliance_score: .8, categories: {}, control_results: {} } } })
+  it('shows independent loading and retry states for the report and case results', async () => {
+    api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'completed' } })
+    let rejectReport
+    let rejectResults
+    api.getRedTeamReport.mockImplementationOnce(() => new Promise((_, reject) => { rejectReport = reject }))
+    api.listRedTeamResults.mockImplementationOnce(() => new Promise((_, reject) => { rejectResults = reject }))
     at('#red-team?test=a')
-    expect(await screen.findByText(/used the earlier category format/)).toBeTruthy()
+    expect(await screen.findByText('Loading report…')).toBeTruthy()
+    expect(screen.getByText('Loading results…')).toBeTruthy()
+    expect(screen.queryByText('What broke, by plugin')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Results' })).toBeNull()
+
+    await act(async () => { rejectReport(new Error('Report unavailable')) })
+    expect(screen.getByText('Could not load report.')).toBeTruthy()
+    expect(screen.queryByText('Loading report…')).toBeNull()
+    expect(screen.getByText('Loading results…')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry report' }))
+    expect(await screen.findByText('What broke, by plugin')).toBeTruthy()
+
+    await act(async () => { rejectResults(new Error('Results unavailable')) })
+    expect(screen.getByText('Could not load results.')).toBeTruthy()
+    expect(screen.queryByText('Loading results…')).toBeNull()
+    expect(screen.getByText('What broke, by plugin')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry results' }))
+    expect(await screen.findByText('No results have been recorded.')).toBeTruthy()
+    expect(api.getRedTeamReport).toHaveBeenCalledTimes(2)
+    expect(api.listRedTeamResults).toHaveBeenCalledTimes(2)
+  })
+  it('hides previous rows and discards an older response when the filters change', async () => {
+    api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'completed' } })
+    api.listRedTeamResults.mockResolvedValueOnce({ items: [{ id: 'initial', plugin_name: 'Initial row' }], total: 1 })
+    let resolveOlder
+    api.listRedTeamResults.mockImplementationOnce(() => new Promise((resolve) => { resolveOlder = resolve }))
+    api.listRedTeamResults.mockRejectedValueOnce(new Error('Failed to read filtered rows'))
+    api.listRedTeamResults.mockResolvedValueOnce({ items: [{ id: 'latest', plugin_name: 'Latest row' }], total: 1 })
+    at('#red-team?test=a')
+    expect(await screen.findByText('Initial row')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Unsafe' }))
+    expect(screen.getByText('Loading results…')).toBeTruthy()
+    expect(screen.queryByText('Initial row')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Defended' }))
+    expect(await screen.findByText('Could not load results.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry results' }))
+    expect(await screen.findByText('Latest row')).toBeTruthy()
+
+    await act(async () => { resolveOlder({ items: [{ id: 'older', plugin_name: 'Older row' }], total: 1 }) })
+    expect(screen.queryByText('Older row')).toBeNull()
+    expect(screen.getByText('Latest row')).toBeTruthy()
+    expect(api.getRedTeamReport).toHaveBeenCalledTimes(1)
   })
   it('reuses the launch key and saved version after an ambiguous launch failure', async () => {
     api.launchRedTeamTest.mockRejectedValueOnce(new Error('Network interrupted'))
     at('#red-team?test=a')
-    const launch = await screen.findByRole('button', { name: 'Save and launch' })
+    const launch = await screen.findByRole('button', { name: 'Launch test' })
     await waitFor(() => expect(launch.disabled).toBe(false))
     fireEvent.click(launch)
     expect(await screen.findByRole('alert')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Save and launch' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Launch test' }))
     await waitFor(() => expect(api.launchRedTeamTest).toHaveBeenCalledTimes(2))
     expect(api.launchRedTeamTest.mock.calls[0]).toEqual(api.launchRedTeamTest.mock.calls[1])
     expect(api.updateRedTeamTest).toHaveBeenCalledTimes(1)
@@ -92,7 +142,7 @@ describe('Red Team composition', () => {
     vi.useFakeTimers()
     at('#red-team?test=a')
     await act(async () => { await vi.advanceTimersByTimeAsync(0) })
-    fireEvent.click(screen.getByRole('button', { name: 'Save and launch' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Launch test' }))
     await act(async () => { await vi.advanceTimersByTimeAsync(0) })
     api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'queued' } })
     await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
@@ -123,22 +173,26 @@ describe('Red Team composition', () => {
     expect(screen.getByLabelText('Test name').value).toBe(draft.name)
     expect(screen.getAllByText('Invalid test')).toHaveLength(1)
   })
-  it('maps Controls and evidence filters to API fields', async () => {
+  it('maps verdict and source filters to API fields', async () => {
     api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'completed' } })
     at('#red-team?test=a')
-    fireEvent.click(await screen.findByRole('button', { name: /^Controls/ }))
-    fireEvent.change(screen.getByLabelText('Evidence'), { target: { value: 'judge' } })
+    fireEvent.click(await screen.findByRole('button', { name: /^Unsafe/ }))
+    fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'grader' } })
     await waitFor(() => expect(api.listRedTeamResults).toHaveBeenLastCalledWith('a', expect.objectContaining({
-      case_kind: 'control', verdict: '', verdict_source: 'judge', page: 1,
+      verdict: 'fail', verdict_source: 'grader', page: 1,
     })))
   })
   it('creates a v3 draft and opens its saved editor', async () => {
     api.createRedTeamTest.mockResolvedValue({ test: draft })
     at('#red-team?new=1')
     fireEvent.change(await screen.findByLabelText('Test name'), { target: { value: 'New synthetic test' } })
+    fireEvent.change(screen.getByLabelText('Integration'), { target: { value: 'i' } })
+    fireEvent.change(screen.getByLabelText('Purpose'), { target: { value: draft.purpose } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Personal data leak/ }))
+    fireEvent.change(screen.getByLabelText('Grader integration'), { target: { value: 'i' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
     await waitFor(() => expect(api.createRedTeamTest).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'New synthetic test', format: 'plugins', judge: null,
+      name: 'New synthetic test', grader: { integration_id: 'i', model: 'fake' },
     })))
     await waitFor(() => expect(window.location.hash).toBe('#red-team?test=a'))
     expect((await screen.findByLabelText('Test name')).value).toBe(draft.name)
@@ -165,18 +219,4 @@ describe('Red Team composition', () => {
     expect(api.getRedTeamResult).toHaveBeenCalledWith('a', 'job')
   })
 
-})
-
-it('updates and launches a legacy clone without changing its format', async () => {
-  const legacy = { ...draft, format: 'categories', plugins: undefined, attack_categories: ['direct_injection'], num_attacks: 1 }
-  api.getRedTeamTest.mockResolvedValue({ test: legacy })
-  api.updateRedTeamTest.mockResolvedValue({ test: { ...legacy, version: 2 } })
-  api.launchRedTeamTest.mockResolvedValue({ test: { ...legacy, version: 2, status: 'queued' } })
-  at('#red-team?test=a')
-  const launch = await screen.findByRole('button', { name: 'Save and launch' })
-  await waitFor(() => expect(launch.disabled).toBe(false))
-  fireEvent.click(launch)
-  await waitFor(() => expect(api.launchRedTeamTest).toHaveBeenCalledTimes(1))
-  expect(api.updateRedTeamTest).toHaveBeenCalledWith('a', expect.objectContaining({ format: 'categories', attack_categories: ['direct_injection'], num_attacks: 1, version: 1 }))
-  expect(api.updateRedTeamTest.mock.calls[0][1]).not.toHaveProperty('plugins')
 })

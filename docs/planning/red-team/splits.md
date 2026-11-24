@@ -4,7 +4,7 @@
 
 | Feature | Specs |
 | --- | --- |
-| Attack generation | 01 catalog, 02 strategies, 10 manifest |
+| Test case generation | 01 catalog, 02 strategies, 10 manifest |
 | Grading | 11 exact evidence, 05 judge prompt/parse, 23 worker judge phase |
 | Scoring and compliance | 03 risk, 04 frameworks, 12 aggregation |
 | API | 20 read-side queries, 22 service/schemas/routes/indexes |

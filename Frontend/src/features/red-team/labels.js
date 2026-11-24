@@ -70,6 +70,16 @@ export function phaseLabel(phase) {
   })
 }
 
+export function failureReasonLabel(reason) {
+  return labelFor(reason, {
+    suite_contains_secret: ['Generated suite contains a secret', 'fail'],
+    results_too_large: ['Results are too large to import', 'fail'],
+    target_key_unavailable: ['Target integration key unavailable', 'fail'],
+    grader_key_unavailable: ['Grader integration key unavailable', 'fail'],
+    unsupported_provider: ['Unsupported provider', 'fail'],
+  })
+}
+
 export function decisionLabel(decision) {
   return labelFor(decision, {
     allowed: ['Allowed', 'pass'],
@@ -114,6 +124,20 @@ export function controlStatusLabel(status) {
     failed: ['Failed', 'fail'],
     passed: ['Passed', 'pass'],
     not_tested: ['Not tested', 'neutral'],
+  })
+}
+
+export function frameworkLabel(framework) {
+  return labelFor(framework, {
+    nist_ai_rmf: ['NIST AI RMF', 'neutral'],
+    'eu:ai_act': ['EU AI Act', 'neutral'],
+    'owasp:llm': ['OWASP LLM Top 10', 'neutral'],
+    'owasp:api': ['OWASP API Top 10', 'neutral'],
+    'mitre:atlas': ['MITRE ATLAS', 'neutral'],
+    'owasp:agentic': ['OWASP Agentic AI', 'neutral'],
+    'iso:42001': ['ISO/IEC 42001', 'neutral'],
+    gdpr: ['EU GDPR', 'neutral'],
+    'dod:ai:ethics': ['DoD AI Ethical Principles', 'neutral'],
   })
 }
 

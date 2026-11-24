@@ -25,11 +25,14 @@ export default function useRedTeamTest(testId) {
   useEffect(() => {
     if (mode === 'idle') return undefined
     let alive = true
+    let requestPending = false
     let failures = 0
     let timer
     async function tick() {
+      if (!alive || requestPending) return
       clearTimeout(timer)
-      if (!alive || document.hidden) return
+      if (document.hidden) return
+      requestPending = true
       try {
         const response = await getRedTeamTest(testId)
         if (!alive) return
@@ -42,6 +45,8 @@ export default function useRedTeamTest(testId) {
         failures += 1
         setHeld((prev) => ({ testId, test: prev.testId === testId ? prev.test : null, error: problem.message }))
         timer = setTimeout(tick, Math.min(MAX_BACKOFF_MS, POLL_MS * 2 ** failures))
+      } finally {
+        requestPending = false
       }
     }
     function onVisibility() { if (!document.hidden) void tick() }

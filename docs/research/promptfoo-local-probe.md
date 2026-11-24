@@ -32,7 +32,7 @@ Python backend. The `--omit=optional` install must be proven to run red-team gen
 
 ## Consequences for the plan
 
-- Local-only generation with an aligned model (Groq gpt-oss) does not produce attacks for these plugins. Either promptfoo's
+- Local-only generation with an aligned model (Groq gpt-oss) does not produce test cases for these plugins. Either promptfoo's
   hosted generation (verified email/account) or an unaligned self-hosted generator is required.
 - The worker must treat "0 tests generated" as a failure even though the CLI exits 0, i.e. use `--strict` and/or check the
   generated test count.

@@ -109,6 +109,13 @@ if not RED_TEAM_QUEUE_NAME.startswith('sentinel.') or len(RED_TEAM_QUEUE_NAME) >
     raise RuntimeError('RED_TEAM_QUEUE_NAME must be an application-owned sentinel.* queue')
 RED_TEAM_MAX_ATTEMPTS = bounded_int('RED_TEAM_MAX_ATTEMPTS', 3, 1, 3)
 RED_TEAM_EXECUTION_LEASE_SECONDS = bounded_int('RED_TEAM_EXECUTION_LEASE_SECONDS', 120, 90, 600)
+PROMPTFOO_API_KEY = clean_env_value(os.getenv('PROMPTFOO_API_KEY'))
+PROMPTFOO_CLOUD_HOST = clean_env_value(
+    os.getenv('PROMPTFOO_CLOUD_HOST'), 'https://www.promptfoo.app'
+) or 'https://www.promptfoo.app'
+PROMPTFOO_WORKSPACE_ROOT = clean_env_value(
+    os.getenv('PROMPTFOO_WORKSPACE_ROOT'), '/tmp/sentinel-promptfoo'
+) or '/tmp/sentinel-promptfoo'
 INTEGRATION_REQUESTS_PER_MINUTE = bounded_int('INTEGRATION_REQUESTS_PER_MINUTE', 6, 1, 60)
 ALLOWED_OLLAMA_ORIGINS = [value.strip().rstrip('/') for value in clean_env_value(
     os.getenv('ALLOWED_OLLAMA_ORIGINS'), 'http://127.0.0.1:11434'

@@ -78,7 +78,7 @@ Integration-dependent criteria use the complete passing retry of all 114 cases.
 | 04 | Done | 4 | `test_red_team_frameworks.py`: 14 cases; totals, mappings, status reasons/order and constrained harmful scope. |
 | 05 | Done | 4 | `test_red_team_judge.py`: 32 cases; per-plugin rubrics, hostile delimiters, size bounds, strict verdict/error parsing. |
 | 06 | Done | 5 | `labels.test.js`; token-only feature stylesheet; semantic labels and unknown values; lint/build; browser mobile targets. |
-| 07 | Done | 4 | `editorSummary.test.js`; 96 attacks, 101 target calls, displayed 24 estimated judge calls, 21 estimated minutes; limits and distinct-control coverage. |
+| 07 | Done | 4 | `editorSummary.test.js`; 96 test cases, 101 target calls, displayed 24 estimated judge calls, 21 estimated minutes; limits and distinct-control coverage. |
 | 08 | Done | 5 | Client-service and polling tests: encoded filters, export URL/auth, draft-to-queued polling, visibility, stale response and timer cleanup. |
 | 09 | Done | 3 | Both Procfiles declare all four processes; deployment recovery/scale guidance; fresh recovery import. Historical byte-identity limit recorded below. |
 | 10 | Done | 4 | `test_red_team_manifest_v3.py`: 14 cases; deterministic 96+5 manifest, unique isolated markers and limits; exact-101 impossibility recorded below. |
@@ -152,9 +152,9 @@ Procfiles, deployment guidance, frontend package scripts, browser API fixture,
 
 - Implemented synthetic coverage: 8 plugins × 8 available strategies, 40 original
   adversarial templates and 5 control questions; a configured run permits at most
-  100 adversarial attacks plus 5 controls. This is not 100 unique templates.
+  100 adversarial test cases plus 5 controls. This is not 100 unique templates.
 - The deterministic 8-plugin × 4-strategy × 3-repetition fixture has 96 adversarial
-  attacks plus 5 controls. Its report fixture has 19 unsafe, 69 defended,
+  test cases plus 5 controls. Its report fixture has 19 unsafe, 69 defended,
   6 inconclusive and 2 error adversarial results: 19/88 = 21.6% success, 15 exact
   unsafe and 4 judged unsafe; 69/88 = 78.4% defended, below the 80% threshold.
 - The backend report fixture computes system risk 9.5 Critical, with its own
@@ -162,7 +162,7 @@ Procfiles, deployment guidance, frontend package scripts, browser API fixture,
   comparison is separate illustrative data; it is not a measured provider result.
 - Framework figures are mapped synthetic controls, not compliance certification.
 - Test counts above describe software verification with synthetic fixtures and
-  fake providers; they do not measure real-model safety, attack efficacy or judge
+  fake providers; they do not measure real-model safety, test case effectiveness or judge
   accuracy. No real-provider benchmark was performed.
 
 ## Deviations, warnings and verification limits
@@ -183,9 +183,9 @@ Procfiles, deployment guidance, frontend package scripts, browser API fixture,
   pre-spec Procfile baseline in this checkout to independently prove the earlier
   three lines were byte-identical when spec 09 added recovery; its existing Log
   remains the historical evidence for that claim.
-- Editor judge-call/time figures deliberately follow spec 07's quarter-of-attacks
+- Editor judge-call/time figures deliberately follow spec 07's quarter-of-cases
   estimate. The displayed “up to 24” is not an enforced judge-call ceiling: the
-  worker may judge every undecided attack and retry each judge at most once.
+  worker may judge every undecided test case and retry each judge at most once.
   Do not cite that UI estimate as a hard cost or duration bound.
 - No live LLM provider, live judge, RabbitMQ broker, deployment, physical device,
   Safari/Firefox, or assistive-technology session was exercised. These are outside

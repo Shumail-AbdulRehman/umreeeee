@@ -6,14 +6,11 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import Response
 
 from app.api.dependencies.auth import get_current_user
-from app.core.config import RABBITMQ_URL, RED_TEAM_QUEUE_NAME, INTEGRATION_REQUESTS_PER_MINUTE
+from app.core.config import RABBITMQ_URL, RED_TEAM_QUEUE_NAME
 from app.core.errors import DomainError
 from app.core.permissions import require_admin
 from app.db.mongo import get_database
-from app.red_team.catalog_schema import CATALOG_VERSION, EVALUATOR_VERSION, CATEGORIES
-from app.red_team.plugins import PLUGINS, STRATEGIES, CATALOG_VERSION as V3_CATALOG_VERSION
-from app.red_team.frameworks import framework_catalog
-from app.schemas.red_team import TestConfig, TestEdit, LaunchRequest, CloneRequest
+from app.schemas.red_team import CloneRequest, LaunchRequest, TestConfig, TestEdit
 from app.services.admin_common import utcnow
 from app.services.red_team_service import RedTeamService
 
@@ -26,8 +23,9 @@ def service():
 
 
 @router.get('/capabilities')
-def capabilities(user=Depends(get_current_user)):
+def capabilities(user=Depends(get_current_user), red_team: RedTeamService = Depends(service)):
     require_admin(user)
+    payload = red_team.capabilities()
     parts = urlsplit(RABBITMQ_URL)
     reachable = False
     try:
@@ -36,27 +34,21 @@ def capabilities(user=Depends(get_current_user)):
     except OSError:
         pass
     now = utcnow()
-    heartbeats = {row['kind']: row['updated_at'].isoformat() for row in get_database().worker_heartbeats.find(
-        {'updated_at': {'$gte': now - timedelta(seconds=45)}}, {'kind': 1, 'updated_at': 1})}
-    frameworks = framework_catalog()
-    plugins = [{**{key: plugin[key] for key in ('id', 'name', 'group', 'severity', 'description')},
-                'frameworks': {fw['id']: fw['plugins'][pid] for fw in frameworks}}
-               for pid, plugin in PLUGINS.items()]
-    return {'catalog_version': V3_CATALOG_VERSION, 'evaluator_version': 'exact-evidence-3',
-        'legacy_catalog_version': CATALOG_VERSION, 'legacy_evaluator_version': EVALUATOR_VERSION,
-        'plugins': plugins, 'strategies': [dict(strategy) for strategy in STRATEGIES.values()],
-        'frameworks': frameworks, 'max_tests_per_plugin': 10, 'judge_supported': True,
-        'categories': list(CATEGORIES), 'modes': ['raw', 'protected'], 'max_attacks': 100,
-        'control_count': 5, 'requests_per_minute': INTEGRATION_REQUESTS_PER_MINUTE,
-        'broker_transport_reachable': reachable, 'worker_observed': 'worker' in heartbeats,
-        'dispatcher_observed': 'dispatcher' in heartbeats, 'observed_at': heartbeats,
-        'queue_name': RED_TEAM_QUEUE_NAME}
+    heartbeats = {
+        row['kind']: row['updated_at'].isoformat()
+        for row in get_database().worker_heartbeats.find(
+            {'updated_at': {'$gte': now - timedelta(seconds=45)}}, {'kind': 1, 'updated_at': 1},
+        )
+    }
+    return {**payload, 'broker_transport_reachable': reachable,
+            'worker_observed': 'worker' in heartbeats, 'dispatcher_observed': 'dispatcher' in heartbeats,
+            'observed_at': heartbeats, 'queue_name': RED_TEAM_QUEUE_NAME}
 
 
-@router.get('/comparisons')
-def comparison(raw_test_id: str, protected_test_id: str, user=Depends(get_current_user),
-               red_team: RedTeamService = Depends(service)):
-    return red_team.comparison(user, raw_test_id, protected_test_id)
+@router.post('/config-preview')
+def preview(payload: TestConfig, test_id: str | None = None, user=Depends(get_current_user),
+            red_team: RedTeamService = Depends(service)):
+    return red_team.preview(user, payload, test_id)
 
 
 @router.get('/tests')
@@ -77,6 +69,12 @@ def create(payload: TestConfig, request: Request, user=Depends(get_current_user)
 @router.get('/tests/{test_id}')
 def detail(test_id: str, user=Depends(get_current_user), red_team: RedTeamService = Depends(service)):
     return red_team.detail(user, test_id)
+
+
+@router.get('/tests/{test_id}/config-preview')
+def stored_preview(test_id: str, user=Depends(get_current_user),
+                   red_team: RedTeamService = Depends(service)):
+    return red_team.stored_preview(user, test_id)
 
 
 @router.put('/tests/{test_id}')
@@ -108,18 +106,17 @@ def clone(test_id: str, payload: CloneRequest, request: Request, user=Depends(ge
 
 @router.get('/tests/{test_id}/results')
 def results(test_id: str, page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
-            category: str | None = None, case_kind: str | None = None, verdict: str | None = None,
-            state: str | None = None, plugin: str | None = None, strategy: str | None = None,
+            plugin: str | None = None, strategy: str | None = None, verdict: str | None = None,
             verdict_source: str | None = None, user=Depends(get_current_user),
             red_team: RedTeamService = Depends(service)):
-    return red_team.results(user, test_id, page, page_size, category, case_kind, verdict, state,
-                            plugin, strategy, verdict_source)
+    return red_team.results(user, test_id, page, page_size, plugin=plugin, strategy=strategy,
+                            verdict=verdict, verdict_source=verdict_source)
 
 
-@router.get('/tests/{test_id}/results/{job_id}')
-def result_detail(test_id: str, job_id: str, user=Depends(get_current_user),
+@router.get('/tests/{test_id}/results/{attack_id}')
+def result_detail(test_id: str, attack_id: str, user=Depends(get_current_user),
                   red_team: RedTeamService = Depends(service)):
-    return red_team.result_detail(user, test_id, job_id)
+    return red_team.result_detail(user, test_id, attack_id)
 
 
 @router.get('/tests/{test_id}/report')
@@ -132,4 +129,5 @@ def export(test_id: str, format: str = 'json', user=Depends(get_current_user),
            red_team: RedTeamService = Depends(service)):
     content, mime = red_team.export(user, test_id, format)
     return Response(content, media_type=mime, headers={
-        'Content-Disposition': f'attachment; filename="red-team-{test_id}.{format}"'})
+        'Content-Disposition': f'attachment; filename="red-team-{test_id}.{format}"',
+    })

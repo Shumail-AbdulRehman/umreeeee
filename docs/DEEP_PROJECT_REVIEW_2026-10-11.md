@@ -33,7 +33,7 @@ No dedicated `TEST_MONGODB_URL` was configured, so 107 integration tests skipped
 | Persistence | PyMongo; `backend/app/db`, repositories and direct service queries | Tenant records, versions, audits, encrypted content, incidents and job state |
 | Enforcement | Local validator registry and remote Cytex adapters | Input/history/system-instruction checks and output checks |
 | LLM providers | Shared bounded HTTP transport | OpenAI, Anthropic, Gemini, Groq, DeepSeek and allowlisted Ollama |
-| Background work | Mongo outbox, RabbitMQ/Pika, dispatcher and worker | Synthetic attack delivery, execution leases and outcome recording |
+| Background work | Mongo outbox, RabbitMQ/Pika, dispatcher and worker | Synthetic test case delivery, execution leases and outcome recording |
 | Deployment | Heroku Procfiles, Netlify configs | API, worker, dispatcher and browser delivery |
 
 ```mermaid

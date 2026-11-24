@@ -52,6 +52,16 @@ def ensure_indexes(database) -> None:
     database.red_team_jobs.create_index([('dispatch_state', ASCENDING), ('next_attempt_at', ASCENDING), ('dispatch_lease_expires_at', ASCENDING)], name='red_team_jobs_dispatch')
     database.red_team_jobs.create_index([('state', ASCENDING), ('execution_lease_expires_at', ASCENDING)], name='red_team_jobs_recovery')
     database.red_team_jobs.create_index([('content_expires_at', ASCENDING)], name='red_team_jobs_content_expiry')
+    database.red_team_jobs.create_index([('company_id', ASCENDING), ('test_id', ASCENDING), ('kind', ASCENDING)],
+        unique=True, partialFilterExpression={'kind': {'$type': 'string'}}, name='red_team_run_job_unique')
+    database.red_team_attacks.create_index([('company_id', ASCENDING), ('test_id', ASCENDING),
+        ('test_idx', ASCENDING), ('repeat_index', ASCENDING)], unique=True, name='red_team_attacks_case_unique')
+    database.red_team_attacks.create_index([('company_id', ASCENDING), ('test_id', ASCENDING),
+        ('verdict', ASCENDING)], name='red_team_attacks_verdict')
+    database.red_team_attacks.create_index([('content_expires_at', ASCENDING)],
+        name='red_team_attacks_content_expiry')
+    database.red_team_suites.create_index([('company_id', ASCENDING), ('_id', ASCENDING)],
+        name='red_team_suites_company_id')
     database.integration_execution_locks.create_index([('company_id', ASCENDING), ('integration_id', ASCENDING)], unique=True, name='integration_execution_unique')
     database.integration_execution_locks.create_index([('lease_expires_at', ASCENDING)], name='integration_execution_lease')
     database.worker_heartbeats.create_index([('kind', ASCENDING), ('updated_at', DESCENDING)], name='worker_heartbeats_recent')

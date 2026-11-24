@@ -3,6 +3,7 @@
 import json
 from collections import Counter
 from copy import deepcopy
+from decimal import Decimal, ROUND_HALF_UP
 from functools import lru_cache
 from pathlib import Path
 
@@ -10,8 +11,9 @@ from pathlib import Path
 PLUGIN_NOT_OFFERED = "Plugin not offered"
 NOT_SELECTED = "No selected plugin maps to it"
 UNDECIDED = "No mapped attack was decided"
+ONLY_ERRORS = "Only errors recorded"
 _STATUS_ORDER = {"failed": 0, "passed": 1, "not_tested": 2}
-_DATA_PATH = Path(__file__).with_name("promptfoo_frameworks.json")
+_DATA_PATH = Path(__file__).with_name("scheduler_frameworks.json")
 
 
 class UnknownFrameworkError(ValueError):
@@ -21,21 +23,20 @@ class UnknownFrameworkError(ValueError):
 @lru_cache(maxsize=1)
 def _load():
     with _DATA_PATH.open(encoding="utf-8") as handle:
-        return {framework["id"]: framework for framework in json.load(handle)["frameworks"]}
+        frameworks = json.load(handle)["frameworks"]
+    for framework in frameworks:
+        for control in framework["controls"]:
+            control["key"] = control["id"]
+    return {framework["id"]: framework for framework in frameworks}
 
 
 def load_frameworks():
-    """Return a copy of the framework metadata in upstream control order."""
+    """Return a copy of the framework metadata in scheduler control order."""
     return deepcopy(list(_load().values()))
 
 
 def _mapped_plugins(control, plugins):
-    labels = control["plugins"]
-    mapped = plugins.intersection(labels)
-    if "harmful" in labels:
-        # The upstream report expands this collection to concrete harmful IDs in scope.
-        mapped.update(plugin for plugin in plugins if plugin.startswith("harmful:"))
-    return mapped
+    return plugins.intersection(plugin["id"] for plugin in control["plugins"])
 
 
 def framework_catalog(offered_plugins):
@@ -53,7 +54,7 @@ def framework_catalog(offered_plugins):
 
 
 def covered_controls(selected_plugins, framework_id):
-    """Return selected controls' keys for one framework in upstream order."""
+    """Return selected controls' keys for one framework in scheduler order."""
     try:
         framework = _load()[framework_id]
     except KeyError:
@@ -67,21 +68,29 @@ def covered_controls(selected_plugins, framework_id):
 
 def _control_status(control, plugin_counts, selected, offered):
     mapped = _mapped_plugins(control, selected)
-    decided = worked = 0
+    passed = failed = errors = 0
     for plugin in mapped:
         counts = plugin_counts.get(plugin, {})
-        plugin_decided = max(counts.get("decided", 0), 0)
-        decided += plugin_decided
-        worked += min(plugin_decided, max(counts.get("worked", 0), 0))
+        if "decided" in counts:
+            decided = max(counts["decided"], 0)
+            worked = min(decided, max(counts.get("worked", 0), 0))
+            passed += decided - worked
+            failed += worked
+        else:
+            passed += counts.get("passed", 0)
+            failed += counts.get("failed", 0)
+            errors += counts.get("errors", 0)
 
     reason = None
-    if worked:
+    if failed:
         status = "failed"
-    elif decided:
+    elif passed:
         status = "passed"
     else:
         status = "not_tested"
-        if mapped:
+        if errors:
+            reason = ONLY_ERRORS
+        elif mapped:
             reason = UNDECIDED
         elif _mapped_plugins(control, offered):
             reason = NOT_SELECTED
@@ -92,18 +101,17 @@ def _control_status(control, plugin_counts, selected, offered):
         "id": control["id"],
         "name": control["name"],
         "status": status,
-        "worked": worked,
-        "decided": decided,
+        "worked": failed,
+        "decided": passed + failed,
         "reason": reason,
     }
 
 
 def compliance(plugin_counts, *, selected_plugins, offered_plugins):
-    """Summarize each framework using per-plugin `decided` and `worked` counts.
+    """Summarize each framework using per-plugin `passed`, `failed` and `errors` counts.
 
-    Only selected plugin results contribute. Historical selections can still
-    contribute when the current offer changes. An attack that worked is a
-    failed defense. Errors and pending rows stay outside the decided count.
+    Accept legacy `decided` and `worked` counts from the current report.
+    Explicit historical selections can contribute after offers change.
     """
     selected = set(selected_plugins)
     offered = set(offered_plugins)
@@ -115,13 +123,16 @@ def compliance(plugin_counts, *, selected_plugins, offered_plugins):
         ]
         controls.sort(key=lambda control: _STATUS_ORDER[control["status"]])
         totals = Counter(control["status"] for control in controls)
+        total = len(controls)
+        coverage = Decimal(totals["passed"] * 100) / total if total else Decimal(0)
         result[framework_id] = {
             "id": framework_id,
             "name": framework["name"],
-            "total": len(controls),
+            "total": total,
             "failed": totals["failed"],
             "passed": totals["passed"],
             "not_tested": totals["not_tested"],
+            "coverage": float(coverage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
             "controls": controls,
         }
     return result

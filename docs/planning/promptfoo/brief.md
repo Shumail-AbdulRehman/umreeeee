@@ -12,6 +12,6 @@ and beautiful and not look AI generated." Then: "make sure the implementation of
 the specs detailed." Then: "just go with the full promptfoo one" (promptfoo hosted generation with a verified account).
 
 Option B, as explained to the owner: the app's own Red Team page launches promptfoo on the server (the backend worker runs
-the promptfoo CLI), every attack still reaches the target through the app (raw = provider directly, protected = the app's
+the promptfoo CLI), each test prompt still reaches the target through the app (raw = provider directly, protected = the app's
 policy pipeline), and promptfoo's results replace the custom engine's results in the app's own report screens.
 Option A (promptfoo as an external tool pointed at the app) was rejected by the owner.

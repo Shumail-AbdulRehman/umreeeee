@@ -85,6 +85,26 @@ describe('useRedTeamTest polling', () => {
     expect(getRedTeamTest).toHaveBeenCalledTimes(3)
   })
 
+  it('does not overlap a pending status poll when the tab becomes visible', async () => {
+    let finishPoll
+    getRedTeamTest.mockResolvedValueOnce(reply('a', 'generating'))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishPoll = resolve }))
+    const { result } = renderHook(() => useRedTeamTest('a'))
+    await flush()
+    expect(result.current.test.status).toBe('generating')
+    await advance(2000)
+    expect(getRedTeamTest).toHaveBeenCalledTimes(2)
+
+    setHidden(true)
+    setHidden(false)
+    expect(getRedTeamTest).toHaveBeenCalledTimes(2)
+
+    await act(async () => { finishPoll(reply('a', 'completed')) })
+    expect(result.current.test.status).toBe('completed')
+    await advance(10000)
+    expect(getRedTeamTest).toHaveBeenCalledTimes(2)
+  })
+
   it('backs off after errors and recovers', async () => {
     getRedTeamTest.mockRejectedValue(new Error('down'))
     const { result } = renderHook(() => useRedTeamTest('a'))

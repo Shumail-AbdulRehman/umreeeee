@@ -1,6 +1,6 @@
 # Spec 21 — Verification pass
 
-**Status:** Not started
+**Status:** In progress
 **Depends on:** 00-20
 **Model:** Heavy — `claude-opus-5-5` · `gpt-6.2-sol` · `gemini-4-argon`
 **Issue:** —
@@ -13,9 +13,9 @@ Verify the whole promptfoo Red Team from a clean checkout: both automated suites
 
 ## Scope
 
-- Fresh installs: `npm ci` from root and `Frontend/`, clean `backend/.venv` with the requirements, test keys and the replica-set fixture; run `backend/scripts/check_promptfoo_runtime.py` and record its output (version, node, email configured).
+- Fresh installs: `npm ci` from root and `Frontend/`, clean `backend/.venv` with the requirements, test keys and the replica-set fixture; run `backend/scripts/check_promptfoo_runtime.py` and record its output (version, node, Cloud key configured).
 - Recheck each `Done when` from 00–20 against the artifacts, with checkboxes for only observed results and a reason for anything not run. Run both unit suites, focused Mongo service/worker tests, and both pieces of 20. Fold unique inventory fragments into `INVENTORY.md`, remove stale/deleted entries, and sweep for duplicate exports, clients, styling primitives and raw color values.
-- Live smoke (the owner's acceptance test): with the API, worker, dispatcher, recovery and RabbitMQ running locally and `PROMPTFOO_API_KEY` set in `backend/.env`, launch through the API a raw test on the organization's Groq integration (target `openai/gpt-oss-20b`, grader `openai/gpt-oss-120b`) with 2 plugins (`prompt-extraction`, `pii:direct`), strategies `base64`, 1 test per plugin; wait until terminal; clone it as protected and launch; wait until terminal. Record: generated test count, attacks executed and graded per run, verdict sources, statuses, durations, promptfoo exit codes, and that the clone did not regenerate (same `suite_id`, no generate step in the worker log). Launch requests and polling use the app API with an admin token, never direct database writes.
+- Live smoke (the owner's acceptance test): with the API, worker, dispatcher, recovery and RabbitMQ running locally and `PROMPTFOO_API_KEY` set in `backend/.env`, launch through the API a raw test on the organization's Groq integration (target `openai/gpt-oss-20b`, grader `openai/gpt-oss-120b`) with 2 plugins (`prompt-extraction`, `pii:direct`), strategies `base64`, 1 test per plugin; first fetch the config preview through the API and record it (no key text); wait until terminal; clone it as protected and launch; wait until terminal. Record: generated test count, cases executed and graded per run, verdict sources, statuses, durations, promptfoo exit codes, that the raw run used `promptfoo redteam run` and the clone `promptfoo redteam eval` (worker log), that the stored suite contains no key, and that the clone did not regenerate (same `suite_id`). Launch requests and polling use the app API with an admin token, never direct database writes.
 - Record exact commands, counts, duration and skips in the Log. Leave any unavailable requirement unticked; report failures by owning spec, not as passing or fixed.
 
 ## Explicit non-scope
@@ -40,14 +40,18 @@ Verify the whole promptfoo Red Team from a clean checkout: both automated suites
 | --- | --- |
 | Environment | `.node-version`, `DEPLOYMENT.md`, `backend/DEPLOYMENT.md`, `test_check_promptfoo_runtime.py`; verify no deployment/activation step was performed. |
 | Metadata and reports | Run the read-only reproducibility checks in `extract_promptfoo_catalog.py` and `extract_promptfoo_frameworks.py`; verify collection of `test_promptfoo_catalog.py`, `test_framework_compliance.py`, `test_red_team_report.py` and `test_results_parser.py`. |
-| Runtime path | `backend/promptfoo_bridge/__init__.py` has no import side effects; `test_promptfoo_bridge_provider.py`, `test_bridge_server.py`, `test_promptfoo_runner.py` and `test_red_team_worker_promptfoo.py` run; the live smoke's worker log shows generate → eval → finished. |
+| Runtime path | `backend/promptfoo_bridge/__init__.py` has no import side effects; `test_promptfoo_bridge_provider.py`, `test_bridge_server.py`, `test_promptfoo_runner.py` and `test_red_team_worker_promptfoo.py` run; the live smoke's worker log shows login → `redteam run` → import for the raw test and login → `redteam eval` → import for the clone. |
 | API and browser | Read `docs/API_CONTRACTS.md` against actual response fixtures; rerun `test_red_team_schemas.py`, `test_red_team_promptfoo_api.py`, `test_red_team_promptfoo_worker.py` and `test_red_team_promptfoo_pipeline.py`; inspect `red-team-api.js` for no unhandled external routes. |
 | Archive | Probe `archive_legacy_red_team.py` with `test_archive_legacy_red_team.py`; confirm `test_red_team_risk_scoring.py` retains direct scorer coverage and that no archived or live data was touched. |
 
 ## Done when
 
 - [ ] Clean installs and both unit suites (`.venv/bin/python -m pytest -q tests/unit` in `backend/`, `npx vitest run` in `Frontend/`), the Mongo API/worker tests and both 20 suites pass; record counts and timings. [suite] [requires: MongoDB replica set, Playwright Chromium]
-- [ ] Live smoke: the raw test and its protected clone both reach a terminal status with ≥ 1 graded attack each, share one `suite_id`, and the clone ran no generation; counts, verdict sources and durations recorded in the Log. [suite] [requires: promptfoo hosted generation with verified PROMPTFOO_API_KEY, Groq integration key, RabbitMQ, MongoDB replica set]
+- [ ] Live smoke: the raw test and its protected clone both reach a terminal status with ≥ 1 graded test case each, share one `suite_id`, and the clone ran no generation; counts, verdict sources and durations recorded in the Log. [suite] [requires: promptfoo hosted generation with verified PROMPTFOO_API_KEY, Groq integration key, RabbitMQ, MongoDB replica set]
 - [ ] Each earlier criterion is checked or logged with a specific unmet prerequisite; inventory links resolve, and no duplicate implementation or new raw colour values remain. [static]
 - [ ] From `backend/`, `.venv/bin/python -m compileall -q app`, and from `Frontend/`, `npm run lint`, pass. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+- **2026-11-23:** Local automated gates: backend 481 passed, frontend 298 passed, Chromium 9 passed, runtime 0.126.0 on Node 24 with Cloud key configured, compile/lint/build and validator clean of errors. Isolated transaction-backed Mongo acceptance passed: API 2, worker/recovery 2, pipeline 1; focused selection 26 passed in 79.73 s. Live smoke was not run because RabbitMQ and the app worker stack were not running; no substitute direct-database launch was used. Clean installs in a fresh worktree were not repeated.

@@ -1,6 +1,6 @@
 # Spec 19 — Remove the in-house engine and archive legacy data
 
-**Status:** Not started
+**Status:** Done
 **Depends on:** Spec 16, Spec 17, Spec 18
 **Model:** Standard — `claude-sonnet-5-5` · `gpt-6.2-sol` · `gemini-3.8-flash`
 **Issue:** —
@@ -14,7 +14,7 @@ Remove no-longer-referenced legacy engine code and provide a safe operator-contr
 ## Scope
 
 - Remove the legacy CPU/worker/report modules and dedicated legacy tests named in `Owns` only after replacement callers from 16–18 land. Check any shared test fixture users before deletion. The exception in `Owns` is `test_red_team_risk_scoring.py`: replace its dependency on old catalog constants while retaining direct scoring coverage. Do not alter `risk_scoring.py` itself.
-- Archive script default is dry-run: list counts of legacy tests/jobs per company, no paths containing secrets, writes or deletes. Select legacy by documented historic schema/engine discriminator, exclude promptfoo and unknown/malformed records, scope related jobs with both company and test IDs. Never touch new suites or attacks.
+- Archive script default is dry-run: list counts of legacy tests/jobs per company, no paths containing secrets, writes or deletes. Select legacy by documented historic schema/engine discriminator, exclude promptfoo and unknown/malformed records, scope related jobs with both company and test IDs. Never touch new suites or case results.
 - `--apply` requires an explicit output path. Serialize selected tests and jobs preserving IDs and ciphertext where present (never decrypt), write an exclusive owner-only archive, and only then remove exactly the archived IDs. Refuse overwrite, failed writes, changed data and active legacy jobs. Use transaction semantics for deletes and a maintenance window for operator use; a failed delete must leave the archive intact. Re-running safely reports zero/pending rows without truncating the previous archive.
 - Prove only on controlled fakes; do not run `--apply` on the configured application database. Log counts and sanitized reasons only.
 
@@ -42,3 +42,7 @@ Remove no-longer-referenced legacy engine code and provide a safe operator-contr
 - [ ] From `backend/`, `.venv/bin/python -m pytest -q tests/unit`, and from `Frontend/`, `npx vitest run`, pass; log both counts. [unit]
 - [ ] From `backend/`, `.venv/bin/python -m compileall -q app` and `.venv/bin/python -m py_compile scripts/archive_legacy_red_team.py`, and from `Frontend/`, `npm run lint`, pass. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+- **2026-11-23:** Removed only the inventoried legacy engine/report files and added the dry-run-first guarded archive. Archive/scorer suite: 183 passed; backend unit: 481 passed; frontend: 298 passed. No archive apply was run.

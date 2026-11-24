@@ -14,7 +14,7 @@ Show runtime readiness on the test list and honest live progress while a promptf
 ## Scope
 
 - Rebuild list and in-progress layouts from `tests.html` and `running.html` using incumbent components; preserve loading, empty, retry and draft entry points. Readiness shows promptfoo version, "promptfoo Cloud key configured", broker and worker status; launch readiness requires all of them. Never reveal the key.
-- Render phase-specific text: "Generating attacks (promptfoo hosted)" while generating, “Running attacks n/N” from counts, “Grading and importing results” when importing. No invented percentages: unplanned or unknown totals are indeterminate; executed counts must not exceed the visible interval. Show latest recorded results and provisional success only, not final risk.
+- Render “Generating test cases (hosted by promptfoo)” while generating, “Running test cases n/N” from counts, and “Grading and importing results” when importing. Use indeterminate progress when the total is unknown and keep executed counts within the visible interval. During the run, show the latest recorded results and the provisional test case failure rate.
 - Keep the existing confirm dialog: “Cancel this test?” explains completed results are kept and that cancellation may not be immediate. Dismiss and Escape do not invoke the callback; confirm invokes once, guarded while busy. Terminal records have no cancel action.
 - Use existing tokens only, no raw colour values, and plain status copy without generic filler. Keyboard can reach list actions and the dialog, focus is visible, dialog traps/restores focus, a polite live region announces meaningful phase changes; reduced motion removes progress transforms.
 
@@ -41,3 +41,7 @@ Show runtime readiness on the test list and honest live progress while a promptf
 - [ ] `cd Frontend && npx vitest run` passes; log the count. [unit]
 - [ ] `cd Frontend && npm run lint` passes with no errors or warnings. [static]
 - [ ] `cd Frontend && npm run build` passes. [static]
+
+## Log
+
+- **2026-11-22** (planner, recorded from `PROGRESS.md`): implemented by Codex in batch 2 and verified by Claude: 38 tests in `TestList.test.jsx` and `RunProgress.test.jsx`; frontend lint clean. The implementer left no log; the checkboxes above were not re-ticked by the planner and are re-checked in spec 21.

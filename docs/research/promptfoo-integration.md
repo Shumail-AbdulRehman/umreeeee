@@ -2,7 +2,7 @@
 
 Researched 2026-11-22 for promptfoo 0.126.0
 
-Scope: how the app's Python worker (`python -m app.workers.red_team_worker`) can run promptfoo's red-team engine while every attack still goes through `ProtectedPromptService.execute_protected(...)` (protected mode) or straight to the LLM provider (raw mode). Also covers output, headless operation, install footprint and Heroku. Plugins, strategies, grading and remote generation are left to the companion research.
+Scope: how the app's Python worker (`python -m app.workers.red_team_worker`) can run promptfoo's red-team engine while every test prompt still goes through `ProtectedPromptService.execute_protected(...)` (protected mode) or straight to the LLM provider (raw mode). Also covers output, headless operation, install footprint and Heroku. Plugins, strategies, grading and remote generation are left to the companion research.
 
 ## 0. Method and evidence types
 
@@ -15,7 +15,7 @@ Scope: how the app's Python worker (`python -m app.workers.red_team_worker`) can
 
 ## 1. Custom target providers usable for red teaming
 
-promptfoo red-team targets go under top-level `targets:`. Each `id` can be a model, a Python script (`file://send_redteam.py`), an HTTP endpoint (`url`/`method`/`headers`/`body`/`transformResponse`), a JavaScript provider, or "any other executable" via `exec:` (https://www.promptfoo.dev/docs/red-team/configuration/). Target calls always run locally, even when attack generation is remote (same page).
+promptfoo red-team targets go under top-level `targets:`. Each `id` can be a model, a Python script (`file://send_redteam.py`), an HTTP endpoint (`url`/`method`/`headers`/`body`/`transformResponse`), a JavaScript provider, or "any other executable" via `exec:` (https://www.promptfoo.dev/docs/red-team/configuration/). Target calls always run locally, even when test case generation is remote (same page).
 
 ### 1a. Python provider: `file://provider.py`
 
@@ -50,10 +50,10 @@ promptfoo red-team targets go under top-level `targets:`. Each `id` can be a mod
 - **Debugging.** `LOG_LEVEL=debug` shows `print` output, and `PROMPTFOO_PYTHON_DEBUG_ENABLED=true` allows `pdb` (python docs). stdout is the control channel, so logging should go to stderr.
 - **Caching (important).**
   - Results are cached under `python:<scriptPath>:<fn>:<apiType>:<sha256(script)>:<prompt>:<JSON(options)>:<JSON(vars)>`. Only results without `error` are stored ([tarball: `src/providers/pythonCompletion.ts`](https://registry.npmjs.org/promptfoo/-/promptfoo-0.126.0.tgz), `executePythonScript`).
-  - With the cache on, re-running identical attacks returns the stored answer **without calling `execute_protected`**. See §4 for how to turn it off.
+  - With the cache on, re-running identical test cases returns the stored answer **without calling `execute_protected`**. See §4 for how to turn it off.
 
 **Red-team specifics**
-- `conversationEnded: True` stops multi-turn attackers gracefully (python docs).
+- `conversationEnded: True` ends multi-turn test conversations gracefully (python docs).
 - `guardrails` is the documented place to report a block ("Guardrail decisions go in `guardrails`, not inside `output` or `metadata`") (https://www.promptfoo.dev/docs/providers/custom-api/).
 - How graders score a guardrail-flagged response belongs to the companion research.
 
@@ -93,14 +93,14 @@ promptfoo red-team targets go under top-level `targets:`. Each `id` can be a mod
 - **Typing:** `ApiProvider.callApi: (prompt: string, context?: CallApiContextParams, options?: CallApiOptionsParams) => Promise<ProviderResponse>`. `options` carries `abortSignal`. Optional `cleanup()` exists ([tarball: `dist/src/index.d.ts`](https://registry.npmjs.org/promptfoo/-/promptfoo-0.126.0.tgz)).
 - **Fit:** it runs inside the Node process. To reach Python code it would have to spawn Python or call HTTP itself, so it adds nothing over 1a or 1b here (custom-api docs only show `fetch`).
 
-### 1e. Comparison for "route each attack through a Python function in this codebase"
+### 1e. Comparison for "route each test prompt through a Python function in this codebase"
 
 | | Python `file://` | HTTP | `exec:` | JS |
 |---|---|---|---|---|
 | Calls `execute_protected` directly | yes, in-process import | indirectly, via the web API | yes, but cold start per call | no, needs a bridge |
 | Per-call startup cost | once per worker | none | full interpreter + imports every call (~6 s, litellm) | n/a |
 | Rich result (`tokenUsage`, `cost`, `guardrails`, `metadata`) | yes | yes, via `transformResponse` | no, stdout only | yes |
-| Per-attack UUID idempotency key | trivial (`uuid` in Python) | not native (see 1b) | possible in the script | possible |
+| Per-prompt UUID idempotency key | trivial (`uuid` in Python) | not native (see 1b) | possible in the script | possible |
 | Concurrency control | `workers` (one call per worker) | `-j` | `-j` | `-j` |
 | Main risks | memory: each worker imports the backend; global state per worker | 30 s router limit; needs auth for a service user; loads the web dyno | very slow; argv-sized prompts | double bridge |
 
@@ -116,15 +116,15 @@ What the function does:
 Why:
 - It is the only option that runs the real Python pipeline in-process without HTTP limits.
 - It returns every field the report needs.
-- It lets the worker write progress to Mongo per attack.
+- It lets the worker write progress to Mongo for each test case.
 
 Rules that follow from the findings:
 1. **Set `config.workers` explicitly** (1–2). Otherwise it follows `-j`, and every worker imports the backend (~215 MB+ for litellm alone).
-2. **Set `PROMPTFOO_CACHE_ENABLED=false`** in the child environment so every attack really executes (§4).
+2. **Set `PROMPTFOO_CACHE_ENABLED=false`** in the child environment so every test case executes (§4).
 3. **Put `backend/` on `PYTHONPATH`** and set `PROMPTFOO_PYTHON` to the worker's own `sys.executable`. Both go in the subprocess environment, because provider `env:` does not reach Python.
 4. **Derive the idempotency key deterministically** rather than with a random `uuid4`. For example: `uuid5(NS, f"{run_id}:{context['testIdx']}:{context.get('repeatIndex',0)}:{sha256(prompt)}")`.
    - `execute_protected` requires a UUID string and compares a fingerprint of the request.
-   - promptfoo retries custom providers when the error text contains "429", "rate limit" or "too many requests" (https://www.promptfoo.dev/docs/configuration/rate-limits/). A retry then reuses the same key, while different turns of a multi-turn attack get different keys.
+   - promptfoo retries custom providers when the error text contains "429", "rate limit" or "too many requests" (https://www.promptfoo.dev/docs/configuration/rate-limits/). A retry then reuses the same key, while different turns of a multi-turn test case get different keys.
 5. Use synchronous code (pymongo), or accept that `asyncio.run` creates a new loop on every call.
 6. Log to stderr, never stdout.
 
@@ -196,7 +196,7 @@ Fallback: if live progress or in-process cancellation proves necessary, a ~40-li
 
 **`EvaluateSummaryV3`:** `{version: 3, timestamp, results: EvaluateResult[], prompts: CompletedPrompt[], stats: EvaluateStats, repeatStability?}`. `CompletedPrompt` has `id`, `raw`, `label`, `provider` and `metrics` (`score`, `testPassCount`, `testFailCount`, `testErrorCount`, `assertPassCount`, `assertFailCount`, `totalLatencyMs`, `tokenUsage`, `cost`, ...) ([tarball `index.d.ts`](https://registry.npmjs.org/promptfoo/-/promptfoo-0.126.0.tgz)).
 
-**`EvaluateStats`:** `successes`, `failures`, `errors`, `tokenUsage` (`prompt`, `completion`, `cached`, `total`, `numRequests`, `completionDetails`, `assertions`, and `attacker` for red-team attacker usage), `durationMs?`, `generationDurationMs?`, `evaluationDurationMs?` and `cacheHits?` (same file; **[measured]**).
+**`EvaluateStats`:** `successes`, `failures`, `errors`, `tokenUsage` (`prompt`, `completion`, `cached`, `total`, `numRequests`, `completionDetails`, `assertions`, and `attacker` for test prompt generation usage), `durationMs?`, `generationDurationMs?`, `evaluationDurationMs?` and `cacheHits?` (same file; **[measured]**).
 
 **`EvaluateResult`** (one per test × prompt × provider). Fields from the 0.126.0 `.d.ts`, which **[measured]** output matched:
 
@@ -208,7 +208,7 @@ Fallback: if live progress or in-process cancellation proves necessary, a ~40-li
 | `prompt` | `{raw, label, config}` |
 | `vars` | rendered vars |
 | `response?` | `ProviderResponse` (`output`, `tokenUsage`, `cost`, `cached`, `metadata`, `guardrails`, `error`, `prompt`, `sessionId`, ...) |
-| `success`, `score` | overall pass/score (in red teaming, a failed test means the attack succeeded; grading semantics are in the companion research) |
+| `success`, `score` | overall pass/score (in red teaming, a failed verdict means the model failed the case; grading semantics are in the companion research) |
 | `gradingResult?` | `{pass, score, reason, namedScores?, tokensUsed?, componentResults?: GradingResult[], assertion?, comment?, metadata?: {pluginId?, strategyId?, graderError?, renderedGradingPrompt?, ...}}` |
 | `namedScores` | per-metric scores |
 | `error?`, `failureReason` | `failureReason` is the enum `ResultFailureReason {NONE: 0, ASSERT: 1, ERROR: 2}` |
@@ -271,7 +271,7 @@ Note on `PROMPTFOO_SELF_HOSTED`: it also turns telemetry off, but it changes oth
 | all tests pass | 0 | **[measured]** |
 | ≥1 failed test, or pass rate < `PROMPTFOO_PASS_RATE_THRESHOLD` (default 100) | **100** (`PROMPTFOO_FAILED_TEST_EXIT_CODE` overrides) | command-line page; **[measured]** 100, threshold 40 → 0, override 0 → 0 |
 | other errors | 1 | command-line page |
-| `redteam run` / `redteam eval` | same logic, because both go through `doEval` with `eventSource: 'cli'`. So **a scan where any attack succeeds exits 100** | [tarball `src/node/doEval.ts`, `src/redteam/commands/run.ts`](https://registry.npmjs.org/promptfoo/-/promptfoo-0.126.0.tgz) |
+| `redteam run` / `redteam eval` | same logic, because both go through `doEval` with `eventSource: 'cli'`. So **a run with any failed test case exits 100** | [tarball `src/node/doEval.ts`, `src/redteam/commands/run.ts`](https://registry.npmjs.org/promptfoo/-/promptfoo-0.126.0.tgz) |
 | target returned non-retryable HTTP 401/403/404/501 | scan aborted, exit = failed-test code | same |
 | SIGINT once (with DB writes on) | evaluation **paused** and results saved; prints `Resume with: promptfoo eval --resume <id>`; **exit 0** | **[measured]**; [tarball `src/node/doEval.ts`](https://registry.npmjs.org/promptfoo/-/promptfoo-0.126.0.tgz) |
 | SIGINT twice, or 10 s after the first | `process.exit(130)` | same source |
@@ -292,7 +292,7 @@ What this means for the worker:
 - Generation concurrency is set separately with `redteam.maxConcurrency` (default 4) and `redteam.delay` (https://www.promptfoo.dev/docs/red-team/configuration/).
 
 **Live progress**, in order of usefulness for this app:
-1. The app's own `call_api` can count or record each attack in Mongo as it happens. This is exact and needs nothing from promptfoo.
+1. The app's own `call_api` can count or record each test case in Mongo as it happens. This is exact and needs nothing from promptfoo.
 2. Tail the streamed JSONL (§3). It has one line per finished test, including grading.
 3. With `CI=true`, stdout shows `[Evaluation] Starting N test cases...`, milestone lines at 25/50/75% (for example `✓ 50% complete (5/10)`), periodic updates every 30 s, and `[Evaluation] ✓ Complete! x/y tests in t` ([tarball `src/progress/ciProgressReporter.ts`](https://registry.npmjs.org/promptfoo/-/promptfoo-0.126.0.tgz); **[measured]**). The interactive progress bar is drawn only on a TTY (`process.stderr.isTTY`) (same source).
 4. The library `progressCallback` (§2).
@@ -430,7 +430,7 @@ Leave out the `scripts` block.
 
 ## 7. Uncertain / could not verify
 
-1. **`redteam run -o` reuse.** The same path is used for the generated tests and for the eval output (§2). This comes from reading the source; it was not run, because generation needs remote or attacker-model access.
+1. **`redteam run -o` reuse.** The same path is used for the generated tests and for the eval output (§2). This comes from reading the source; it was not run, because generation needs access to the hosted service or a generation model.
 2. **`redteam run --no-cache` and the eval phase.** That the eval phase still caches is a source reading (§4), not tested.
 3. **Exit code after one SIGINT.** It was measured as 0 for `promptfoo eval`. It was not measured for `redteam run`/`redteam eval`.
 4. **Memory on Heroku.** The figures were measured on a desktop (Node 24.14.1, x64). RSS includes shared pages, and Heroku's accounting and Node 26 may differ. The memory of a provider worker that imports the full backend was inferred from import measurements (litellm and guardrails), not measured end to end.

@@ -162,8 +162,8 @@ Complete the adversarial testing workflow and verify the entire app as a coheren
 
 ### 1. Implement automated red-team runs
 
-- Add organization-owned test configurations with target integration/model, selected attack categories, attack count, compliance threshold, and execution mode.
-- Start with a bounded, versioned attack catalog for direct injection, indirect injection context, jailbreaks, synthetic PII extraction attempts, and off-topic policy bypass.
+- Add organization-owned test configurations with target integration/model, selected test categories, test case count, compliance threshold, and execution mode.
+- Start with a bounded, versioned test case catalog for direct injection, indirect injection context, jailbreaks, synthetic PII extraction attempts, and off-topic policy bypass.
 - Use RabbitMQ and a Python worker to queue and execute tests locally, matching the report's architecture. Local broker/worker setup is application development work; production deployment remains excluded.
 - Track queued, running, completed, partially failed, failed, and cancelled states.
 - Add bounded concurrency, explicit provider rate controls, timeouts, limited retries with backoff, and cancellation handling.
@@ -173,13 +173,13 @@ Complete the adversarial testing workflow and verify the entire app as a coheren
 
 ### 2. Define evaluation and reporting
 
-- Specify a pass/fail rubric for each attack category and version the evaluator.
-- Store the attack, response or error, category, target, execution mode, verdict, reason, and timing.
+- Specify a pass/fail rubric for each test category and version the evaluator.
+- Store the test prompt, response or error, category, target, execution mode, verdict, reason, and timing.
 - Use synthetic sensitive examples; do not require real personal data for evaluation.
 - Treat provider errors, timeouts, and inconclusive evaluations separately from safe responses.
-- Calculate compliance as passed attacks divided by evaluable attacks. Always show attempted, evaluable, failed, and inconclusive counts alongside the score; show no score when nothing is evaluable.
-- Compare raw-model and protected-platform outcomes on the same attack set where possible.
-- Provide per-attack details, category summaries, and a threshold-based in-app alert.
+- Calculate compliance as passing cases divided by evaluable cases. Always show attempted, evaluable, failed, and inconclusive counts alongside the score; show no score when nothing is evaluable.
+- Compare raw-model and protected-platform outcomes on the same set of test cases where possible.
+- Provide case details, category summaries, and a threshold-based in-app alert.
 - Provide CSV/JSON export and a printable report view. Advanced PDF styling is not a blocker for completing this phase.
 
 ### 3. Build the Red Team console
@@ -187,7 +187,7 @@ Complete the adversarial testing workflow and verify the entire app as a coheren
 - Provide a clear configuration form with validation and a concise explanation of direct versus protected testing.
 - Show live progress through polling, including completed/total jobs, failures, and cancellation status.
 - Show score denominators and category results so users understand what the numbers mean.
-- Add searchable/filterable results and a detail view for each attack.
+- Add searchable/filterable results and a detail view for each test case.
 - Preserve progress and results across page refreshes.
 
 ### 4. Finish and verify the overall UI
@@ -213,7 +213,7 @@ Complete the adversarial testing workflow and verify the entire app as a coheren
 
 - An administrator can configure, launch, monitor, cancel, and review a red-team test through the UI.
 - Jobs produce persistent results; retries and duplicate delivery do not corrupt counts.
-- Failed/inconclusive attacks do not improve the compliance score.
+- Failed or inconclusive test cases do not improve the compliance score.
 - Test records, reports, and exports remain isolated by organization.
 - The end-to-end demonstration can be repeated using documented local setup and controlled sample data.
 - Included pages contain real data or truthful empty states, with no misleading protection claims or dead primary controls.
@@ -224,7 +224,7 @@ Complete the adversarial testing workflow and verify the entire app as a coheren
 1. Reuse the existing application structure and visual foundation. Avoid a framework migration or whole-app rewrite.
 2. Deliver complete workflows in small increments: API, persistence, UI, and focused verification together.
 3. Prioritize access control and policy correctness before adding dashboard decoration.
-4. Prefer polling, a bounded rule builder, and a versioned attack catalog for the first complete implementation.
+4. Prefer polling, a bounded rule builder, and a versioned test case catalog for the first complete implementation.
 5. Use existing provider code behind a consistent interface; avoid unnecessary service splitting.
 6. Keep tests focused on meaningful security and functional behavior, with manual browser checks for presentation.
 7. Treat optional enhancements as follow-up work rather than silently expanding a phase.
@@ -234,7 +234,7 @@ Complete the adversarial testing workflow and verify the entire app as a coheren
 - All deployment and production infrastructure work.
 - Redis caching unless measured application performance makes it necessary.
 - WebSocket notifications and token streaming.
-- Custom-trained classifiers, adaptive attack generation, and research-scale multi-model evaluations.
+- Custom-trained classifiers, adaptive test case generation, and research-scale multi-model evaluations.
 - Advanced PDF formatting and additional platform administration screens.
 - New dashboard metrics without a defined calculation and reliable source data.
 

@@ -11,9 +11,11 @@ import {
   getRedTeamReport,
   getRedTeamResult,
   getRedTeamTest,
+  getRedTeamTestConfigPreview,
   launchRedTeamTest,
   listRedTeamResults,
   listRedTeamTests,
+  previewRedTeamConfig,
   redTeamCapabilities,
   updateRedTeamTest,
 } from './redTeamService'
@@ -104,6 +106,32 @@ describe('red team endpoints', () => {
       ['/red-team/tests/t1/results/a%2F1'],
       ['/red-team/tests/t1/report'],
     ])
+  })
+
+  it('posts unsaved configuration and reads a stored preview with an encoded test ID', async () => {
+    const draft = {
+      name: 'Sample test', purpose: 'Synthetic draft description', integration_id: 'target', model: 'model',
+      mode: 'raw', plugins: ['plugin-id'], strategies: [], tests_per_plugin: 1,
+      grader: { integration_id: 'grader', model: 'grading-model' },
+    }
+    const draftPreview = { yaml: 'description: Sample test\n', estimated_target_calls: 2, generated_tests_estimate: 1 }
+    const savedPreview = { yaml: 'description: Saved test\n', estimated_target_calls: 4, generated_tests_estimate: 2 }
+    apiRequest.mockResolvedValueOnce(draftPreview).mockResolvedValueOnce(savedPreview)
+
+    await expect(previewRedTeamConfig(draft)).resolves.toBe(draftPreview)
+    await expect(getRedTeamTestConfigPreview('t/1')).resolves.toBe(savedPreview)
+    expect(apiRequest.mock.calls).toEqual([
+      ['/red-team/config-preview', { method: 'POST', body: JSON.stringify(draft) }],
+      ['/red-team/tests/t%2F1/config-preview'],
+    ])
+  })
+
+  it('propagates config preview errors', async () => {
+    const error = Object.assign(new Error('Invalid configuration'), { status: 422 })
+    apiRequest.mockRejectedValue(error)
+
+    await expect(previewRedTeamConfig({})).rejects.toBe(error)
+    await expect(getRedTeamTestConfigPreview('t1')).rejects.toBe(error)
   })
 
   it('posts the version and caller UUID again on retry and propagates the original error', async () => {

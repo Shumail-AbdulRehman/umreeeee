@@ -6,60 +6,38 @@ The ordinary prompt route is `POST /api/prompt-workspace/run` with a UUID `Idemp
 
 | Red Team route | Contract |
 |---|---|
-| `GET /api/red-team/capabilities` | Catalog/evaluator versions, category/mode limits, conservative pacing, broker/worker hints. No connection secrets. |
+| `GET /api/red-team/capabilities` | Promptfoo runtime readiness, 24-plugin/15-strategy metadata, nine framework mappings, limits, supported providers and broker/worker hints. No connection secrets. |
+| `POST /api/red-team/config-preview` | Validates an unsaved `TestConfig` and returns redacted Promptfoo YAML plus generated-test and target-call estimates. For a suite-backed draft, pass its ID as `test_id` so the preview uses the stored suite. |
 | `GET /api/red-team/tests` | Real pagination and `q`, `status`, `mode`, `integration_id`, `from`, `to` filters; `{items,page,page_size,total}`. |
-| `POST /api/red-team/tests` | Validated draft configuration; 201 `{test}`. No provider call. |
-| `GET /api/red-team/tests/{id}` | `{test}` with persisted configuration, derived progress/score, dispatch pending flag. |
-| `PUT /api/red-team/tests/{id}` | Draft-only edit with `version`; stale edit 409. |
-| `POST /api/red-team/tests/{id}/launch` | Body `{version}`, UUID `Idempotency-Key`; 202 `{test,dispatch_pending}` after Mongo transaction, not broker completion. |
-| `POST /api/red-team/tests/{id}/cancel` | Idempotent cancellation; in-flight provider work may finish/incur cost. |
-| `POST /api/red-team/tests/{id}/clone` | 201 new draft; optional body `{mode}`. Rerun always gets a new test ID. |
-| `GET /api/red-team/tests/{id}/results` | Paginated job summaries; category, case kind, verdict, state filters. |
-| `GET /api/red-team/tests/{id}/results/{job_id}` | Admin-only synthetic job detail and permitted decrypted response; withheld/expired output is null. |
-| `GET /api/red-team/tests/{id}/report` | Reproducibility metadata, progress, score, controls, limitations, partial flag. |
+| `POST /api/red-team/tests` | Validated Promptfoo draft configuration; 201 `{test}`. No provider call. |
+| `GET /api/red-team/tests/{id}` | `{test}` with persisted configuration and `{planned,executed,graded,phase}` progress. |
+| `GET /api/red-team/tests/{id}/config-preview` | Redacted Promptfoo YAML for a stored draft. |
+| `PUT /api/red-team/tests/{id}` | Draft-only edit with `version`. A stale edit or a change to suite-backed generation settings returns 409. |
+| `POST /api/red-team/tests/{id}/launch` | Revalidates the saved version and Promptfoo runtime, freezes a key-free target/grader/policy snapshot, and inserts one `kind: run` outbox job. Send `{version}` and a UUID `Idempotency-Key`; matching retries are idempotent. |
+| `POST /api/red-team/tests/{id}/cancel` | Queued work becomes cancelled; generating/running work becomes cancelling so the worker can terminate Promptfoo. |
+| `POST /api/red-team/tests/{id}/clone` | 201 new draft in the comparison group; optional `{mode}`; reuses `suite_id` when generation already completed. |
+| `GET /api/red-team/tests/{id}/results` | Paginated Promptfoo case summaries; equality filters: `plugin`, `strategy`, `verdict`, `verdict_source`. |
+| `GET /api/red-team/tests/{id}/results/{attack_id}` | Decrypted case prompt/reply subject to retention, evidence and the same-suite paired result. |
+| `GET /api/red-team/tests/{id}/report` | Promptfoo report with risk, test-case failure rate, plugin/strategy rows, all nine compliance frameworks, paired result and trend. |
 | `GET /api/red-team/tests/{id}/export?format=json\|csv` | Safe authorized export; CSV formula-prefix neutralization. |
-| `GET /api/red-team/comparisons?raw_test_id=...&protected_test_id=...` | Same-manifest/snapshot paired comparison or 409 mismatch. |
 
-`num_attacks` is 1–100 and at least the selected category count; five benign controls are added. The threshold is provisional until terminal. Score excludes errors, inconclusive, cancelled, and controls; evaluable coverage below 80% is insufficient evidence. A raw test intentionally bypasses platform policy only in the internal worker. Queue messages contain job/test IDs and generation, not prompts or credentials.
+Create and edit accept `name`, `purpose`, target `integration_id` and `model`,
+`mode`, protected `subject_user_id`, 1–20 distinct `plugins`, 0–8 distinct
+`strategies` (baseline is implicit), `tests_per_plugin` from 1–10, required
+`grader: {integration_id, model}`, and `threshold_score`. Extra keys are rejected.
+The target-call estimate may not exceed 200. Target, grader and protected subject
+must be active in the same organization. Unsupported Promptfoo providers return
+422 `unsupported_provider`. Launch can return 409 `promptfoo_unavailable`,
+`policy_required`, `validator_unavailable`, `configuration_unavailable`,
+`suite_pending`, `suite_unavailable`, or `suite_config_locked`.
 
-
-### Red Team v3 plugins format
-
-Create/edit accepts `format: "plugins"` (inferred when `plugins` is provided),
-`plugins` (1–8 distinct catalog IDs), `strategies` (distinct catalog IDs; Plain
-`basic` always included), `tests_per_plugin` (1–10), and optional
-`judge: {integration_id, model}` or null, alongside the existing target, mode,
-subject, threshold, seed and generation fields. `num_attacks` is derived as
-plugins × strategies including Plain × tests per plugin, capped at 100, plus
-five controls. Validation returns field paths (for example `plugins`,
-`tests_per_plugin`, `judge.model`). Both integrations must be active, have the
-model enabled and belong to the same organization. Judge authority is rechecked
-at launch. Launch freezes plugin severities, strategy metadata and judge provider
-and price snapshot; repeated matching launch keys create one set of jobs.
-Clone retains the format, judge, manifest and comparison group.
-
-Capabilities adds eight `plugins` with per-framework control keys, eight
-`strategies`, four `frameworks` with totals and mappings, `max_attacks: 100`,
-`max_tests_per_plugin: 10`, `judge_supported: true`. Earlier category fields and
-`legacy_catalog_version` / `legacy_evaluator_version` remain available.
-V3 tests use `synthetic-catalog-3` and `exact-evidence-3`.
-
-V3 test detail/list includes `summary` (risk, attack_success, decided, threshold),
-progress, model/judge call counts and dispatch status. Results accept `plugin`,
-`strategy`, `verdict_source` in addition to case kind, verdict and state, and add
-whole-test `counts: {all, unsafe, defended, inconclusive, errors, controls}`.
-Detail adds original/sent prompt, plugin/strategy names, source, ordered evidence
-steps, optional decoded reply, judge metadata and paired verdict. Withheld or
-expired responses remain unavailable, including decoded text.
-
-The v3 report adds `risk: {score, level, by_level}`, `attack_success`
-(rate/worked/decided/proven/judged), `decided` source and outcome counts,
-`threshold`, `plugins`, `strategies`, `compliance`, `controls`, `paired`, `trend`,
-and `provisional`. Risk, compliance and threshold are null before terminal state;
-cancelled runs have no final risk or compliance verdict. Rates exclude controls,
-errors, inconclusive and cancelled rows. Legacy report/score semantics remain.
-JSON export preserves text; CSV adds plugin, strategy, verdict_source, judge
-reason and original prompt columns and neutralizes formula prefixes.
+Raw mode calls the configured model through Promptfoo. Protected mode calls the
+worker's authenticated loopback bridge and the frozen policy pipeline. Queue
+messages contain only version, job ID, test ID and dispatch generation. Stored
+suites and API responses contain no integration key, Promptfoo Cloud key or bridge
+token. Risk, compliance and threshold remain provisional until a terminal state.
+“Test case failure rate” is the fraction of pass/fail cases that failed; errors and
+pending rows are excluded. JSON preserves text, while CSV neutralizes formula prefixes.
 
 
 ## Named DLP and Guardrail policies

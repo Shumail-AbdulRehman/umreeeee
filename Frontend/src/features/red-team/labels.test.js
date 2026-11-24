@@ -3,6 +3,8 @@ import {
   controlStatusLabel,
   decisionLabel,
   evidenceSourceLabel,
+  failureReasonLabel,
+  frameworkLabel,
   levelLabel,
   modeLabel,
   notScored,
@@ -85,11 +87,39 @@ describe('run phases and decisions', () => {
   })
 
   it('distinguishes unknown labels from missing ones across registries', () => {
-    for (const label of [statusLabel, phaseLabel, decisionLabel, evidenceSourceLabel, severityLabel, levelLabel, modeLabel, controlStatusLabel]) {
+    for (const label of [statusLabel, phaseLabel, decisionLabel, evidenceSourceLabel, severityLabel, levelLabel, modeLabel, controlStatusLabel, failureReasonLabel, frameworkLabel]) {
       expect(label('new_value')).toEqual({ label: 'new value', tone: 'neutral' })
       expect(label('constructor')).toEqual({ label: 'constructor', tone: 'neutral' })
       expect(label(' ')).toEqual({ label: notScored, tone: 'neutral', missing: true })
     }
+  })
+})
+
+describe('failureReasonLabel', () => {
+  it.each([
+    ['suite_contains_secret', 'Generated suite contains a secret'],
+    ['results_too_large', 'Results are too large to import'],
+    ['target_key_unavailable', 'Target integration key unavailable'],
+    ['grader_key_unavailable', 'Grader integration key unavailable'],
+    ['unsupported_provider', 'Unsupported provider'],
+  ])('labels %s', (reason, label) => {
+    expect(failureReasonLabel(reason)).toEqual({ label, tone: 'fail' })
+  })
+})
+
+describe('frameworkLabel', () => {
+  it.each([
+    ['nist_ai_rmf', 'NIST AI RMF'],
+    ['eu:ai-act', 'EU AI Act'],
+    ['owasp:llm', 'OWASP LLM Top 10'],
+    ['owasp:api', 'OWASP API Top 10'],
+    ['mitre:atlas', 'MITRE ATLAS'],
+    ['owasp:agentic', 'OWASP Agentic AI'],
+    ['iso:42001', 'ISO/IEC 42001'],
+    ['gdpr', 'EU GDPR'],
+    ['dod:ai:ethics', 'DoD AI Ethical Principles'],
+  ])('labels %s', (id, label) => {
+    expect(frameworkLabel(id)).toEqual({ label, tone: 'neutral' })
   })
 })
 

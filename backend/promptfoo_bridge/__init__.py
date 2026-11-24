@@ -1,1 +1,1 @@
-"""Local Promptfoo fixture provider."""
+"""Promptfoo's protected-mode bridge provider."""

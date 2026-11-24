@@ -1,154 +1,203 @@
 import { readFileSync } from 'node:fs'
-import { Buffer } from 'node:buffer'
 
-const catalog = JSON.parse(readFileSync(new URL('../../../backend/app/red_team/catalog_v3.json', import.meta.url)))
-const frameworkData = JSON.parse(readFileSync(new URL('../../../backend/app/red_team/frameworks.json', import.meta.url))).frameworks
+const catalog = JSON.parse(readFileSync(new URL('../../../backend/app/red_team/promptfoo_catalog.json', import.meta.url)))
+const frameworkCatalog = JSON.parse(readFileSync(new URL('../../../backend/app/red_team/scheduler_frameworks.json', import.meta.url))).frameworks
 export const id = (value) => String(value).padStart(24, '0')
-export const ids = { raw: id(1), protected: id(2), running: id(3), cancelled: id(4), failed: id(5), nojudge: id(6), legacy: id(7), draft: id(8), target: id(80), judge: id(81) }
-const stamp = '2026-11-10T14:32:00Z'
-const marker = 'SYNTH-PRIVATE-ABCDEF123456'
-const frameworks = frameworkData.map((fw) => ({ id: fw.id, name: fw.name, total: fw.controls.length,
-  plugins: Object.fromEntries(catalog.plugins.map((p) => [p.id, fw.controls.filter((c) => c.plugins.includes(p.id)).map((c) => c.key)])) }))
+export const ids = {
+  raw: id(1), protected: id(2), running: id(3), generating: id(4), cancelled: id(5),
+  failed: id(6), draft: id(7), target: id(80), grader: id(81), subject: id(82),
+}
+const stamp = '2026-11-23T14:32:00Z'
+const plugins = catalog.plugins.filter((plugin) => ['prompt-extraction', 'pii:direct', 'sql-injection'].includes(plugin.id))
+const strategies = catalog.strategies.filter((strategy) => ['basic', 'base64', 'hex'].includes(strategy.id))
+const frameworks = frameworkCatalog.map((framework) => ({
+  id: framework.id, name: framework.name, description: framework.description,
+  controls: framework.controls.map((control) => ({
+    id: control.id, name: control.name, plugins: control.plugins.map((plugin) => plugin.id),
+  })),
+}))
+
 export const capabilities = {
-  categories: ['direct_injection', 'indirect_injection', 'pii_extraction', 'jailbreak', 'off_topic'],
-  plugins: catalog.plugins.map(({ id, name, group, severity, description }) => ({ id, name, group, severity, description,
-    frameworks: Object.fromEntries(frameworks.map((fw) => [fw.id, fw.plugins[id]])) })),
-  strategies: catalog.strategies, frameworks, max_attacks: 100, max_tests_per_plugin: 10, control_count: 5,
-  judge_supported: true, requests_per_minute: 6, broker_transport_reachable: true, worker_observed: true,
+  promptfoo: { version: '0.126.0', available: true, cloud_key_configured: true },
+  plugins, strategies, frameworks,
+  limits: { max_target_calls: 200, max_tests_per_plugin: 10 },
+  requests_per_minute: 6, broker_transport_reachable: true, worker_observed: true,
   dispatcher_observed: true, observed_at: { worker: stamp, dispatcher: stamp },
 }
 
 function sampleTest(testId, status = 'completed', mode = 'raw') {
-  return { id: testId, name: 'Support bot · weekly baseline', format: 'plugins', version: 1, status, mode,
-    integration_id: ids.target, model: 'fake-model', plugins: catalog.plugins.map((p) => p.id),
-    strategies: ['basic', 'base64', 'roleplay', 'authority'], tests_per_plugin: 3, num_attacks: 96,
-    judge: { integration_id: ids.judge, model: 'judge-model' }, threshold_score: .8, seed: 1,
-    temperature: .2, max_tokens: 256, comparison_group_id: id(200),
-    created_at: stamp, updated_at: stamp, finished_at: status === 'completed' ? stamp : null,
-    config_snapshot: { integration_name: 'Synthetic target', provider: 'ollama' },
-    model_calls: 101, judge_calls: 17,
-    progress: { total_jobs: 101, terminal_jobs: status === 'running' ? 46 : 101,
-      finished: status === 'running' ? 46 : 101, queued: status === 'running' ? 54 : 0, running: status === 'running' ? 1 : 0 },
-    summary: { risk: { score: 9.4, level: 'critical' }, attack_success: { rate: .216 } },
+  return {
+    id: testId, name: 'Support bot · weekly baseline', purpose: 'Test whether the support bot protects private customer records.',
+    engine: 'promptfoo', promptfoo_version: '0.126.0', version: 1, status, mode,
+    integration_id: ids.target, model: 'fake-model', subject_user_id: mode === 'protected' ? ids.subject : null,
+    plugins: plugins.map((plugin) => plugin.id), strategies: ['base64'], tests_per_plugin: 1,
+    grader: { integration_id: ids.grader, model: 'judge-model' }, threshold_score: .8,
+    comparison_group_id: id(200), suite_id: id(300), created_at: stamp, updated_at: stamp,
+    finished_at: ['completed', 'partially_failed', 'failed', 'cancelled'].includes(status) ? stamp : null,
+    config_snapshot: { integration_name: 'Synthetic target', provider: 'ollama', grader: { model: 'judge-model' } },
+    counts: { planned: 6, executed: status === 'running' ? 3 : status === 'generating' ? 0 : 6,
+      graded: status === 'running' ? 2 : status === 'generating' ? 0 : 6 },
+    progress: { planned: 6, executed: status === 'running' ? 3 : status === 'generating' ? 0 : 6,
+      graded: status === 'running' ? 2 : status === 'generating' ? 0 : 6,
+      phase: status === 'generating' ? 'generating' : status === 'running' ? 'evaluating' : 'finished' },
   }
 }
 
 export function sampleReport(test) {
-  const partial = ['queued', 'running', 'cancelling'].includes(test.status)
-  const cancelled = test.status === 'cancelled'
-  return { provisional: partial, risk: partial || cancelled ? null : { score: 9.4, level: 'critical' },
-    attack_success: { rate: .216, worked: 19, decided: 88, proven: 15, judged: 4 },
-    decided: { decided: 88, adversarial: 96, exact: 71, judge: 17, policy: 0, inconclusive: 6, errors: 2 },
-    threshold: partial ? null : { threshold: .8, defended_rate: .784, verdict: cancelled ? 'insufficient_evidence' : 'below_threshold' },
-    paired: { test_id: test.mode === 'protected' ? ids.raw : ids.protected,
-      mode: test.mode === 'protected' ? 'raw' : 'protected', risk: { score: 4.1, level: 'medium' },
-      attack_success: { rate: .034 }, plugin_rates: Object.fromEntries(catalog.plugins.map((p) => [p.id, .09])) },
-    trend: { risk_score: 9.7, finished_at: '2026-10-28T12:00:00Z' },
-    plugins: catalog.plugins.map((p, index) => ({ id: p.id, name: p.name, severity: p.severity,
-      risk_score: index < 5 ? 8.6 - index / 10 : 0, level: index < 5 ? 'high' : 'none',
-      worked: index < 5 ? 4 : 0, decided: 11, rate: index < 5 ? .364 : 0,
-      worst_strategy: index < 5 ? 'authority' : null, worst_strategy_name: 'Authority' })),
-    strategies: [{ id: 'authority', name: 'Authority', worked: 8, decided: 23, rate: .348 },
-      { id: 'roleplay', name: 'Role-play', worked: 6, decided: 22, rate: .273 },
-      { id: 'basic', name: 'Plain', worked: 2, decided: 22, rate: .091 }],
-    compliance: partial || cancelled ? null : frameworkData.map((fw) => ({ framework: fw.id, name: fw.name,
-      totals: { total: fw.controls.length, failed: 1, passed: 0, not_tested: fw.controls.length - 1 },
-      controls: fw.controls.map((c, index) => ({ ...c, status: index === 0 ? 'failed' : 'not_tested',
-        worked: index === 0 ? 4 : 0, decided: index === 0 ? 11 : 0,
-        reason: index ? 'No selected plugin maps to it' : null })) })),
-    controls: { answered: 5, blocked: 0, inconclusive: 0, error: 0 },
+  const provisional = ['queued', 'generating', 'running', 'cancelling'].includes(test.status)
+  const controls = (framework) => framework.controls.slice(0, 2).map((control, index) => ({
+    id: control.id, name: control.name, status: index ? 'not_tested' : 'failed',
+    worked: index ? 0 : 1, decided: index ? 0 : 2,
+    reason: index ? 'No selected plugin maps to this control.' : null,
+  }))
+  return {
+    provisional,
+    engine: { name: 'promptfoo', version: '0.126.0', suite_id: test.suite_id,
+      generated_tests: test.counts.planned, grader_model: 'judge-model' },
+    risk: provisional || test.status === 'cancelled' ? null : { score: 8.2, level: 'high' },
+    attack_success: { rate: .333, worked: 2, decided: 6, proven: 1, judged: 1 },
+    decided: { decided: 6, adversarial: 6, policy: 1, grader: 5, defended: 4, unsafe: 2, errors: 0, pending: 0 },
+    threshold: provisional ? null : { threshold: .8, defended_rate: .667, verdict: 'below_threshold' },
+    paired: { test_id: test.mode === 'raw' ? ids.protected : ids.raw, suite_id: test.suite_id,
+      raw_rate: .5, protected_rate: .167, delta_pp: -33.3 },
+    trend: { risk_score: 9.0, finished_at: '2026-11-01T12:00:00Z' },
+    plugins: plugins.map((plugin, index) => ({ id: plugin.id, name: plugin.name, severity: plugin.severity,
+      risk_score: index ? 0 : 8.2, level: index ? 'none' : 'high', worked: index ? 0 : 2,
+      decided: 2, rate: index ? 0 : 1, worst_strategy: index ? null : 'base64', worst_strategy_name: 'Base64' })),
+    strategies: [{ id: 'base64', name: 'Base64', worked: 2, decided: 3, rate: .667 },
+      { id: 'basic', name: 'Plain', worked: 0, decided: 3, rate: 0 }],
+    compliance: provisional ? null : frameworks.map((framework) => ({ framework: framework.id, name: framework.name,
+      totals: { total: 2, failed: 1, passed: 0, not_tested: 1 }, controls: controls(framework) })),
   }
 }
 
-function result(index) {
-  return { id: id(500 + index), attack_index: index, case_kind: index === 2 ? 'control' : 'adversarial',
-    plugin_id: index === 2 ? null : 'prompt-extraction', plugin_name: index === 2 ? 'Control question' : 'System prompt leak',
-    strategy_id: index === 0 ? 'base64' : 'basic', strategy_name: index === 0 ? 'Base64' : 'Plain',
-    verdict: index < 2 ? 'fail' : 'pass', verdict_source: index === 1 ? 'judge' : 'exact', state: 'finished',
-    original_prompt: 'Synthetic original attack', prompt: 'Synthetic encoded attack',
-    response_text: index === 0 ? Buffer.from(marker).toString('base64') : 'Synthetic reply',
-    decoded_response: index === 0 ? marker : undefined,
-    explanation: index === 0 ? 'The marker was found after base64 decoding.' : 'Synthetic judge assessment.',
-    evidence_steps: [{ step: 'policy', state: 'skipped', description: 'Raw run' },
-      { step: 'exact', state: index === 0 ? 'decisive' : 'undecided', description: 'Synthetic marker check' },
-      { step: 'judge', state: index === 1 ? 'decisive' : 'skipped', description: 'Synthetic judgement' }],
-    judge: index === 1 ? { verdict: 'unsafe', reason: 'The synthetic rules were overridden.', model: 'judge-model' } : null,
-    paired: { verdict: 'pass', verdict_source: 'policy', prevention_stage: 'input_policy' },
+function result(index, detail = false) {
+  const policy = index === 0
+  return {
+    id: id(500 + index), test_id: ids.raw, test_idx: index, repeat_index: 0,
+    plugin_id: plugins[index % plugins.length].id, plugin_name: plugins[index % plugins.length].name,
+    strategy_id: policy ? 'base64' : 'basic', strategy_name: policy ? 'Base64' : 'Plain',
+    severity: 'high', decision: policy ? 'blocked_input' : 'allowed',
+    verdict: policy ? 'pass' : 'fail', verdict_source: policy ? 'policy' : 'grader',
+    grader_reason: policy ? null : 'The synthetic response violated the test criterion.',
+    policy_evidence: policy ? [{ field: 'prompt', outcome: 'match', rule_id: 'synthetic-rule', policy_name: 'Synthetic policy' }] : [],
+    latency_ms: 12, total_tokens: 9, cost_usd: .001,
+    ...(detail ? { prompt: `Synthetic attack ${index}`, response_text: `Synthetic reply ${index}`,
+      paired: { verdict: 'pass', verdict_source: 'policy', decision: 'blocked_input', prevention_stage: 'input' } } : {}),
   }
 }
 
 export async function redTeamFixture(page, options = {}) {
-  const tests = Object.fromEntries(Object.entries(ids).filter(([key]) => !['target', 'judge'].includes(key))
-    .map(([key, value]) => [value, sampleTest(value, ['running', 'cancelled', 'failed', 'draft'].includes(key) ? key : 'completed', key === 'protected' ? 'protected' : 'raw')]))
-  tests[ids.legacy] = { ...tests[ids.legacy], format: 'categories', attack_categories: ['direct_injection'],
-    num_attacks: 1, judge: null, score: { compliance_score: .8, categories: {}, control_results: {} } }
-  for (const key of ['plugins', 'strategies', 'tests_per_plugin']) delete tests[ids.legacy][key]
-  tests[ids.nojudge].judge = null
-  tests[ids.cancelled].progress.finished = 46
-  tests[ids.failed].most_common_error_code = 'authentication'
-  if (options.empty) for (const key of Object.keys(tests)) delete tests[key]
-  const state = { tests, requests: [], launches: [], saves: [], cancels: 0, errors: [], failLaunch: Boolean(options.failLaunch), detailFlags: options.detailFlags || {} }
+  const tests = {
+    [ids.raw]: sampleTest(ids.raw), [ids.protected]: sampleTest(ids.protected, 'completed', 'protected'),
+    [ids.running]: sampleTest(ids.running, 'running'), [ids.generating]: sampleTest(ids.generating, 'generating'),
+    [ids.cancelled]: sampleTest(ids.cancelled, 'cancelled'), [ids.failed]: { ...sampleTest(ids.failed, 'failed'), failure_reason: 'no_tests_generated' },
+    [ids.draft]: sampleTest(ids.draft, 'draft'),
+  }
+  if (options.empty) Object.keys(tests).forEach((key) => delete tests[key])
+  const state = { tests, requests: [], launches: [], saves: [], cancels: 0, errors: [], failPreview: false,
+    failLaunch: Boolean(options.failLaunch) }
   page.on('pageerror', (error) => state.errors.push(error.message))
   await page.addInitScript(() => localStorage.setItem('centurion.auth.token', 'synthetic-only'))
+  await page.route('**/*', async (route) => {
+    const url = new URL(route.request().url())
+    if (url.origin === 'http://127.0.0.1:5192') return route.continue()
+    if (url.origin === 'https://fonts.googleapis.com' && url.pathname === '/css2') {
+      return route.fulfill({ contentType: 'text/css', body: '' })
+    }
+    state.errors.push(`Unexpected external request: ${url.origin}${url.pathname}`)
+    return route.abort()
+  })
   await page.route('**/api/**', async (route) => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname, method = request.method()
     state.requests.push({ path, method, query: Object.fromEntries(url.searchParams) })
     const respond = (json, status = 200) => route.fulfill({ json, status })
+    if (url.origin !== 'http://127.0.0.1:5192') {
+      state.errors.push(`Unexpected external API: ${url.origin}${path}`)
+      return route.abort()
+    }
+    const preview = (body, suiteId) => respond({
+      yaml: `${suiteId ? '# Reuses 6 stored test cases\n' : ''}redteam:\n  purpose: ${body.purpose}\n  plugins:\n${body.plugins.map((plugin) => `    - ${plugin}`).join('\n')}\n  strategies:\n${body.strategies.map((strategy) => `    - ${strategy}`).join('\n')}`,
+      estimated_target_calls: 6, generated_tests_estimate: 6,
+    })
     if (path === '/api/auth/me') return respond({ id: id(99), role: 'org_admin', first_name: 'Test', last_name: 'Admin', company: { id: id(100), name: 'Synthetic organization' } })
     if (path === '/api/notifications') return respond({ items: [] })
     if (path === '/api/integrations') return respond({ items: [
       { id: ids.target, provider: 'ollama', account_name: 'Synthetic target', status: 'active', models: ['fake-model'] },
-      { id: ids.judge, provider: 'ollama', account_name: 'Synthetic judge', status: 'active', models: ['judge-model'] },
+      { id: ids.grader, provider: 'ollama', account_name: 'Synthetic grader', status: 'active', models: ['judge-model'] },
     ] })
-    if (path === '/api/users') return respond({ items: [] })
+    if (path === '/api/users') return respond({ items: [{ id: ids.subject, first_name: 'Policy', last_name: 'Subject', is_active: true, is_email_verified: true }] })
     if (path === '/api/red-team/capabilities') return respond({ ...capabilities, ...options.capabilities })
+    if (path === '/api/red-team/config-preview') {
+      if (state.failPreview) return respond({ detail: { message: 'Preview failed' } }, 503)
+      const body = request.postDataJSON()
+      return preview(body, state.tests[url.searchParams.get('test_id')]?.suite_id)
+    }
     if (path === '/api/red-team/tests') {
       if (method === 'POST') {
-        const body = request.postDataJSON(), created = { ...sampleTest(id(20), 'draft'), ...body }
+        const body = request.postDataJSON()
+        const allowed = ['name', 'purpose', 'integration_id', 'model', 'mode', 'subject_user_id',
+          'plugins', 'strategies', 'tests_per_plugin', 'grader', 'threshold_score']
+        if (Object.keys(body).some((field) => !allowed.includes(field))) {
+          state.errors.push('Unexpected field in draft create payload')
+          return respond({ detail: { message: 'Unexpected draft field' } }, 422)
+        }
+        const created = { ...sampleTest(id(20), 'draft'), ...body, suite_id: null, id: id(20) }
         state.saves.push(body); state.tests[created.id] = created
         return respond({ test: created }, 201)
       }
       let items = Object.values(state.tests)
-      for (const key of ['status', 'mode']) if (url.searchParams.get(key)) items = items.filter((t) => t[key] === url.searchParams.get(key))
-      if (url.searchParams.get('q')) items = items.filter((t) => t.name.toLowerCase().includes(url.searchParams.get('q').toLowerCase()))
+      for (const key of ['status', 'mode']) if (url.searchParams.get(key)) items = items.filter((test) => test[key] === url.searchParams.get(key))
+      if (url.searchParams.get('q')) items = items.filter((test) => test.name.toLowerCase().includes(url.searchParams.get('q').toLowerCase()))
       return respond({ items, total: items.length, page: 1, page_size: 20 })
     }
     const match = path.match(/^\/api\/red-team\/tests\/([^/]+)(.*)$/)
     if (match) {
-      const [, testId, tail] = match, test = state.tests[testId]
-      if (!test) return respond({ detail: { message: 'Test not found' } }, 404)
+      const [, testId, tail] = match, current = state.tests[testId]
+      if (!current) return respond({ detail: { message: 'Test not found' } }, 404)
       if (!tail) {
         if (method === 'PUT') {
           const body = request.postDataJSON(); state.saves.push(body)
-          Object.assign(test, body, { version: test.version + 1 })
+          Object.assign(current, body, { version: current.version + 1 })
         }
-        return respond({ test })
+        return respond({ test: current })
       }
+      if (tail === '/config-preview') return preview(current, current.suite_id)
       if (tail === '/launch') {
         state.launches.push({ key: request.headers()['idempotency-key'], body: request.postDataJSON() })
         if (state.failLaunch) { state.failLaunch = false; return route.abort('failed') }
-        const total = test.format === 'categories' ? test.num_attacks + 5 : 101
-        test.status = 'queued'; test.progress = { total_jobs: total, finished: 0, terminal_jobs: 0, queued: total }
-        return respond({ test }, 202)
+        current.status = current.suite_id ? 'running' : 'queued'
+        current.progress = { planned: 6, executed: 0, graded: 0, phase: current.suite_id ? 'evaluating' : 'claimed' }
+        current.counts = { planned: 6, executed: 0, graded: 0 }
+        return respond({ test: current }, 202)
       }
-      if (tail === '/cancel') { state.cancels += 1; test.status = 'cancelled'; return respond({ test }) }
+      if (tail === '/cancel') { state.cancels += 1; current.status = 'cancelled'; return respond({ test: current }) }
       if (tail === '/clone') {
-        const clone = { ...test, id: id(21), status: 'draft', mode: request.postDataJSON().mode, version: 1 }
+        const clone = { ...current, id: id(21), status: 'draft', mode: request.postDataJSON().mode, version: 1,
+          subject_user_id: request.postDataJSON().mode === 'protected' ? ids.subject : null }
         state.tests[clone.id] = clone; return respond({ test: clone }, 201)
       }
-      if (tail === '/report') return respond(test.format === 'plugins' ? sampleReport(test) : { test, score: test.score, progress: test.progress })
-      if (tail === '/results') {
-        let items = [0, 1, 2].map(result)
-        const keys = { verdict: 'verdict', plugin: 'plugin_id', strategy: 'strategy_id', verdict_source: 'verdict_source', case_kind: 'case_kind' }
-        for (const [param, key] of Object.entries(keys)) if (url.searchParams.get(param)) items = items.filter((r) => r[key] === url.searchParams.get(param))
-        return respond({ items, total: items.length, page: 1, page_size: 20,
-          counts: { all: 101, unsafe: 19, defended: 69, inconclusive: 6, errors: 2, controls: 5 } })
+      if (tail === '/report') {
+        const report = sampleReport(current)
+        if (options.noPair) report.paired = null
+        return respond(report)
       }
-      if (tail.startsWith('/results/')) return respond({ result: { ...result(Number(tail.split('/').at(-1)) - 500), ...state.detailFlags } })
+      if (tail === '/results') {
+        let items = [result(0), result(1), result(2)]
+        for (const [param, key] of Object.entries({ verdict: 'verdict', plugin: 'plugin_id', strategy: 'strategy_id', verdict_source: 'verdict_source' })) {
+          if (url.searchParams.get(param)) items = items.filter((row) => row[key] === url.searchParams.get(param))
+        }
+        return respond({ items, total: items.length, page: 1, page_size: 20,
+          counts: { all: 3, unsafe: 2, defended: 1, pending: 0, errors: 0 } })
+      }
+      if (tail.startsWith('/results/')) {
+        const index = Number(tail.split('/').at(-1)) - 500
+        return respond({ result: { ...result(index, true), ...(options.detailFlags || {}) } })
+      }
       if (tail === '/export') {
         const csv = url.searchParams.get('format') === 'csv'
         return route.fulfill({ contentType: csv ? 'text/csv' : 'application/json',
-          body: csv ? 'plugin_id,strategy_id,verdict_source,original_prompt\nprompt-extraction,base64,exact,Synthetic original attack\n' : JSON.stringify({ report: sampleReport(test), results: [0, 1].map(result) }) })
+          body: csv ? "test_idx,plugin_id,verdict_source,prompt\n0,prompt-extraction,policy,'=safe\n" : JSON.stringify({ report: sampleReport(current), results: [result(0)] }) })
       }
     }
     state.errors.push(`Unexpected API: ${method} ${path}`)

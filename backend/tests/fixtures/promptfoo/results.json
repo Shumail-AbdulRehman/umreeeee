@@ -1,32 +1,220 @@
 {
-  "evalId": "sample-eval",
   "results": {
     "version": 3,
     "results": [
       {
         "testIdx": 0,
-        "testCase": {"metadata": {"pluginId": "sample-plugin", "severity": "low", "goal": "Placeholder goal"}},
-        "prompt": {"raw": "Placeholder input"},
-        "response": {"output": "Placeholder output", "tokenUsage": {"prompt": 4, "completion": 0}, "cost": 0},
-        "gradingResult": {"pass": true, "reason": "Placeholder pass"},
+        "metadata": {
+          "pluginId": "hijacking",
+          "severity": "low"
+        },
+        "testCase": {
+          "metadata": {
+            "pluginId": "prompt-extraction",
+            "severity": "high"
+          },
+          "assert": [
+            {
+              "type": "promptfoo:redteam:hijacking",
+              "metric": "Sample"
+            },
+            {
+              "type": "equals",
+              "metric": "Ignored"
+            }
+          ]
+        },
+        "prompt": {
+          "raw": "Placeholder input"
+        },
+        "response": {
+          "output": "Placeholder output",
+          "tokenUsage": {
+            "prompt": 4,
+            "completion": 2,
+            "total": 6,
+            "numRequests": 1,
+            "cached": 0
+          }
+        },
+        "gradingResult": {
+          "pass": true,
+          "reason": "Placeholder pass"
+        },
         "failureReason": 0,
-        "latencyMs": 0
+        "latencyMs": 12,
+        "cost": 0.001,
+        "score": 1
       },
       {
         "testIdx": 1,
         "repeatIndex": 0,
-        "testCase": {"metadata": {"pluginId": "sample-plugin", "strategyId": "crescendo", "severity": "medium"}},
-        "response": {"output": "Placeholder output"},
-        "gradingResult": {"pass": false, "reason": "Placeholder fail"},
+        "metadata": {},
+        "testCase": {
+          "metadata": {
+            "pluginId": "hijacking",
+            "strategyId": "crescendo",
+            "severity": "unexpected"
+          }
+        },
+        "response": {
+          "output": {
+            "message": "Placeholder output"
+          }
+        },
+        "gradingResult": {
+          "pass": false,
+          "reason": "Placeholder fail"
+        },
         "error": "Placeholder fail",
-        "failureReason": 1
+        "failureReason": 1,
+        "score": 0
       },
       {
         "testIdx": 1,
         "repeatIndex": 1,
-        "testCase": {"metadata": {"pluginId": "sample-plugin", "strategyId": "crescendo", "severity": "medium"}},
-        "response": {"output": "Placeholder output"},
-        "gradingResult": null
+        "metadata": {
+          "pluginId": "example-historical"
+        },
+        "response": {
+          "error": "Placeholder provider detail"
+        },
+        "gradingResult": null,
+        "error": "Placeholder execution error",
+        "failureReason": 2,
+        "score": 0
+      },
+      {
+        "testIdx": 2,
+        "metadata": {
+          "pluginId": "hijacking"
+        },
+        "gradingResult": {
+          "pass": false,
+          "reason": "Placeholder grading error",
+          "metadata": {
+            "graderError": true
+          }
+        }
+      },
+      {
+        "testIdx": 3,
+        "gradingResult": {
+          "pass": true
+        }
+      },
+      {
+        "testIdx": 4,
+        "metadata": {
+          "pluginId": "hijacking"
+        },
+        "response": {
+          "output": "Placeholder policy block",
+          "metadata": {
+            "decision": "blocked_input",
+            "protected_run_id": "sample-issued",
+            "policy_evidence": [
+              {
+                "field": "user_prompt",
+                "outcome": "match"
+              }
+            ]
+          },
+          "guardrails": {
+            "flagged": true,
+            "flaggedInput": true,
+            "flaggedOutput": false,
+            "reason": "Placeholder"
+          }
+        },
+        "gradingResult": {
+          "pass": false,
+          "reason": "Placeholder fail"
+        },
+        "failureReason": 1,
+        "score": 0
+      },
+      {
+        "testIdx": 5,
+        "metadata": {
+          "pluginId": "hijacking"
+        },
+        "response": {
+          "output": "Placeholder policy block",
+          "metadata": {
+            "decision": "blocked_input",
+            "protected_run_id": "sample-unissued",
+            "policy_evidence": [
+              {
+                "field": "user_prompt",
+                "outcome": "match"
+              }
+            ]
+          },
+          "guardrails": {
+            "flagged": true,
+            "flaggedInput": true,
+            "flaggedOutput": false,
+            "reason": "Placeholder"
+          }
+        },
+        "gradingResult": {
+          "pass": false,
+          "reason": "Placeholder fail"
+        },
+        "failureReason": 1,
+        "score": 0
+      },
+      {
+        "testIdx": 6,
+        "metadata": {
+          "pluginId": "hijacking"
+        },
+        "response": {
+          "output": "Placeholder policy block",
+          "metadata": {
+            "decision": "blocked_input",
+            "protected_run_id": null,
+            "policy_evidence": [
+              {
+                "field": "user_prompt",
+                "outcome": "match"
+              }
+            ]
+          },
+          "guardrails": {
+            "flagged": true,
+            "flaggedInput": true,
+            "flaggedOutput": false,
+            "reason": "Placeholder"
+          }
+        },
+        "gradingResult": {
+          "pass": false,
+          "reason": "Placeholder fail"
+        },
+        "failureReason": 1,
+        "score": 0
+      }
+    ],
+    "stats": {
+      "successes": 2,
+      "failures": 5,
+      "errors": 1,
+      "tokenUsage": {
+        "prompt": 4,
+        "completion": 2,
+        "total": 6,
+        "numRequests": 1
+      },
+      "durationMs": 20,
+      "cacheHits": 0
+    },
+    "prompts": [
+      {
+        "metrics": {
+          "totalLatencyMs": 12
+        }
       }
     ]
   }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { InlineLoadingBar } from '../components/LoadingSurface'
-import { formatDate, formatNumber, formatPercent } from '../lib/format'
+import { formatDate, formatNumber } from '../lib/format'
 import { fetchLLMIntegrations } from '../services/integrations/llmIntegrationService'
 import { fetchManagedUsers } from '../services/users/userManagementService'
 import useRedTeamTest from '../hooks/useRedTeamTest'
@@ -15,7 +15,6 @@ import StrategyBreakdown from '../features/red-team/StrategyBreakdown'
 import ComplianceTabs from '../features/red-team/ComplianceTabs'
 import ResultsTable from '../features/red-team/ResultsTable'
 import AttackDetailDialog from '../features/red-team/AttackDetailDialog'
-import LegacyReport from '../features/red-team/LegacyReport'
 import { CancelledBanner, FailedBanner, NoJudgeNote, MethodDisclosure, Limitations } from '../features/red-team/ReportStates'
 import './red-team.css'
 
@@ -39,15 +38,17 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
   const [list, setList] = useState({ items: [], total: 0, page_size: 20 })
   const [listFilters, setListFilters] = useState({ query: '', status: '', mode: '' })
   const [page, setPage] = useState(1)
-  const [results, setResults] = useState(emptyResults)
-  const [filters, setFilters] = useState({ verdict: '', plugin: '', strategy: '', evidence: '' })
-  const [resultPage, setResultPage] = useState(1)
-  const [report, setReport] = useState(null)
+  const [resultQuery, setResultQuery] = useState({
+    filters: { verdict: '', plugin: '', strategy: '', verdict_source: '' }, page: 1,
+  })
+  const [resultRead, setResultRead] = useState(null)
+  const [reportRead, setReportRead] = useState(null)
+  const [reportAttempt, setReportAttempt] = useState(0)
   const [detail, setDetail] = useState({ result: null, loading: false, error: '' })
+  const [preview, setPreview] = useState({ yaml: '', loading: false, error: '', stale: false, signature: '' })
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [busy, setBusy] = useState(false)
-  const [comparison, setComparison] = useState(null)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -55,8 +56,13 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
   }, [])
   const saved = useRef(null)
   const detailRequest = useRef(0)
+  const previewRequest = useRef(0)
   const mounted = useRef(true)
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; detailRequest.current += 1 } }, [])
+  useEffect(() => { mounted.current = true; return () => {
+    mounted.current = false
+    detailRequest.current += 1
+    previewRequest.current += 1
+  } }, [])
 
   useEffect(() => {
     let active = true
@@ -68,19 +74,30 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
     return () => { active = false; clearTimeout(timer) }
   }, [page, listFilters])
 
+  const readableTest = fresh || test?.status === 'draft' ? null : test
+
   useEffect(() => {
-    if (!test || test.status === 'draft') return undefined
+    if (!readableTest) return undefined
     let active = true
-    const query = {
-      plugin: filters.plugin, strategy: filters.strategy, verdict_source: filters.evidence, page: resultPage,
-      verdict: filters.verdict === 'control' ? '' : filters.verdict,
-      case_kind: filters.verdict === 'control' ? 'control' : filters.verdict ? 'adversarial' : '',
-    }
-    Promise.all([api.getRedTeamReport(test.id), api.listRedTeamResults(test.id, query)])
-      .then(([nextReport, nextResults]) => { if (active) { setReport(nextReport); setResults(nextResults) } })
-      .catch((problem) => { if (active) setError(problem.message) })
+    api.getRedTeamReport(readableTest.id)
+      .then((data) => { if (active) setReportRead({ status: readableTest.status, attempt: reportAttempt, data }) })
+      .catch(() => { if (active) setReportRead({ status: readableTest.status, attempt: reportAttempt, failed: true }) })
     return () => { active = false }
-  }, [test, resultPage, filters])
+  }, [readableTest, reportAttempt])
+
+  useEffect(() => {
+    if (!readableTest) return undefined
+    let active = true
+    const { filters } = resultQuery
+    const query = {
+      plugin: filters.plugin, strategy: filters.strategy, verdict_source: filters.verdict_source,
+      verdict: filters.verdict, page: resultQuery.page,
+    }
+    api.listRedTeamResults(readableTest.id, query)
+      .then((data) => { if (active) setResultRead({ status: readableTest.status, query: resultQuery, data }) })
+      .catch(() => { if (active) setResultRead({ status: readableTest.status, query: resultQuery, failed: true }) })
+    return () => { active = false }
+  }, [readableTest, resultQuery])
 
   const run = async (operation) => {
     setBusy(true); setError(''); setFieldErrors({})
@@ -104,7 +121,7 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
       const prior = saved.current?.test || test
       const response = prior
         ? await api.updateRedTeamTest(prior.id, { ...values, version: prior.version })
-        : await api.createRedTeamTest({ ...values, format: 'plugins' })
+        : await api.createRedTeamTest(values)
       draft = response.test
       saved.current = { signature, test: draft }
     }
@@ -133,12 +150,38 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
     }
   }
   const closeDetail = () => { detailRequest.current += 1; setDetail({ result: null, loading: false, error: '' }) }
+  const changeResultQuery = (next) => {
+    closeDetail()
+    setResultQuery(next)
+  }
   const editor = fresh || test?.status === 'draft'
   const running = test && !terminal.has(test.status) && !editor
-  const v3 = test?.format === 'plugins'
+  const currentReport = reportRead?.status === test?.status && reportRead?.attempt === reportAttempt ? reportRead : null
+  const report = currentReport?.data
+  const resultsOpened = Boolean(resultRead && resultRead.status === test?.status)
+  const currentResults = resultsOpened && resultRead.query === resultQuery ? resultRead : null
+  const results = currentResults?.data ?? emptyResults
   const compliance = report?.compliance?.map((fw) => ({ ...fw, id: fw.framework || fw.id, ...fw.totals }))
-  const comparable = list.items.filter((item) => test?.comparison_group_id && item.id !== test.id && item.comparison_group_id === test.comparison_group_id && item.mode !== test.mode)
   const visibleError = error || testError
+
+  const loadPreview = async (values) => {
+    const request = ++previewRequest.current
+    setPreview((current) => ({ ...current, loading: true, error: '', stale: false }))
+    try {
+      const response = request === 1 && test?.id
+        ? await api.getRedTeamTestConfigPreview(test.id)
+        : test?.suite_id
+          ? await api.previewRedTeamConfig(values, test.id)
+          : await api.previewRedTeamConfig(values)
+      if (mounted.current && request === previewRequest.current) {
+        setPreview({ yaml: response.yaml, loading: false, error: '', stale: false, signature: JSON.stringify(values) })
+      }
+    } catch (problem) {
+      if (mounted.current && request === previewRequest.current) {
+        setPreview((current) => ({ ...current, loading: false, error: problem.message || 'Preview failed' }))
+      }
+    }
+  }
 
   return <div className="red-team-page">
     {visibleError && !editor && <div className="rt-banner rt-tone-fail" role="alert">{visibleError}</div>}
@@ -151,6 +194,7 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
       {editor && <><h1 className="rt-page-title">{test ? 'Edit draft test' : 'New Red Team test'}</h1>
         <TestEditor initial={test} capabilities={capabilities} integrations={integrations} users={users}
           busy={busy} fieldErrors={fieldErrors} message={visibleError}
+          preview={preview} onPreview={loadPreview}
           onSaveDraft={(values) => save(values, false)} onLaunch={(values) => save(values, true)} onCancel={() => navigate()} /></>}
       {test && !editor && <>
         <header className="rt-page-heading">
@@ -168,29 +212,31 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
         </header>
         {running ? <RunProgress test={test} provisional={{ attack_success_rate: report?.attack_success?.rate,
           worked: report?.attack_success?.worked, decided: report?.attack_success?.decided }}
-          latest={results.items.map((row) => ({ ...row, attack_index: row.attack_index + 1, verdict: row.execution_phase === 'judging' ? 'judging' : row.verdict }))}
+          latest={results.items}
           requestsPerMinute={capabilities?.requests_per_minute} dispatchPending={test.dispatch_pending}
           updatedAgo={test.updated_at ? Math.max(0, Math.floor((now - Date.parse(test.updated_at)) / 1000)) : 0}
           busy={busy || test.status === 'cancelling'} onCancel={() => run(async () => { const next = await api.cancelRedTeamTest(test.id); if (mounted.current) setTest(next.test) })} /> :
           <div className="rt-page-report">
-            {test.status === 'cancelled' && <CancelledBanner finished={test.progress?.finished} total={test.progress?.total_jobs} onClone={() => clone(test.mode)} />}
-            {test.status === 'failed' && <FailedBanner errorCode={test.most_common_error_code || results.items.find((r) => r.error_code)?.error_code}
-              total={test.progress?.total_jobs} onAction={() => { window.location.hash = '#integrations' }} />}
-            {v3 ? report ? <>
+            {test.status === 'cancelled' && <CancelledBanner finished={test.counts?.executed} total={test.counts?.planned} onClone={() => clone(test.mode)} />}
+            {test.status === 'failed' && <FailedBanner failureReason={test.failure_reason}
+              errorCode={results.items.find((r) => r.error_code)?.error_code}
+              total={test.counts?.planned} actionLabel="Clone and try again" onAction={() => clone(test.mode)} />}
+            {report ? <>
               <ReportSummary report={report} mode={test.mode} />
               <div className="rt-page-breakdown"><PluginTable plugins={report.plugins} paired={report.paired} /><StrategyBreakdown strategies={report.strategies} /></div>
               <ComplianceTabs compliance={compliance} provisional={report.provisional} />
-              {!test.judge && report.decided?.inconclusive > 0 && <NoJudgeNote undecided={report.decided.inconclusive} onClone={() => clone(test.mode)} />}
-            </> : <InlineLoadingBar label="Loading report…" /> : <LegacyReport test={test} />}
-            {(report || error) && <ResultsTable {...results} items={results.items.map((row) => ({ ...row, plugin_name: row.plugin_name || row.category,
-              strategy_name: row.strategy_name || 'Plain' }))} filters={filters} plugins={capabilities?.plugins}
-              strategies={capabilities?.strategies} page={resultPage} pageSize={results.page_size}
-              onFilterChange={(next) => { setFilters(next); setResultPage(1) }} onPageChange={setResultPage} onView={openResult} />}
-            {!v3 && comparable.length > 0 && <section className="rt-panel rt-panel-body"><h2>Paired comparison</h2>
-              {comparable.map((other) => <Button key={other.id} variant="outline" onClick={() => run(async () => setComparison(await api.compareRedTeamTests(
-                test.mode === 'raw' ? test.id : other.id, test.mode === 'protected' ? test.id : other.id)))}>Compare with {other.name}</Button>)}
-              {comparison && <p>Paired evaluable jobs: {comparison.paired_evaluable}; excluded: {comparison.paired_excluded}. Raw compliance {formatPercent(comparison.raw_compliance)} → protected {formatPercent(comparison.protected_compliance)}.</p>}
-            </section>}
+              {!test.grader && report.decided?.inconclusive > 0 && <NoJudgeNote undecided={report.decided.inconclusive} onClone={() => clone(test.mode)} />}
+            </> : currentReport?.failed ? <div className="rt-panel rt-panel-body">
+              <p className="rt-banner rt-tone-fail" role="alert">Could not load report.</p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => setReportAttempt((attempt) => attempt + 1)}>Retry report</Button>
+            </div> : <InlineLoadingBar label="Loading report…" />}
+            {resultsOpened ? <ResultsTable {...results} items={results.items.map((row) => ({ ...row, plugin_name: row.plugin_name || row.category,
+              strategy_name: row.strategy_name || 'Plain' }))} filters={resultQuery.filters} plugins={capabilities?.plugins}
+              strategies={capabilities?.strategies} page={resultQuery.page} pageSize={results.page_size}
+              loading={!currentResults} error={currentResults?.failed} onRetry={() => changeResultQuery({ ...resultQuery })}
+              onFilterChange={(next) => changeResultQuery({ filters: next, page: 1 })}
+              onPageChange={(page) => changeResultQuery({ ...resultQuery, page })} onView={openResult} />
+              : <InlineLoadingBar label="Loading results…" />}
             <MethodDisclosure /><Limitations />
           </div>}
       </>}

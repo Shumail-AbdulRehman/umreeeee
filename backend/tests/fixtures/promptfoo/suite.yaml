@@ -1,11 +1,45 @@
 description: Placeholder suite
+targets:
+  - id: example-target
+    config:
+      apiKey: DECOY_TARGET_VALUE
+outputPath:
+  - results.jsonl
+  - results.json
+defaultTest:
+  vars: {}
+  options:
+    provider:
+      id: example-grader
+      config:
+        apiKey: DECOY_GRADER_VALUE
+  metadata:
+    purpose: Placeholder purpose
+    entities: []
 tests:
   - vars:
       prompt: Placeholder input A
     metadata:
-      pluginId: sample-plugin
+      pluginId: hijacking
   - vars:
       prompt: Placeholder input B
     metadata:
-      pluginId: sample-plugin
+      pluginId: hijacking
       strategyId: crescendo
+  - vars:
+      prompt: Placeholder input C
+    metadata:
+      pluginId: prompt-extraction
+redteam:
+  purpose: Placeholder purpose
+  plugins:
+    - id: hijacking
+    - id: prompt-extraction
+  provider:
+    id: example-generator
+    config:
+      apiKey: DECOY_GENERATOR_VALUE
+metadata:
+  configHash: sample-hash
+  generation:
+    id: sample-generation

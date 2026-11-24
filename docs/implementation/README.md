@@ -18,7 +18,7 @@ Give an implementing model this file and only the current phase document. Each p
 - No Docker, Kubernetes, cloud hosting, production deployment, CI/CD infrastructure, or infrastructure-as-code work.
 - Local MongoDB and, in Phase 3, local RabbitMQ are application dependencies. Document how to connect to them; do not build a deployment platform.
 - No framework migration, TypeScript rewrite, generic workflow engine, or new microservice architecture. The API remains a modular FastAPI application with a separate Phase 3 worker.
-- Defer Redis, WebSockets, streaming, adaptive attack generation, custom model training, and advanced PDF generation.
+- Defer Redis, WebSockets, streaming, adaptive test case generation, custom model training, and advanced PDF generation.
 - Do not automatically send real emails, spend provider credits, or launch red-team tests while developing. Automated tests use fakes; live checks use explicitly authorized test accounts/targets.
 - Preserve unrelated user changes and the original DOCX. Write report corrections separately; do not replace the original report.
 

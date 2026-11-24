@@ -28,7 +28,7 @@ Abbreviations used below:
   probes per month and reduced `jailbreak:tree` parameters.
 - **Disabling remote generation removes features.** Remote-only plugins return 0 tests (logged as an error). Remote-only
   strategies throw. In 0.126.0 the deprecated `jailbreak` id is routed to `jailbreak:meta`, which is remote-only. Local
-  attack generation uses your `redteam.provider` model. Aligned models often refuse (see the sibling note
+  test case generation uses your `redteam.provider` model. Aligned models often refuse (see the sibling note
   `promptfoo-local-probe.md`).
 - **Grading can be fully local with Groq.** Every plugin has a local grader (`promptfoo:redteam:<plugin>`) that uses
   `redteam.provider` or `defaultTest.options.provider` (or `--grader`). PASS = the target defended. FAIL = a vulnerability.
@@ -49,7 +49,7 @@ redteam run` is a shortcut that combines `redteam generate` and `redteam eval` s
 | --- | --- | --- |
 | `redteam init [directory]` | Interactive project setup that writes `promptfooconfig.yaml` (and `chat.py` for a custom provider). | `--no-gui`, `--env-file/--env-path` (GH `src/commands/redteam/init.ts` L21-24; GH `src/redteam/commands/init.ts` L221, L659) |
 | `redteam setup` | Opens the browser UI on the red-team setup page. | `-p, --port` (default 15500) (https://www.promptfoo.dev/docs/usage/command-line/) |
-| `redteam generate` (alias `generate redteam`) | Generates the adversarial test cases and writes them to `redteam.yaml`. | `-c, --config`, `-o, --output` (default `redteam.yaml`), `-w, --write`, `--purpose`, `--provider` (attack generation model; the help text says "Defaults to: openai:chat:gpt-5.5-2026-04-23"), `--injectVar`, `--plugins <csv>`, `--strategies <csv>`, `-n, --num-tests`, `--language`, `--no-cache`, `-j, --max-concurrency`, `--delay <ms>`, `--remote`, `--force`, `--no-progress-bar`, `--strict` ("Fail if any plugins fail to generate test cases"), `--burp-escape-json`, `-t, --target`, `-d, --description` (GH `src/redteam/commands/generate.ts` L1067-1136; https://www.promptfoo.dev/docs/usage/command-line/#promptfoo-redteam-generate) |
+| `redteam generate` (alias `generate redteam`) | Generates the adversarial test cases and writes them to `redteam.yaml`. | `-c, --config`, `-o, --output` (default `redteam.yaml`), `-w, --write`, `--purpose`, `--provider` (test case generation model; the help text says "Defaults to: openai:chat:gpt-5.5-2026-04-23"), `--injectVar`, `--plugins <csv>`, `--strategies <csv>`, `-n, --num-tests`, `--language`, `--no-cache`, `-j, --max-concurrency`, `--delay <ms>`, `--remote`, `--force`, `--no-progress-bar`, `--strict` ("Fail if any plugins fail to generate test cases"), `--burp-escape-json`, `-t, --target`, `-d, --description` (GH `src/redteam/commands/generate.ts` L1067-1136; https://www.promptfoo.dev/docs/usage/command-line/#promptfoo-redteam-generate) |
 | `redteam run` | Runs generate and then eval. | `-c, --config`, `-o, --output` (the generated tests path, default `redteam.yaml` next to the config), `-j, --max-concurrency`, `--delay`, `--remote`, `--force`, `--strict`, `--no-cache`, `--no-progress-bar`, `--filter-prompts`, `--filter-providers/--filter-targets`, `-t, --target`, `-d, --description`, `--tag key=value` (repeatable). It has **no** `--plugins`/`--strategies`/`-n` flags; those come from the config. (GH `src/redteam/commands/run.ts` L24-74; https://www.promptfoo.dev/docs/usage/command-line/#promptfoo-redteam-run) |
 | `redteam eval` | "Works the same as `promptfoo eval` … but defaults to loading `redteam.yaml`." Supports `--grader <provider>`, `-o` and the other eval flags. | https://www.promptfoo.dev/docs/usage/command-line/#promptfoo-redteam-eval; `--grader` sets `defaultTest.options.provider` (GH `src/node/doEval.ts` L812-819) |
 | `redteam report [directory]` | Starts the local web UI on the red-team report. | `-p, --port` (default 15500) (https://www.promptfoo.dev/docs/usage/command-line/#promptfoo-redteam-report) |
@@ -95,7 +95,7 @@ Schema (GH `src/validators/redteam.ts` L113-122, L251-333) and docs table
 | `strategies` | `Array<string \| {id, config?}>` | `['default']` = `basic`, `jailbreak:meta`, `jailbreak:composite` (GH `src/redteam/constants/strategies.ts` L15). `config.plugins: [...]` limits a strategy to those plugins. |
 | `numTests` | positive int | 5 per plugin (GH `src/redteam/constants/plugins.ts` L5). |
 | `language` | `string \| string[]` | English. Use names or ISO 639-1 codes. A list generates tests for each language. |
-| `provider` | `string \| ProviderOptions` | The attacker/generation model. It is also the fallback grader (section 6). Docs table: `openai:gpt-5`. Code: `REDTEAM_MODEL = 'openai:chat:gpt-5.5-2026-04-23'` (GH `src/redteam/constants/plugins.ts` L17). |
+| `provider` | `string \| ProviderOptions` | The test case generation model. It is also the fallback grader (section 6). Docs table: `openai:gpt-5`. Code: `REDTEAM_MODEL = 'openai:chat:gpt-5.5-2026-04-23'` (GH `src/redteam/constants/plugins.ts` L17). |
 | `injectVar` | string | Inferred from the prompts. |
 | `purpose` | string | Inferred from the prompts. Extraction is a remote call unless remote generation is disabled, so set it explicitly (GH `src/redteam/extraction/purpose.ts`; GH `src/redteam/index.ts` L1349-1351). |
 | `entities` | `string[]` | "Names of people, brands, or organizations related to your LLM application." If omitted they are extracted, remotely when remote generation is on. Set `[]` to skip (GH `src/redteam/index.ts` L1358-1360). |
@@ -253,7 +253,7 @@ replay the full transcript to stateless targets (https://www.promptfoo.dev/docs/
 | `math-prompt`, `multilingual` (deprecated; migrated to top-level `language`) | Generation-time rewrite | Local with an explicit `redteam.provider`, otherwise remote | 1 + 1 | Medium |
 | `citation`, `jailbreak:likert`, `authoritative-markup-injection`, `gcg` | Generation-time rewrite | **Remote** (throws when disabled) | 1 + 1 | Medium/High |
 | `jailbreak:composite` | Generation-time rewrite, fan-out n=5 | **Remote** (throws when disabled) | 5 tests × (1 + 1) | Medium |
-| `jailbreak:meta` | Iterative single-turn meta-agent | **Remote**: requires `shouldGenerateRemote()`, so it fails if `OPENAI_API_KEY` is set and you are not logged in, unless `--remote` | Up to `numIterations` (default 10, env `PROMPTFOO_NUM_JAILBREAK_ITERATIONS`) target calls, plus remote attacker and judge calls each iteration | High |
+| `jailbreak:meta` | Iterative single-turn meta-agent | **Remote**: requires `shouldGenerateRemote()`, so it fails if `OPENAI_API_KEY` is set and you are not logged in, unless `--remote` | Up to `numIterations` (default 10, env `PROMPTFOO_NUM_JAILBREAK_ITERATIONS`) target calls, plus remote generation and judge calls each iteration | High |
 | `jailbreak` | **Deprecated in 0.126.0**: logs a warning and routes to `iterative:meta` | **Remote** (same as meta) | Same as meta | High |
 | `jailbreak:tree` | Iterative tree search | Local with `redteam.provider` | Up to `maxAttempts` 250 (depth 25, branching 4, width 10). When not logged into Cloud this is clamped to 30 attempts (depth 5, branching 2, width 3). | High |
 | `best-of-n` | Iterative sampling | **Remote** (throws when disabled) | `nSteps` (unbounded by default) × `maxCandidatesPerStep` 1, concurrency 3 | High |
@@ -340,7 +340,7 @@ https://www.promptfoo.dev/docs/red-team/configuration/#plugin-collections.
 framework, the plugins it maps to are split into compliant, non-compliant and untested. A plugin is compliant when
 `pass/total >= pluginPassRateThreshold`. The default threshold is `1.0` (GH `.../report/components/store.ts` L33), so a
 single failed test makes the plugin non-compliant. A framework is compliant when it has no non-compliant plugins. The card
-shows the highest severity among the non-compliant plugins and the attack success rate, and the results can be exported
+shows the highest severity among the non-compliant plugins and the test case failure rate, and the results can be exported
 as CSV (`FrameworkCsvExporter.tsx`). `redteam.frameworks` limits which framework cards are shown.
 
 ## 6. Grading
@@ -490,7 +490,7 @@ logged into Cloud. Otherwise it returns true when there is no `OPENAI_API_KEY` (
     email, targetId?}` (GH `src/redteam/plugins/index.ts` L390-410).
   - Harmful body: `{email, harmCategory, n, purpose, version, config}` (GH `src/providers/promptfoo.ts` L90-98).
   - Remote grading: `{task:'llm-rubric', rubric, output, vars, email}` (GH `src/remoteGrading.ts` L49-60).
-  - Multi-turn remote attackers send the conversation history, including target replies.
+  - Multi-turn hosted test strategies send the conversation history, including target replies.
 - Domains: `api.promptfoo.app` (generation and grading), `api.promptfoo.dev` ("Consent tracking for harmful plugins"),
   `a.promptfoo.app` (telemetry) (same docs page).
 
@@ -513,7 +513,7 @@ logged into Cloud. Otherwise it returns true when there is no `OPENAI_API_KEY` (
   - exploitability: 0 if ASR is 0, otherwise `min(4, 1.5 + 2.5·ASR)`
   - human factor: `base × (0.8 + 0.2·ASR)`, where base is 1.5 for low complexity, 1.0 for medium, 0.5 for high, and 0
     for tool-only
-  - complexity penalty: `min(0.5, 0.1 + 0.4·ASR)` for low-complexity attacks with ASR above 0
+  - complexity penalty: `min(0.5, 0.1 + 0.4·ASR)` for low-complexity test cases with ASR above 0
   - Levels: ≥9 critical, ≥7 high, ≥4 medium, otherwise low.
 - Code: GH `src/redteam/riskScoring.ts`.
   - `calculatePluginRiskScore(pluginId, severity, [{strategy, results}])` scores each strategy. The plugin score is the
