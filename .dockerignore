@@ -1,0 +1,25 @@
+# Only backend runtime sources and pinned promptfoo manifests enter this context.
+**
+!package.json
+!package-lock.json
+!backend/
+!backend/Dockerfile
+!backend/requirements.txt
+!backend/requirements-ml.txt
+!backend/app/
+!backend/app/**
+!backend/scripts/
+!backend/scripts/**
+!backend/promptfoo_bridge/
+!backend/promptfoo_bridge/**
+!docker/
+!docker/download_models.py
+**/__pycache__
+**/*.py[cod]
+**/.env
+**/.env.*
+**/.git
+**/.aws
+**/*.log
+**/*.pem
+**/*.key

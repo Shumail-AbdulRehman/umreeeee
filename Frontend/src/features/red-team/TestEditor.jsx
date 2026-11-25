@@ -10,6 +10,8 @@ import './red-team.css'
 
 const selectClass = 'h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50'
 const linkButton = 'text-xs font-medium text-[var(--rt-accent)] underline-offset-4 hover:underline disabled:opacity-50'
+const MAX_PLUGINS = 20
+const MAX_STRATEGIES = 8
 const DEFAULTS = {
   name: '', purpose: '', integration_id: '', model: '', mode: 'raw', subject_user_id: '',
   plugins: [], strategies: [], tests_per_plugin: 1, grader: { integration_id: '', model: '' },
@@ -89,6 +91,8 @@ function validate(values, integrations, maxCalls, estimate) {
   else if (!target.models?.includes(values.model)) errors.model = ['Choose a model enabled for this integration.']
   if (values.mode === 'protected' && !values.subject_user_id) errors.subject_user_id = ['Choose the person whose policies will be used.']
   if (!values.plugins.length) errors.plugins = ['Choose at least one plugin.']
+  else if (values.plugins.length > MAX_PLUGINS) errors.plugins = [`Choose at most ${MAX_PLUGINS} plugins. ${values.plugins.length} selected.`]
+  if (values.strategies.length > MAX_STRATEGIES) errors.strategies = [`Choose at most ${MAX_STRATEGIES} optional strategies. ${values.strategies.length} selected.`]
   if (!Number.isInteger(values.tests_per_plugin) || values.tests_per_plugin < 1 || values.tests_per_plugin > 10) {
     errors.tests_per_plugin = ['Cases per plugin must be from 1 to 10.']
   } else if (estimate.targetCalls > maxCalls) {
@@ -250,6 +254,7 @@ export default function TestEditor({
           <button type="button" className={linkButton} disabled={usesStoredSuite} onClick={() => set({ plugins: plugins.map((item) => item.id) })}>Select all</button>
           <button type="button" className={linkButton} disabled={usesStoredSuite} onClick={() => set({ plugins: [] })}>Clear</button>
         </div>}>
+          <p className="rt-panel-note">Select up to {MAX_PLUGINS} plugins.</p>
           <FieldErrors errors={errors} field="plugins" />
           {(capabilities?.frameworks ?? []).length > 0 && <div className="grid gap-2">
             <span className="text-xs font-semibold text-[var(--rt-ink-secondary)]">Framework quick-select</span>
@@ -276,8 +281,9 @@ export default function TestEditor({
           </fieldset>)}
         </Section>
 
-        <Section id={`${uid}-strategies`} title="How attacks are disguised">
-          <p className="rt-panel-note">Baseline testing is always included once. Each selected strategy adds its documented test cases.</p>
+        <Section id={`${uid}-strategies`} title="How attacks are disguised" errorField="strategies">
+          <p className="rt-panel-note">Baseline testing is always included once. Select up to {MAX_STRATEGIES} optional strategies.</p>
+          <FieldErrors errors={errors} field="strategies" />
           {groupBy(strategies, 'group').map(([group, items]) => <fieldset key={group} disabled={usesStoredSuite} className="grid gap-2 border-0 p-0">
             <legend className="text-xs font-semibold text-[var(--rt-ink-muted)]">{group}</legend>
             <div className="grid gap-2 sm:grid-cols-2">{items.map((strategy) => <label key={strategy.id} className="flex cursor-pointer items-start gap-3 rounded-md border border-[var(--rt-line-subtle)] px-3 py-2">
@@ -335,7 +341,7 @@ export default function TestEditor({
             </div>
           </div>
         </div>
-        <ConfigPreview {...previewState} values={values} onRefresh={onPreview} />
+        <ConfigPreview {...previewState} values={values} onRefresh={onPreview} blocked={errorFields.length > 0} />
       </aside>
     </form>
   )

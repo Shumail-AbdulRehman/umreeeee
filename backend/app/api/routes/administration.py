@@ -776,35 +776,20 @@ def organizations(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, l
 class CompanyStatus(StrictModel):
     status: Literal['active', 'suspended']
     version: int = Field(ge=1)
+    reason: str | None = Field(default=None, min_length=1, max_length=180)
+
+    @field_validator('reason', mode='before')
+    @classmethod
+    def trim_reason(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 @router.patch('/platform/organizations/{organization_id}/status')
 def organization_status(organization_id: str, payload: CompanyStatus, request: Request,
                         user: User = Depends(get_current_user)):
+    from app.services.platform_audit_service import PlatformAuditService
+
     require_super_admin(user)
-    target = object_id(organization_id)
-    if target == company_id(user):
-        raise DomainError(403, 'own_company', 'Cannot suspend your own organization')
-
-    def operation(db, session):
-        old = db.companies.find_one({'_id': target}, session=session)
-        if not old:
-            raise DomainError(404, 'not_found', 'Organization not found')
-        check_version(old, payload.version)
-        result = db.companies.update_one({'_id': target, 'version': payload.version},
-                                         {'$set': {'status': payload.status, 'updated_at': utcnow()},
-                                          '$inc': {'version': 1}}, session=session)
-        if result.modified_count != 1:
-            raise DomainError(409, 'stale_version', 'Organization changed. Refresh and try again.')
-        audit(db, session, user, 'platform.organization_status_changed', 'company', target,
-              request.state.request_id, before={'status': old.get('status', 'active')},
-              after={'status': payload.status})
-        db.audit_events.insert_one({'company_id': target, 'actor_user_id': object_id(user.id),
-            'action': 'platform.organization_status_changed', 'resource_type': 'company',
-            'resource_id': target, 'before': {'status': old.get('status', 'active')},
-            'after': {'status': payload.status}, 'request_id': request.state.request_id,
-            'created_at': utcnow()}, session=session)
-        return {'organization': {'id': organization_id, 'name': old['name'], 'status': payload.status,
-                                 'version': payload.version + 1}, 'message': 'Organization status updated'}
-
-    return transaction(user, operation)
+    return PlatformAuditService(get_database()).change_status(
+        user, organization_id, payload.status, payload.version, payload.reason, request.state.request_id,
+    )

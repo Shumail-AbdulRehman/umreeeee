@@ -1,0 +1,177 @@
+name: averiq
+
+x-app-environment: &app-environment
+  ENVIRONMENT: development
+  DATABASE_MODE: mongodb
+  # Isolate Compose from backend/.env and existing host databases.
+  MONGODB_URL: mongodb://mongo:27017/?replicaSet=rs0
+  MONGODB_DB_NAME: ${MONGODB_DB_NAME:-averiq}
+  SECRET_KEY: ${SECRET_KEY:?Run python3 docker/setup.py first}
+  INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:?Run python3 docker/setup.py first}
+  CONTENT_ENCRYPTION_KEY: ${CONTENT_ENCRYPTION_KEY:?Run python3 docker/setup.py first}
+  RABBITMQ_URL: amqp://averiq:${RABBITMQ_PASSWORD:?Run python3 docker/setup.py first}@rabbitmq:5672/%2F
+  RED_TEAM_QUEUE_NAME: sentinel.red_team.docker
+  FRONTEND_APP_URL: http://localhost:${APP_PORT:-8080}
+  CORS_ORIGINS: http://localhost:${APP_PORT:-8080},http://127.0.0.1:${APP_PORT:-8080}
+  SMTP_HOST: mailpit
+  SMTP_PORT: "1025"
+  SMTP_FROM_EMAIL: noreply@averiq.local
+  SMTP_FROM_NAME: Averiq
+  SMTP_USERNAME: ""
+  SMTP_PASSWORD: ""
+  SMTP_USE_TLS: "false"
+  SMTP_USE_SSL: "false"
+  VALIDATOR_MODEL_CACHE_DIR: /var/cache/averiq/models
+  PROMPTFOO_WORKSPACE_ROOT: /tmp/averiq-promptfoo
+  ALLOWED_OLLAMA_ORIGINS: ${ALLOWED_OLLAMA_ORIGINS:-http://host.docker.internal:11434}
+
+x-backend: &backend
+  image: averiq-backend:local
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+    args:
+      INSTALL_LOCAL_ML: ${INSTALL_LOCAL_ML:-true}
+  env_file: .env
+  environment: *app-environment
+  init: true
+  restart: unless-stopped
+  stop_grace_period: 2m
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  volumes:
+    - validator-models:/var/cache/averiq/models
+  depends_on:
+    mongo:
+      condition: service_healthy
+    mongo-init:
+      condition: service_completed_successfully
+    rabbitmq:
+      condition: service_healthy
+    mailpit:
+      condition: service_started
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  mongo:
+    image: mongo:8.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand({ping: 1}).ok ? 0 : 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  mongo-init:
+    image: mongo:8.0
+    restart: "no"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./docker/mongo/init-replica.js:/scripts/init-replica.js:ro
+    entrypoint: ["mongosh", "--host", "mongo:27017", "--quiet", "/scripts/init-replica.js"]
+
+  rabbitmq:
+    image: rabbitmq:4.2-management
+    hostname: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: averiq
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Run python3 docker/setup.py first}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "127.0.0.1:${RABBITMQ_UI_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: "1000"
+    volumes:
+      - mailpit-data:/data
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+
+  api:
+    <<: *backend
+    ports:
+      - "127.0.0.1:${API_PORT:-8001}:8000"
+    healthcheck:
+      # /api/ready separately includes transactions and active policy models.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).read()"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 180s
+
+  worker:
+    <<: *backend
+    # Warm cached classifiers in this process before protected execution.
+    command: ["python", "-c", "from app.validators.registry import registry; registry.warm_local_models(); from app.workers.red_team_worker import main; main()"]
+    depends_on:
+      api:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  dispatcher:
+    <<: *backend
+    command: ["python", "-m", "app.queue.dispatcher"]
+    depends_on:
+      api:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  recovery:
+    <<: *backend
+    command: ["python", "-m", "app.queue.recovery"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  frontend:
+    image: averiq-frontend:local
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Ordinary startup never downloads model weights.
+  model-download:
+    <<: *backend
+    profiles: ["models"]
+    restart: "no"
+    depends_on: {}
+    command: ["python", "/app/docker/download_models.py"]
+
+volumes:
+  mongo-data:
+  mongo-config:
+  rabbitmq-data:
+  mailpit-data:
+  validator-models:

@@ -10,6 +10,7 @@ from app.api.routes.administration import router as administration_router
 from app.api.routes.observability import router as observability_router
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.red_team import router as red_team_router
+from app.api.routes.platform import router as platform_router
 
 
 api_router = APIRouter()
@@ -23,3 +24,4 @@ api_router.include_router(administration_router)
 api_router.include_router(observability_router)
 api_router.include_router(analytics_router)
 api_router.include_router(red_team_router)
+api_router.include_router(platform_router)

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { ErrorState } from './components/DataState'
 import LoadingSurface from './components/LoadingSurface'
 import PageLoadingBoundary, { RequestProgress } from './components/PageLoadingBoundary'
@@ -15,12 +15,15 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import VerifyEmailPage from './pages/auth/VerifyEmailPage'
 import { pageRegistry } from './pages/pageRegistry'
 import { getAuthToken } from './services/api/client'
+import { defaultPageForUser, isPlatformRoute } from './features/platform/platformNavigation'
 import {
   fetchCurrentUser,
   logoutUser,
   getPendingVerificationState,
   setPendingVerificationState,
 } from './services/auth/authService'
+
+const PlatformWorkspace = lazy(() => import('./features/platform/PlatformWorkspace'))
 
 function getHashState() {
   const rawHash = window.location.hash.replace('#', '')
@@ -38,6 +41,7 @@ export default function App() {
   const [verificationState, setVerificationState] = useState(getPendingVerificationState)
   const [navCollapsed, setNavCollapsed] = useState(() => window.localStorage.getItem('sentinel.nav.collapsed') === 'true')
   const route = hashState.route
+  const platformOpen = user?.role === 'super_admin' && (isPlatformRoute(route) || !route)
   const isInvitationRoute = route === 'accept-invite'
   const invitationToken = hashState.params.get('token') || ''
   const openCreateUser = hashState.params.get('modal') === 'add'
@@ -48,7 +52,7 @@ export default function App() {
   const ActivePage = pageRegistry[page] || pageRegistry['prompt-studio']
   const isStandalonePage =
     page !== 'insights'
-  const shouldLoadDashboard = Boolean(user) && page === 'insights'
+  const shouldLoadDashboard = Boolean(user) && page === 'insights' && !platformOpen
   const { data, error, loading } = useDashboardData({ enabled: shouldLoadDashboard })
 
   useEffect(() => {
@@ -103,7 +107,7 @@ export default function App() {
   }, [])
 
   const navigate = (key) => {
-    if (!isValidPage(key)) return
+    if (!isValidPage(key) && !(user?.role === 'super_admin' && isPlatformRoute(key))) return
     if (key === page) return
     if (!window.dispatchEvent(new Event('sentinel:before-navigation', { cancelable: true }))) return
     window.location.hash = key
@@ -114,7 +118,7 @@ export default function App() {
     setUser(nextUser)
     setPendingVerificationState(null)
     setVerificationState({ email: '', message: '' })
-    window.location.hash = isAdmin(nextUser) ? 'insights' : 'my-activity'
+    window.location.hash = defaultPageForUser(nextUser)
     setHashState(getHashState())
   }
 
@@ -200,6 +204,8 @@ export default function App() {
       />
     )
   }
+
+  if (platformOpen) return <Suspense fallback={<main className="auth-loading"><LoadingSurface kind="insights" label="Opening platform workspace…" /></main>}><PlatformWorkspace currentUser={user} route={route || 'platform-overview'} params={hashState.params} onLogout={handleLogout} /></Suspense>
 
   return (
     <div className={`app-shell ${navCollapsed ? 'nav-collapsed' : ''}`}>

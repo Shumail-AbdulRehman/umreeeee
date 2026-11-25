@@ -1,0 +1,17 @@
+.git
+.impeccable
+.env
+.env.*
+.aws
+node_modules
+dist
+dist-ssr
+coverage
+test-results
+playwright-report
+tests
+*.log
+**/*.pem
+**/*.key
+**/__pycache__
+**/*.test.*

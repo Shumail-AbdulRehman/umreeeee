@@ -22,13 +22,18 @@ const terminal = new Set(['completed', 'partially_failed', 'failed', 'cancelled'
 const emptyResults = { items: [], total: 0, counts: {}, page_size: 20 }
 const navigate = (id = '', fresh = false) => { window.location.hash = fresh ? '#red-team?new=1' : id ? `#red-team?test=${encodeURIComponent(id)}` : '#red-team' }
 
+function describeError(message, fields) {
+  return [...new Set([message, ...Object.values(fields ?? {}).flat()].filter(Boolean))].join(' ')
+}
+
 function readiness(caps, now) {
   if (!caps) return undefined
   const stamp = caps.observed_at?.worker || caps.worker_observed_at || caps.worker_last_seen_at
   return {
-    state: caps.worker_observed && caps.dispatcher_observed && caps.broker_transport_reachable ? 'ready' : 'waiting',
-    queueConnected: Boolean(caps.broker_transport_reachable),
-    requestsPerMinute: caps.requests_per_minute,
+    promptfoo: caps.promptfoo,
+    broker_transport_reachable: caps.broker_transport_reachable,
+    worker_observed: caps.worker_observed,
+    dispatcher_observed: caps.dispatcher_observed,
     lastSeenSeconds: stamp ? Math.max(0, Math.round((now - Date.parse(stamp)) / 1000)) : undefined,
   }
 }
@@ -105,11 +110,7 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
     catch (problem) {
       if (mounted.current) {
         setError(problem.message)
-        const fields = { ...(problem.fieldErrors || {}) }
-        for (const [key, messages] of Object.entries(fields)) {
-          if (key.startsWith('judge.')) fields.judge = [...(fields.judge || []), ...messages]
-        }
-        setFieldErrors(fields)
+        setFieldErrors(problem.fieldErrors || {})
       }
     } finally { if (mounted.current) setBusy(false) }
   }
@@ -178,7 +179,7 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
       }
     } catch (problem) {
       if (mounted.current && request === previewRequest.current) {
-        setPreview((current) => ({ ...current, loading: false, error: problem.message || 'Preview failed' }))
+        setPreview((current) => ({ ...current, loading: false, error: describeError(problem.message, problem.fieldErrors) || 'Preview failed' }))
       }
     }
   }
@@ -193,7 +194,7 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
       {testId && !test && !testError && <p role="status">Loading test…</p>}
       {editor && <><h1 className="rt-page-title">{test ? 'Edit draft test' : 'New Red Team test'}</h1>
         <TestEditor initial={test} capabilities={capabilities} integrations={integrations} users={users}
-          busy={busy} fieldErrors={fieldErrors} message={visibleError}
+          busy={busy} fieldErrors={fieldErrors} message={describeError(visibleError, fieldErrors)}
           preview={preview} onPreview={loadPreview}
           onSaveDraft={(values) => save(values, false)} onLaunch={(values) => save(values, true)} onCancel={() => navigate()} /></>}
       {test && !editor && <>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Averiq Platform</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="icons.js"></script>
+  <script defer src="prototype.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#overview"><span class="brand-mark" data-icon="brand"></span><span>Averiq</span></a>
+      <div class="workspace"><span class="workspace-mark" data-icon="layers"></span><div><strong>Platform workspace</strong><small>Cross-company view</small></div></div>
+      <nav class="nav" aria-label="Platform">
+        <a href="#overview" data-nav="overview"><span data-icon="overview"></span>Overview</a>
+        <a href="#companies" data-nav="companies"><span data-icon="building"></span>Companies</a>
+        <a href="#audit" data-nav="audit"><span data-icon="audit"></span>Audit log</a>
+      </nav>
+      <div class="sidebar-account"><span class="avatar">PO</span><div><strong>Platform owner</strong><small>Super admin</small></div></div>
+    </aside>
+    <div class="workarea">
+      <header class="topbar">
+        <div class="topbar-start">
+          <button class="icon-button mobile-menu" id="menu-toggle" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation"><span data-icon="menu"></span></button>
+          <div class="crumb" id="crumb"></div>
+        </div>
+        <span class="preview"><span></span>Sample data</span>
+      </header>
+      <main id="main" tabindex="-1"></main>
+    </div>
+  </div>
+  <dialog id="access-dialog" aria-labelledby="access-title"></dialog>
+  <div id="announcement" class="sr-only" role="status"></div>
+</body>
+</html>

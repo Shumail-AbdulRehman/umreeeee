@@ -25,6 +25,7 @@ def ensure_indexes(database) -> None:
     database.policies.create_index([('company_id', ASCENDING), ('scope.integration_ids', ASCENDING)], name='policies_company_integrations')
     database.policy_versions.create_index([('company_id', ASCENDING), ('policy_id', ASCENDING), ('version', ASCENDING)], unique=True, name='policy_version_unique')
     database.audit_events.create_index([('company_id', ASCENDING), ('created_at', DESCENDING), ('_id', DESCENDING)], name='audit_company_recent')
+    database.audit_events.create_index([('action', ASCENDING), ('created_at', DESCENDING), ('_id', DESCENDING)], name='audit_platform_action_recent')
     database.auth_rate_limits.create_index([('bucket_key', ASCENDING)], unique=True, name='auth_bucket_unique')
     database.auth_rate_limits.create_index([('expires_at', ASCENDING)], expireAfterSeconds=0, name='auth_bucket_expiry')
     database.prompt_runs.create_index([('company_id', ASCENDING)], name='prompt_runs_company_id_idx')

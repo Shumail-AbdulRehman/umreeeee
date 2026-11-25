@@ -15,7 +15,7 @@ describe('ConfigPreview', () => {
     const { rerender } = render(<ConfigPreview loading />)
     expect(screen.getByRole('status').textContent).toContain('Building')
     rerender(<ConfigPreview error="failed" />)
-    expect(screen.getByRole('alert').textContent).toBe('Could not build the config preview.')
+    expect(screen.getByRole('alert').textContent).toBe('Could not build the config preview. failed')
     rerender(<ConfigPreview yaml="redteam: {}" stale />)
     expect(screen.getByRole('status').textContent).toBe('Changed since the last preview')
   })

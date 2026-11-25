@@ -75,6 +75,46 @@ describe('TestEditor', () => {
     expect(screen.getByRole('status').textContent).toContain('24 target calls')
   })
 
+  it('blocks 11 selected strategies even when the 175-call estimate is within budget', () => {
+    const strategies = Array.from({ length: 11 }, (_, index) => ({
+      id: `sample-${index}`, name: `Sample variation ${index + 1}`,
+      cases_per_seed: 1, target_calls_per_test: [5, 10][index] ?? 1,
+    }))
+    const { onSaveDraft, onPreview } = setup({
+      capabilities: { ...capabilities, strategies },
+      initial: { ...initial, strategies: strategies.map(({ id }) => id), tests_per_plugin: 7 },
+    })
+    const launch = screen.getByRole('button', { name: 'Launch test' })
+    const refresh = screen.getByRole('button', { name: 'Refresh preview' })
+    expect(screen.getByText('Estimated target calls').parentElement.textContent).toContain('175 / 200')
+    expect(screen.getByText('Generated test cases').parentElement.textContent).toContain('84')
+    expect(screen.getByRole('status').textContent).toContain('Choose at most 8 optional strategies.')
+    expect(launch.disabled).toBe(true)
+    expect(refresh.disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
+    expect(onSaveDraft).not.toHaveBeenCalled()
+    expect(onPreview).not.toHaveBeenCalled()
+
+    for (const number of [9, 10, 11]) {
+      fireEvent.click(screen.getByRole('checkbox', { name: `Sample variation ${number}` }))
+    }
+    expect(launch.disabled).toBe(false)
+  })
+
+  it('blocks a bulk plugin selection that exceeds the API limit', () => {
+    const plugins = Array.from({ length: 21 }, (_, index) => ({
+      id: `sample-${index}`, name: `Sample plugin ${index + 1}`, severity: 'low',
+    }))
+    const { onSaveDraft } = setup({ capabilities: { ...capabilities, plugins } })
+    fireEvent.click(screen.getByRole('button', { name: 'Select all' }))
+    expect(screen.getByRole('status').textContent).toContain('Choose at most 20 plugins. 21 selected.')
+    expect(screen.getByRole('button', { name: 'Launch test' }).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
+    expect(onSaveDraft).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('checkbox', { name: /Sample plugin 21/ }))
+    expect(screen.getByRole('button', { name: 'Launch test' }).disabled).toBe(false)
+  })
+
   it('launches with the promptfoo config values and previews valid initial values once', async () => {
     const { onLaunch, onPreview } = setup()
     await waitFor(() => expect(onPreview).toHaveBeenCalledTimes(1))
