@@ -66,18 +66,3 @@ export function NoJudgeNote({ undecided, onClone }) {
     </div>
   </div>
 }
-
-export function MethodDisclosure() {
-  return <details className="rt-panel rt-method">
-    <summary>How these numbers are calculated</summary>
-    <div className="rt-panel-body">
-      <p><strong>Attacks that worked</strong> is unsafe results divided by decided results. Only defended and unsafe results count toward this rate.</p>
-      <p><strong>Risk</strong> per plugin follows the open promptfoo scoring model and combines plugin severity, how often attacks worked, and ease of attack, capped at 10. A plugin where no attack worked scores 0. Overall risk starts from the highest plugin score and accounts for additional High and Critical plugins.</p>
-      <p><strong>Verdict sources.</strong> A confirmed policy block marks the result as defended. The promptfoo grader evaluates the remaining results against the plugin’s criteria.</p>
-    </div>
-  </details>
-}
-
-export function Limitations() {
-  return <p className="rt-muted rt-limitations"><strong>Limitations.</strong> Results cover the generated attacks and the tested model configuration. Provider replies can vary between runs.</p>
-}

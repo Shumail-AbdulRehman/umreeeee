@@ -130,6 +130,47 @@ def test_promptfoo_api_create_preview_edit_launch_clone_cancel_and_tenant(prompt
         app.dependency_overrides.clear()
 
 
+def test_list_scores_existing_runs_from_the_same_results_as_the_report(promptfoo_api, monkeypatch):
+    db, user, service, *_ = promptfoo_api
+    monkeypatch.setitem(app.dependency_overrides, get_current_user, lambda: user)
+    monkeypatch.setitem(app.dependency_overrides, routes.service, lambda: service)
+    company_id = ObjectId(user.company.id)
+    historical = {'company_id': company_id, 'engine': 'promptfoo', 'mode': 'raw',
+                  'plugins': ['pii:direct'], 'counts': {'planned': 3}}
+    run, defended, failed, draft = [ObjectId() for _ in range(4)]
+    db.red_team_tests.insert_many([
+        {**historical, '_id': run, 'name': 'Scored run', 'status': 'partially_failed'},
+        {**historical, '_id': defended, 'name': 'Defended run', 'status': 'completed'},
+        {**historical, '_id': failed, 'name': 'Unscored run', 'status': 'failed'},
+        {**historical, '_id': draft, 'name': 'Draft run', 'status': 'draft'},
+    ])
+    attack = {'company_id': company_id, 'plugin_id': 'pii:direct', 'strategy_id': 'basic',
+              'verdict_source': 'grader', 'prompt_ciphertext': 'private'}
+    db.red_team_attacks.insert_many([
+        {**attack, 'test_id': run, 'test_idx': index, 'verdict': verdict}
+        for index, verdict in enumerate(['pass', 'fail', 'error'])
+    ] + [
+        {**attack, 'test_id': defended, 'test_idx': 0, 'verdict': 'pass'},
+        {**attack, 'test_id': failed, 'test_idx': 0, 'verdict': 'error'},
+        {**attack, 'company_id': ObjectId(), 'test_id': run, 'test_idx': 0, 'verdict': 'fail'},
+    ])
+
+    client = TestClient(app)
+    response = client.get('/api/red-team/tests')
+    assert response.status_code == 200
+    assert 'private' not in response.text
+    listed = {item['id']: item for item in response.json()['items']}
+    report = client.get(f'/api/red-team/tests/{run}/report').json()
+    assert listed[str(run)]['summary'] == {key: report[key] for key in ('risk', 'attack_success')}
+    assert listed[str(run)]['summary']['risk']['score'] > 0
+    assert listed[str(run)]['summary']['attack_success']['rate'] == 0.5
+    assert listed[str(defended)]['summary']['risk']['score'] == 0
+    assert listed[str(defended)]['summary']['attack_success']['rate'] == 0
+    assert listed[str(failed)]['summary']['risk'] is None
+    assert listed[str(failed)]['summary']['attack_success']['rate'] is None
+    assert 'summary' not in listed[str(draft)]
+
+
 def test_unsupported_provider_and_missing_runtime(promptfoo_api):
     db, user, service, _target, grader = promptfoo_api
     unsupported = ObjectId()

@@ -22,6 +22,7 @@ const paired = {
 }
 
 const card = (name) => within(screen.getByRole('article', { name }))
+const chart = (name) => within(screen.getByRole('region', { name }))
 
 describe('ReportSummary', () => {
   it('renders a none-level risk as a numeric zero and preserves a zero success rate', () => {
@@ -32,7 +33,7 @@ describe('ReportSummary', () => {
     }} />)
     expect(card('Overall risk').getByText('0.0')).toBeTruthy()
     expect(card('Overall risk').getByText('None')).toBeTruthy()
-    expect(card('Attacks that worked').getByText('0.0%')).toBeTruthy()
+    expect(card('Attack success').getByText('0.0%')).toBeTruthy()
   })
 
   it.each([null, { score: null, level: null }])('says Not scored for missing or placeholder risk (%j)', (risk) => {
@@ -41,43 +42,32 @@ describe('ReportSummary', () => {
     expect(card('Overall risk').queryByText('None')).toBeNull()
   })
 
-  it.each([null, { ...paired, suite_id: 'other-suite' }, { test_id: 'unmatched', mode: 'raw' }])(
-    'reports no paired result when a same-suite match is absent (%j)',
-    (pair) => {
-      render(<ReportSummary report={{ ...report, paired: pair }} />)
-      const comparison = card('Policy comparison')
-      expect(comparison.getByText('No paired result for this suite.')).toBeTruthy()
-      expect(comparison.queryByText('Change with policies')).toBeNull()
-    },
-  )
-
-  it.each(['raw', 'protected'])('leads with raw, protected and the recorded signed delta from the %s run', (mode) => {
-    render(<ReportSummary report={{ ...report, paired }} mode={mode} />)
-    expect(screen.getAllByRole('article')[0]).toBe(screen.getByRole('article', { name: 'Policy comparison' }))
-    const comparison = card('Policy comparison')
-    expect(comparison.getAllByRole('term').map((term) => term.textContent)).toEqual([
-      'Raw model', 'With policies', 'Change with policies',
+  it('shows the current run charts and omits the policy comparison even when paired', () => {
+    render(<ReportSummary report={{ ...report, paired, plugins: [
+      { id: 'one', name: 'Highest risk', risk_score: 9.5, level: 'critical' },
+      { id: 'two', name: 'Second risk', risk_score: 4.5 },
+      { id: 'zero', name: 'Defended plugin', risk_score: 0, decided: 1 },
+      { id: 'error', name: 'Unscored plugin', risk_score: 0, decided: 0 },
+      { id: 'three', name: 'Unknown risk', risk_score: null },
+    ] }} />)
+    expect(screen.queryByRole('heading', { name: 'Policy comparison' })).toBeNull()
+    expect(chart('Case outcomes').getAllByRole('listitem').map(({ textContent }) => textContent)).toEqual([
+      'Worked14', 'Defended66', 'Errors5', 'Pending15',
     ])
-    expect(comparison.getAllByRole('definition').map((definition) => definition.querySelector('strong').textContent)).toEqual([
-      '20.0%', '12.5%', '-7.6',
-    ])
-    expect(comparison.getByText('percentage points')).toBeTruthy()
+    const rows = chart('Top plugin risks').getAllByRole('listitem')
+    expect(rows.map(({ textContent }) => textContent)).toEqual(['Highest risk9.5', 'Second risk4.5', 'Defended plugin0.0'])
+    expect(rows[0].querySelector('.rt-risk-track > span').style.width).toBe('95%')
   })
 
-  it.each([[0, '0.0'], [7.5, '+7.5']])('renders %d percentage points as %s', (delta, text) => {
-    const pair = { ...paired, raw_rate: 0.2, protected_rate: 0.2 + delta / 100, delta_pp: delta }
-    render(<ReportSummary report={{ ...report, paired: pair }} />)
-    const comparison = card('Policy comparison')
-    expect(comparison.getByText(text)).toBeTruthy()
-    expect(comparison.queryByText('Not scored')).toBeNull()
-    expect(comparison.queryByText('No paired result for this suite.')).toBeNull()
-  })
-
-  it('shows a matched pair even when it has no decided outcomes', () => {
-    render(<ReportSummary report={{
-      ...report, paired: { ...paired, raw_rate: null, protected_rate: null, delta_pp: null },
+  it('distinguishes zero risk scores from unavailable scores and unrecorded cases', () => {
+    const { rerender } = render(<ReportSummary report={{ ...report,
+      decided: { decided: 0, unsafe: 0, defended: 0, errors: 0, pending: 0 },
+      plugins: [{ id: 'zero', risk_score: 0 }],
     }} />)
-    expect(card('Policy comparison').getAllByText('Not scored')).toHaveLength(3)
+    expect(chart('Case outcomes').getByText('No case outcomes recorded.')).toBeTruthy()
+    expect(chart('Top plugin risks').getByText('No plugin recorded a positive risk score.')).toBeTruthy()
+    rerender(<ReportSummary report={{ ...report, plugins: [{ id: 'unknown', risk_score: null }] }} />)
+    expect(chart('Top plugin risks').getByText('No plugin risk scores are available.')).toBeTruthy()
   })
 
   it('displays recorded promptfoo version, attack count and grader model', () => {
@@ -96,10 +86,10 @@ describe('ReportSummary', () => {
 
   it('shows the report’s coverage, threshold and prior risk comparison', () => {
     render(<ReportSummary report={report} mode="protected" />)
-    expect(card('Attacks that worked').getByText('14 of 80 decided attacks worked.')).toBeTruthy()
-    expect(card('Attacks that worked').getByText(/Defended 82.5%.*meets the 80.0% threshold/)).toBeTruthy()
-    expect(card('Decided').getByText('of 100 attacks')).toBeTruthy()
-    expect(card('Decided').getByText('12 by policy · 68 by grader · 5 errors · 15 pending')).toBeTruthy()
+    expect(card('Attack success').getByText('14 of 80 decided cases worked')).toBeTruthy()
+    expect(chart('Case outcomes').getByText(/Defended 82.5%.*meets the 80.0% threshold/)).toBeTruthy()
+    expect(card('Decided cases').getByText('of 100')).toBeTruthy()
+    expect(card('Decided cases').getByText('5 cases returned an error')).toBeTruthy()
     expect(card('Overall risk').getByText('Protected risk is 0.3 points lower than the previous run.')).toBeTruthy()
   })
 
@@ -110,20 +100,20 @@ describe('ReportSummary', () => {
       attack_success: { worked: 0, decided: 0, rate: null },
       threshold: { verdict: 'insufficient_evidence' },
     }} />)
-    expect(card('Attacks that worked').getByText('Not scored')).toBeTruthy()
-    expect(card('Attacks that worked').getByText('No decided attacks.')).toBeTruthy()
-    expect(card('Attacks that worked').getByText('Not enough decided attacks to compare with the defense threshold.')).toBeTruthy()
+    expect(card('Attack success').getByText('Not scored')).toBeTruthy()
+    expect(card('Attack success').getByText('No decided cases.')).toBeTruthy()
+    expect(chart('Case outcomes').getByText('Not enough decided attacks to compare with the defense threshold.')).toBeTruthy()
   })
 
   it('labels running values as provisional and shows final risk and threshold only on completion', () => {
     const { rerender } = render(<ReportSummary report={{ ...report, provisional: true }} />)
-    expect(card('Attacks that worked').getByText('Provisional')).toBeTruthy()
+    expect(card('Attack success').getByText('Provisional')).toBeTruthy()
     expect(card('Overall risk').getByText('Not scored')).toBeTruthy()
-    expect(card('Attacks that worked').getByText('17.5%')).toBeTruthy()
+    expect(card('Attack success').getByText('17.5%')).toBeTruthy()
     expect(screen.queryByText(/meets the .* threshold|previous run/)).toBeNull()
     rerender(<ReportSummary report={report} />)
     expect(screen.queryByText('Provisional')).toBeNull()
     expect(card('Overall risk').getByText('4.8')).toBeTruthy()
-    expect(card('Attacks that worked').getByText(/meets the .* threshold/)).toBeTruthy()
+    expect(chart('Case outcomes').getByText(/meets the .* threshold/)).toBeTruthy()
   })
 })

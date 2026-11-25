@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { CancelledBanner, FailedBanner, Limitations, MethodDisclosure, NoJudgeNote } from './ReportStates.jsx'
+import { CancelledBanner, FailedBanner, NoJudgeNote } from './ReportStates.jsx'
 
 afterEach(cleanup)
 
@@ -58,19 +58,5 @@ describe('report states', () => {
     expect(screen.getByRole('note').textContent).toMatch(/23 undecided results are inconclusive.*left out of the score/)
     fireEvent.click(screen.getByRole('button', { name: 'Clone with a judge' }))
     expect(onClone).toHaveBeenCalled()
-  })
-
-  it('method disclosure is closed with three explanations', () => {
-    const { container } = render(<MethodDisclosure />)
-    expect(container.querySelector('details').open).toBe(false)
-    const text = container.textContent
-    expect(text).toContain('Attacks that worked')
-    expect(text).toContain('open promptfoo scoring model')
-    expect(text).toContain('promptfoo grader')
-  })
-
-  it('limitations states the caveats', () => {
-    render(<Limitations />)
-    expect(screen.getByText(/Provider replies can vary between runs/)).toBeTruthy()
   })
 })

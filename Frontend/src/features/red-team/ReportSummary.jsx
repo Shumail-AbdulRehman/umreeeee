@@ -2,13 +2,8 @@ import { useId } from 'react'
 import StatusBadge from '../../components/StatusBadge.jsx'
 import { formatDate, formatNumber, formatPercent } from '../../lib/format.js'
 import { levelLabel, notScored } from './labels.js'
-import './red-team.css'
-
-const signedPoints = new Intl.NumberFormat('en-US', {
-  signDisplay: 'exceptZero',
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-})
+import ReportCharts from './ReportCharts.jsx'
+import './report.css'
 
 function trendSentence(trend, score, mode) {
   if (!Number.isFinite(trend?.risk_score) || !Number.isFinite(score)) return null
@@ -46,43 +41,11 @@ function engineSentence(engine) {
   ].filter(Boolean).join(' · ')
 }
 
-function PolicyComparison({ paired, provisional, suiteId }) {
-  const titleId = useId()
-  // Only the matched rates and delta from the report can describe shared cases.
-  const matched = !provisional && paired && Object.hasOwn(paired, 'delta_pp')
-    && (!suiteId || !paired.suite_id || suiteId === paired.suite_id)
-  return (
-    <article className="rt-panel rt-panel-body" aria-labelledby={titleId}>
-      <h2 id={titleId} className="rt-panel-title">Policy comparison</h2>
-      {matched ? (
-        <dl className="mt-3 grid grid-cols-1 gap-4 min-[600px]:grid-cols-3">
-          <div>
-            <dt className="rt-muted">Raw model</dt>
-            <dd className="rt-kpi-value"><strong>{paired.raw_rate == null ? notScored : formatPercent(paired.raw_rate)}</strong></dd>
-          </div>
-          <div>
-            <dt className="rt-muted">With policies</dt>
-            <dd className="rt-kpi-value"><strong>{paired.protected_rate == null ? notScored : formatPercent(paired.protected_rate)}</strong></dd>
-          </div>
-          <div>
-            <dt className="rt-muted">Change with policies</dt>
-            <dd className="rt-kpi-value">
-              {Number.isFinite(paired.delta_pp) ? (
-                <><strong>{signedPoints.format(paired.delta_pp)}</strong><span className="rt-kpi-of">percentage points</span></>
-              ) : <strong>{notScored}</strong>}
-            </dd>
-          </div>
-        </dl>
-      ) : <p className="rt-muted mt-2">No paired result for this suite.</p>}
-    </article>
-  )
-}
-
 /** @param {{report: import('../../services/redTeam/redTeamService.js').RedTeamReport, mode?: 'raw' | 'protected'}} props */
 export default function ReportSummary({ report, mode }) {
   const titleId = useId()
   if (!report) return null
-  const { attack_success: success, decided, engine, paired, provisional } = report
+  const { attack_success: success, decided, engine, provisional } = report
   const risk = provisional ? null : report.risk
   const score = risk?.level === 'none' ? 0 : risk?.score
   const level = levelLabel(risk?.level)
@@ -91,54 +54,57 @@ export default function ReportSummary({ report, mode }) {
   const provenance = engineSentence(engine)
   const decidedCount = decided?.decided ?? success?.decided
   const total = engine?.generated_tests ?? decided?.adversarial
-  const decisionDetails = [
-    [decided?.policy, 'by policy'],
-    [decided?.grader, 'by grader'],
-    [decided?.errors, 'errors'],
-    [decided?.pending, 'pending'],
-  ].filter(([count]) => Number.isFinite(count)).map(([count, label]) => `${formatNumber(count)} ${label}`)
+  const pluginsWithFailures = (report.plugins ?? []).filter((plugin) => plugin.worked > 0).length
+  const riskContext = trend || (pluginsWithFailures > 0
+    ? `${formatNumber(pluginsWithFailures)} ${pluginsWithFailures === 1 ? 'plugin' : 'plugins'} with successful attacks`
+    : null)
+  const errors = decided?.errors
+  const decisionContext = errors > 0
+    ? `${formatNumber(errors)} ${errors === 1 ? 'case returned' : 'cases returned'} an error`
+    : Number.isFinite(decided?.policy) && Number.isFinite(decided?.grader)
+      ? `${formatNumber(decided.policy)} by policy · ${formatNumber(decided.grader)} by grader`
+      : null
 
   return (
-    <section className="grid min-w-0 gap-4" aria-label="Report summary">
-      <PolicyComparison paired={paired} provisional={provisional} suiteId={engine?.suite_id} />
-      {provenance && <p className="rt-panel-note [overflow-wrap:anywhere]">{provenance}</p>}
-      <div className="grid grid-cols-1 gap-4 min-[600px]:grid-cols-3 min-[1180px]:grid-cols-4">
-        <article className="rt-panel rt-panel-body min-[1180px]:col-span-2" aria-labelledby={`${titleId}-risk`}>
-          <h2 className="rt-panel-title" id={`${titleId}-risk`}>Overall risk</h2>
-          <div className="rt-kpi-value mt-3">
+    <section className="rt-report-summary" aria-label="Report summary">
+      {provenance && <p className="rt-panel-note rt-report-provenance">{provenance}</p>}
+      <div className="rt-panel rt-report-metrics">
+        <article aria-labelledby={`${titleId}-risk`}>
+          <h2 id={`${titleId}-risk`}>Overall risk</h2>
+          <div className="rt-kpi-value">
             {Number.isFinite(score) ? (
               <>
                 <strong>{score.toFixed(1)}</strong>
                 <span className="rt-kpi-of">/ 10</span>
-                {!level.missing && <span className={`rt-badge rt-tone-${level.tone}`}>{level.label}</span>}
+                {!level.missing && <span className={`rt-badge rt-badge-sm rt-tone-${level.tone}`}>{level.label}</span>}
               </>
-            ) : <strong>{notScored}</strong>}
+            ) : <strong className="rt-report-unscored">{notScored}</strong>}
           </div>
-          {trend && <p className="rt-muted mt-2">{trend}</p>}
+          {riskContext && <p>{riskContext}</p>}
         </article>
-
-        <article className="rt-panel rt-panel-body" aria-labelledby={`${titleId}-asr`}>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h2 className="rt-panel-title" id={`${titleId}-asr`}>Attacks that worked</h2>
+        <article aria-labelledby={`${titleId}-asr`}>
+          <h2 id={`${titleId}-asr`}>Attack success</h2>
+          <div className="rt-kpi-value">
+            <strong className={success?.rate == null ? 'rt-report-unscored' : undefined}>
+              {success?.rate == null ? notScored : formatPercent(success.rate)}
+            </strong>
             {provisional && <StatusBadge status="running">Provisional</StatusBadge>}
           </div>
-          <div className="rt-kpi-value mt-3">
-            <strong>{success?.rate == null ? notScored : formatPercent(success.rate)}</strong>
-          </div>
-          {success?.decided > 0 && <p className="rt-muted mt-2">{formatNumber(success.worked)} of {formatNumber(success.decided)} decided attacks worked.</p>}
-          {success?.decided === 0 && <p className="rt-muted mt-2">No decided attacks.</p>}
-          {threshold && <p className="mt-2">{threshold}</p>}
+          {success?.decided > 0 && <p>{formatNumber(success.worked)} of {formatNumber(success.decided)} decided cases worked</p>}
+          {success?.decided === 0 && <p>No decided cases.</p>}
         </article>
-
-        <article className="rt-panel rt-panel-body" aria-labelledby={`${titleId}-decided`}>
-          <h2 className="rt-panel-title" id={`${titleId}-decided`}>Decided</h2>
-          <div className="rt-kpi-value mt-3">
-            <strong>{decidedCount == null ? notScored : formatNumber(decidedCount)}</strong>
-            {total != null && <span className="rt-kpi-of">of {formatNumber(total)} attacks</span>}
+        <article aria-labelledby={`${titleId}-decided`}>
+          <h2 id={`${titleId}-decided`}>Decided cases</h2>
+          <div className="rt-kpi-value">
+            <strong className={decidedCount == null ? 'rt-report-unscored' : undefined}>
+              {decidedCount == null ? notScored : formatNumber(decidedCount)}
+            </strong>
+            {total != null && <span className="rt-kpi-of">of {formatNumber(total)}</span>}
           </div>
-          {decisionDetails.length > 0 && <p className="rt-muted mt-2">{decisionDetails.join(' · ')}</p>}
+          {decisionContext && <p>{decisionContext}</p>}
         </article>
       </div>
+      <ReportCharts report={report} threshold={threshold} />
     </section>
   )
 }

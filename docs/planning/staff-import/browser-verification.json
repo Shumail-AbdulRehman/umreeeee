@@ -1,0 +1,33 @@
+{
+  "audits": [
+    {
+      "state": "upload",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "state": "errors",
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "state": "errors",
+      "width": 390,
+      "violations": []
+    },
+    {
+      "state": "receipt",
+      "width": 1440,
+      "violations": []
+    }
+  ],
+  "widths": [
+    320,
+    390,
+    600,
+    768,
+    1024,
+    1440
+  ],
+  "interactions": "passed"
+}

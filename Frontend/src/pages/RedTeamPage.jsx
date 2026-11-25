@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { ArrowUpRight, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { InlineLoadingBar } from '../components/LoadingSurface'
 import { formatDate, formatNumber } from '../lib/format'
 import { fetchLLMIntegrations } from '../services/integrations/llmIntegrationService'
@@ -10,12 +12,12 @@ import TestList from '../features/red-team/TestList'
 import TestEditor from '../features/red-team/TestEditor'
 import RunProgress from '../features/red-team/RunProgress'
 import ReportSummary from '../features/red-team/ReportSummary'
-import PluginTable from '../features/red-team/PluginTable'
-import StrategyBreakdown from '../features/red-team/StrategyBreakdown'
+import ReportBreakdown from '../features/red-team/ReportBreakdown'
+import { statusLabel } from '../features/red-team/labels'
 import ComplianceTabs from '../features/red-team/ComplianceTabs'
 import ResultsTable from '../features/red-team/ResultsTable'
 import AttackDetailDialog from '../features/red-team/AttackDetailDialog'
-import { CancelledBanner, FailedBanner, NoJudgeNote, MethodDisclosure, Limitations } from '../features/red-team/ReportStates'
+import { CancelledBanner, FailedBanner, NoJudgeNote } from '../features/red-team/ReportStates'
 import './red-team.css'
 
 const terminal = new Set(['completed', 'partially_failed', 'failed', 'cancelled'])
@@ -157,8 +159,15 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
   }
   const editor = fresh || test?.status === 'draft'
   const running = test && !terminal.has(test.status) && !editor
+  const callTotals = [
+    test?.model_calls != null && `${formatNumber(test.model_calls)} model calls`,
+    test?.judge_calls != null && `${formatNumber(test.judge_calls)} judge calls`,
+  ].filter(Boolean).join(' · ')
   const currentReport = reportRead?.status === test?.status && reportRead?.attempt === reportAttempt ? reportRead : null
   const report = currentReport?.data
+  const reportStatus = statusLabel(test?.status)
+  const runMode = test?.mode === 'raw' ? 'Raw' : 'With policies'
+  const integrationName = test?.config_snapshot?.integration_name || report?.snapshot?.integration_name
   const resultsOpened = Boolean(resultRead && resultRead.status === test?.status)
   const currentResults = resultsOpened && resultRead.query === resultQuery ? resultRead : null
   const results = currentResults?.data ?? emptyResults
@@ -198,17 +207,33 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
           preview={preview} onPreview={loadPreview}
           onSaveDraft={(values) => save(values, false)} onLaunch={(values) => save(values, true)} onCancel={() => navigate()} /></>}
       {test && !editor && <>
-        <header className="rt-page-heading">
-          <div><h1 className="rt-page-title">{test.name}</h1>
-            <p className="rt-muted">{test.mode === 'raw' ? 'Raw' : 'With policies'} · {test.config_snapshot?.integration_name || report?.snapshot?.integration_name} · {test.model} · {test.status.replaceAll('_', ' ')}</p>
-            {test.finished_at && <p className="rt-muted">Completed {formatDate(test.finished_at)}</p>}
-            <p className="rt-muted">{test.model_calls == null ? 'Model calls not available' : `${formatNumber(test.model_calls)} model calls`} · {test.judge_calls == null ? 'Judge calls not available' : `${formatNumber(test.judge_calls)} judge calls`}</p>
+        <header className={running ? 'rt-page-heading' : 'rt-page-heading rt-finished-heading'}>
+          <div>
+            {!running && <div className="rt-finished-status">
+              <span className={`rt-badge rt-badge-sm rt-tone-${reportStatus.tone}`}>{reportStatus.label}</span>
+              <span>{test.mode === 'raw' ? 'Raw model' : runMode}</span>
+            </div>}
+            <h1 className="rt-page-title">{test.name}</h1>
+            <p className="rt-muted">{[
+              running && runMode,
+              integrationName,
+              test.model,
+              running && test.status.replaceAll('_', ' '),
+              test.finished_at && formatDate(test.finished_at),
+            ].filter(Boolean).join(' · ')}</p>
+            {callTotals && <p className="rt-muted">{callTotals}</p>}
           </div>
           {!running && <div className="rt-page-actions">
-            {report?.paired ? <Button variant="outline" onClick={() => navigate(report.paired.test_id)}>Open paired run</Button>
+            {report?.paired ? <Button variant="outline" onClick={() => navigate(report.paired.test_id)}>Open paired run <ArrowUpRight aria-hidden="true" /></Button>
               : <Button variant="outline" disabled={busy} onClick={() => clone(test.mode === 'raw' ? 'protected' : 'raw')}>Clone as {test.mode === 'raw' ? 'protected' : 'raw'}</Button>}
-            {['json', 'csv'].map((format) => <Button key={format} variant="outline" disabled={busy} onClick={() => run(() => api.downloadRedTeamExport(test.id, format))}>Export {format.toUpperCase()}</Button>)}
-            <Button variant="outline" onClick={() => window.print()}>Print / Save PDF</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button variant="outline" disabled={busy}>Export <ChevronDown aria-hidden="true" /></Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {['json', 'csv'].map((format) => <DropdownMenuItem key={format}
+                  onSelect={() => run(() => api.downloadRedTeamExport(test.id, format))}>Download {format.toUpperCase()}</DropdownMenuItem>)}
+                <DropdownMenuItem onSelect={() => window.print()}>Print / Save PDF</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>}
         </header>
         {running ? <RunProgress test={test} provisional={{ attack_success_rate: report?.attack_success?.rate,
@@ -224,7 +249,7 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
               total={test.counts?.planned} actionLabel="Clone and try again" onAction={() => clone(test.mode)} />}
             {report ? <>
               <ReportSummary report={report} mode={test.mode} />
-              <div className="rt-page-breakdown"><PluginTable plugins={report.plugins} paired={report.paired} /><StrategyBreakdown strategies={report.strategies} /></div>
+              <ReportBreakdown key={test.id} plugins={report.plugins} strategies={report.strategies} paired={report.paired} />
               <ComplianceTabs compliance={compliance} provisional={report.provisional} />
               {!test.grader && report.decided?.inconclusive > 0 && <NoJudgeNote undecided={report.decided.inconclusive} onClone={() => clone(test.mode)} />}
             </> : currentReport?.failed ? <div className="rt-panel rt-panel-body">
@@ -238,7 +263,6 @@ function Workspace({ testId, fresh, capabilities, integrations, users, launchKey
               onFilterChange={(next) => changeResultQuery({ filters: next, page: 1 })}
               onPageChange={(page) => changeResultQuery({ ...resultQuery, page })} onView={openResult} />
               : <InlineLoadingBar label="Loading results…" />}
-            <MethodDisclosure /><Limitations />
           </div>}
       </>}
     </>}

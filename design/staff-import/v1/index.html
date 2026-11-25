@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Import staff · Averiq</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="prototype.js"></script>
+</head>
+<body>
+  <a href="#main" class="skip">Skip to import</a>
+  <div class="app">
+    <aside aria-label="Workspace" class="sidebar">
+      <div class="brand"><span class="mark" aria-hidden="true">A</span>Averiq</div>
+      <div class="workspace"><span aria-hidden="true">N</span><div><strong>Northstar Studio</strong><small>Organization workspace</small></div></div>
+      <div class="nav"><p>Manage</p><span aria-current="page">Users</span></div>
+      <div class="account"><span aria-hidden="true">AM</span><div><strong>Alex Morgan</strong><small>Organization admin</small></div></div>
+    </aside>
+    <main id="main">
+      <header class="topbar"><div><span class="mobile-brand">Averiq</span><span>Users</span><span aria-hidden="true">/</span><b>Import staff</b></div><span>Design preview</span></header>
+      <div class="content">
+        <header class="intro"><h1>Import staff</h1><p>Invite multiple employees to your workspace with one CSV file.</p></header>
+        <ol class="steps" aria-label="Import steps">
+          <li aria-current="step"><span aria-hidden="true">1</span>Upload CSV</li>
+          <li><span aria-hidden="true">2</span>Review rows</li>
+          <li><span aria-hidden="true">3</span>Import complete</li>
+        </ol>
+
+        <div id="upload" class="upload-layout">
+          <section class="panel upload-panel">
+            <header><h2 tabindex="-1">Upload a staff list</h2><p>Choose a CSV or drop it here to check its rows.</p></header>
+            <div id="drop-zone" class="drop-zone">
+              <div class="file-art" aria-hidden="true"><span></span><span></span><b>CSV</b></div>
+              <label for="file" class="button primary">Choose CSV file</label>
+              <input id="file" class="visually-hidden" type="file" accept=".csv,text/csv" aria-describedby="file-limits">
+              <p id="file-limits">UTF-8 CSV · Up to 100 staff rows · 256 KB max</p>
+            </div>
+            <div id="file-error" class="notice problem" role="alert" hidden></div>
+          </section>
+          <aside class="panel template" aria-labelledby="template-title">
+            <h2 id="template-title">CSV template</h2>
+            <p>Use these four column names in the first row.</p>
+            <ul aria-label="Required columns"><li><code>first_name</code></li><li><code>last_name</code></li><li><code>email</code></li><li><code>department</code></li></ul>
+            <a class="button secondary" href="staff-template.csv" download>Download template</a>
+          </aside>
+        </div>
+
+        <section class="panel review" id="review" hidden aria-labelledby="review-title">
+          <header class="panel-head">
+            <div><h2 id="review-title" tabindex="-1">Review CSV rows</h2><p id="review-file"></p></div>
+            <div class="actions"><button class="button secondary" id="issues-download" type="button">Download issues</button><button class="button secondary" id="replace" type="button">Replace CSV</button></div>
+          </header>
+          <div class="notice" id="validation-message" role="status"></div>
+          <div class="table-tools"><strong id="record-count"></strong><label><input id="issues-only" type="checkbox"> Show issues only</label></div>
+          <div class="table-region" role="region" aria-label="CSV row results" tabindex="0">
+            <table><thead><tr><th scope="col">CSV row</th><th scope="col">Employee</th><th scope="col">Department</th><th scope="col">Validation result</th></tr></thead><tbody id="rows"></tbody></table>
+          </div>
+          <div class="panel-foot"><p>Employees receive invitations to set up their accounts. Assign policy groups in Users after import.</p><button type="button" class="button primary" id="confirm-import">Import staff</button></div>
+        </section>
+
+        <section class="panel receipt" id="complete" hidden aria-labelledby="receipt-title">
+          <header class="panel-head"><div><h2 id="receipt-title" tabindex="-1">Import complete</h2><p id="receipt-file"></p></div><button class="button secondary" id="another" type="button">Import another file</button></header>
+          <dl id="receipt-metrics" class="receipt-metrics"></dl>
+          <div class="notice problem" id="delivery-note"><strong>1 invitation needs attention</strong><p>The account was created. Open the employee’s record in Users to resend the invitation.</p></div>
+          <div class="table-region" role="region" aria-label="Invitation delivery results" tabindex="0">
+            <table><thead><tr><th scope="col">Employee</th><th scope="col">Department</th><th scope="col">Invitation delivery</th></tr></thead><tbody id="receipt-rows"></tbody></table>
+          </div>
+        </section>
+
+        <aside class="demo" aria-label="Preview examples"><span>Try a sample</span><button type="button" data-demo="errors">CSV with issues</button><button type="button" data-demo="ready">Valid CSV</button><button type="button" data-demo="invalid">Missing column</button></aside>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

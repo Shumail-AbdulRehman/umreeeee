@@ -1,0 +1,21 @@
+{
+  "widths": [
+    320,
+    390,
+    768,
+    1024,
+    1440
+  ],
+  "audits": [
+    {
+      "width": 1440,
+      "violations": []
+    },
+    {
+      "width": 390,
+      "violations": []
+    }
+  ],
+  "interactions": "passed",
+  "networkRequests": 0
+}

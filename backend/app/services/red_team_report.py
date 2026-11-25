@@ -142,6 +142,17 @@ class _RunTallies:
         return {"score": _round_half_up(system.score, 1), "level": system.level,
                 "by_level": dict(system.distribution)}
 
+    def summary(self, risks):
+        return {
+            "risk": self.risk(risks) if risks is not None else None,
+            "attack_success": self.overall.attack_success(),
+        }
+
+
+def build_summary(test, attacks):
+    tallies = _RunTallies(test, attacks)
+    return tallies.summary(tallies.plugin_risks())
+
 
 def _threshold(test, tally, planned):
     threshold = test.get("threshold_score")
@@ -361,7 +372,8 @@ def build_report(test, attacks, paired=None, previous=None):
     overall = tallies.overall
     terminal = test.get("status") in _TERMINAL
     risks = tallies.plugin_risks() if terminal else {}
-    risk = tallies.risk(risks) if terminal else None
+    summary = tallies.summary(risks if terminal else None)
+    risk = summary["risk"]
     frameworks = _compliance(tallies.plugins, test.get("plugins") or ()) if terminal else None
     planned = (test.get("counts") or {}).get("planned")
     snapshot = test.get("config_snapshot") or {}
@@ -370,8 +382,7 @@ def build_report(test, attacks, paired=None, previous=None):
     stats = test.get("stats") or {}
     outcomes = overall.outcomes()
     return {
-        "risk": risk,
-        "attack_success": overall.attack_success(),
+        **summary,
         "decided": {
             "decided": overall.decided,
             "adversarial": outcomes["total"],

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Averiq · Red Team report design</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="prototype.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#report">Skip to report</a>
+  <div class="shell">
+    <aside class="rail" aria-label="Averiq workspace">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Averiq</div>
+      <div class="workspace"><span aria-hidden="true">S</span>Sample workspace</div>
+      <p class="nav-label">Evaluate</p>
+      <a class="nav-current" href="#report" aria-current="page"><span class="nav-icon" aria-hidden="true"></span>Red Team</a>
+      <p class="nav-label detail-label">In this report</p>
+      <nav class="section-links" aria-label="Report sections"><a href="#overview">Overview</a><a href="#breakdown">Test breakdown</a><a href="#coverage">Framework coverage</a><a href="#results">Case results</a></nav>
+    </aside>
+    <main id="report" tabindex="-1">
+      <div class="topbar"><div><b class="mobile-brand">Averiq</b><span>Red Team</span><i aria-hidden="true">/</i><span class="crumb-current">Test report</span></div><span class="preview-mark">Design preview</span></div>
+      <div class="content">
+        <header class="report-head" id="overview">
+          <div class="head-copy">
+            <div class="run-state"><span class="badge warning"><i></i>Partially failed</span><span id="run-mode">Raw model</span></div>
+            <h1>Support assistant evaluation</h1>
+            <p>allam-2-7b <span>·</span> Nov 25, 2026 at 9:15 PM <span>·</span> Promptfoo 0.126.0</p>
+          </div>
+          <div class="actions">
+            <button class="button" id="pair" type="button">Open paired run <span aria-hidden="true">↗</span></button>
+            <details class="export"><summary class="button">Export <span class="caret" aria-hidden="true"></span></summary><div class="export-menu"><button type="button" data-export="json">Download JSON</button><button type="button" data-export="csv">Download CSV</button><button type="button" data-export="print">Print / Save PDF</button></div></details>
+          </div>
+        </header>
+        <dl class="metrics">
+          <div><dt>Overall risk</dt><dd><strong id="overall-risk">9.5</strong><span>/ 10</span><b class="badge danger" id="risk-level">Critical</b></dd><dd class="metric-context" id="risk-context">4 plugins with successful attacks</dd></div>
+          <div><dt>Attack success</dt><dd><strong id="attack-rate">30.8%</strong></dd><dd class="metric-context" id="rate-context">4 of 13 decided cases worked</dd></div>
+          <div><dt>Decided cases</dt><dd><strong id="decided-count">13</strong><span>of 14</span></dd><dd class="metric-context" id="decided-context">1 case returned an error</dd></div>
+        </dl>
+        <div class="charts">
+          <section class="panel chart outcomes" aria-labelledby="outcome-title">
+            <header><h2 id="outcome-title">Case outcomes</h2><p>All 14 cases in this run</p></header>
+            <div class="outcome-vis" aria-hidden="true"><div class="outcome-track" id="outcome-track"></div><div class="outcome-axis"><span>0</span><span>7</span><span>14 cases</span></div></div>
+            <ul class="legend" id="outcome-legend"></ul>
+            <p class="threshold" id="defense-target"></p>
+          </section>
+          <section class="panel chart risks" aria-labelledby="risk-title">
+            <header><h2 id="risk-title">Top plugin risks</h2><p>Highest recorded scores on a scale of 0–10</p></header>
+            <div class="risk-list" id="risk-list"></div>
+          </section>
+        </div>
+        <section class="panel breakdown" id="breakdown" aria-labelledby="breakdown-title">
+          <header class="panel-head"><div><h2 id="breakdown-title">Test breakdown</h2></div><div class="segmented" role="tablist" aria-label="Breakdown view"><button type="button" role="tab" id="tab-plugins" aria-selected="true" aria-controls="plugins">Plugins</button><button type="button" role="tab" id="tab-strategies" aria-selected="false" aria-controls="strategies" tabindex="-1">Strategies</button></div></header>
+          <div role="tabpanel" id="plugins" aria-labelledby="tab-plugins"><table class="plugin-table"><thead><tr><th scope="col">Plugin</th><th scope="col">Risk score</th><th scope="col">Attack success</th><th scope="col" class="outcomes-column">Case outcomes</th><th scope="col" class="pair-column" id="paired-heading">With policies</th><th scope="col" class="strategy-column">Worst strategy</th></tr></thead><tbody id="plugin-rows"></tbody></table></div>
+          <div role="tabpanel" id="strategies" aria-labelledby="tab-strategies" hidden><table class="strategy-table"><thead><tr><th scope="col">Strategy</th><th scope="col">Attack success</th><th scope="col">Case outcomes</th></tr></thead><tbody id="strategy-rows"></tbody></table></div>
+        </section>
+        <section class="panel" id="coverage" aria-labelledby="coverage-title">
+          <header class="panel-head"><div><h2 id="coverage-title">Framework coverage</h2></div><label class="select-label">Framework <select id="framework"><option>OWASP LLM Top 10</option><option>NIST AI RMF</option></select></label></header>
+          <div class="coverage-strip" id="coverage-strip"></div>
+        </section>
+        <section class="panel" id="results" aria-labelledby="results-title">
+          <header class="panel-head"><div><h2 id="results-title">Case results</h2></div><label class="select-label">Outcome <select id="result-filter"><option value="">All outcomes</option><option value="worked">Worked</option><option value="defended">Defended</option><option value="error">Error</option></select></label></header>
+          <table class="case-table"><thead><tr><th scope="col">Case</th><th scope="col">Plugin</th><th scope="col">Outcome</th></tr></thead><tbody id="case-rows"></tbody></table>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

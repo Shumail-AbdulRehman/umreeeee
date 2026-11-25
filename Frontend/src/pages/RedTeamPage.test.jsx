@@ -94,11 +94,18 @@ describe('Red Team composition', () => {
     at('#red-team?test=a')
     expect(await screen.findByRole('progressbar')).toBeTruthy()
     expect(screen.getByText('No results recorded yet.')).toBeTruthy()
+    expect(screen.queryByText(/calls not available/i)).toBeNull()
+  })
+  it('shows a recorded zero call count when the other count is missing', async () => {
+    api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'running', judge_calls: 0 } })
+    at('#red-team?test=a')
+    expect(await screen.findByText('0 judge calls')).toBeTruthy()
+    expect(screen.queryByText(/model calls/i)).toBeNull()
   })
   it('renders report sections and normalizes compliance totals', async () => {
     api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'completed' } })
     at('#red-team?test=a')
-    expect(await screen.findByText('What broke, by plugin')).toBeTruthy()
+    expect(await screen.findByText('Test breakdown')).toBeTruthy()
     expect(screen.getByRole('tab', { name: /OWASP/ }).textContent).toContain('1 passed')
     expect(screen.getByRole('heading', { name: 'Results' })).toBeTruthy()
   })
@@ -111,7 +118,7 @@ describe('Red Team composition', () => {
     at('#red-team?test=a')
     expect(await screen.findByText('Loading report…')).toBeTruthy()
     expect(screen.getByText('Loading results…')).toBeTruthy()
-    expect(screen.queryByText('What broke, by plugin')).toBeNull()
+    expect(screen.queryByText('Test breakdown')).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Results' })).toBeNull()
 
     await act(async () => { rejectReport(new Error('Report unavailable')) })
@@ -119,12 +126,12 @@ describe('Red Team composition', () => {
     expect(screen.queryByText('Loading report…')).toBeNull()
     expect(screen.getByText('Loading results…')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Retry report' }))
-    expect(await screen.findByText('What broke, by plugin')).toBeTruthy()
+    expect(await screen.findByText('Test breakdown')).toBeTruthy()
 
     await act(async () => { rejectResults(new Error('Results unavailable')) })
     expect(screen.getByText('Could not load results.')).toBeTruthy()
     expect(screen.queryByText('Loading results…')).toBeNull()
-    expect(screen.getByText('What broke, by plugin')).toBeTruthy()
+    expect(screen.getByText('Test breakdown')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Retry results' }))
     expect(await screen.findByText('No results have been recorded.')).toBeTruthy()
     expect(api.getRedTeamReport).toHaveBeenCalledTimes(2)
@@ -186,9 +193,12 @@ describe('Red Team composition', () => {
   it('exports JSON and CSV', async () => {
     api.getRedTeamTest.mockResolvedValue({ test: { ...draft, status: 'completed' } })
     at('#red-team?test=a')
-    fireEvent.click(await screen.findByRole('button', { name: 'Export JSON' }))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Export CSV' }).disabled).toBe(false))
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
+    for (const format of ['JSON', 'CSV']) {
+      const trigger = await screen.findByRole('button', { name: 'Export' })
+      await waitFor(() => expect(trigger.disabled).toBe(false))
+      fireEvent.keyDown(trigger, { key: 'Enter' })
+      fireEvent.click(await screen.findByRole('menuitem', { name: `Download ${format}` }))
+    }
     await waitFor(() => expect(api.downloadRedTeamExport.mock.calls).toEqual([['a', 'json'], ['a', 'csv']]))
   })
   it('shows 422 field errors in the editor and keeps entered values', async () => {

@@ -3,11 +3,11 @@ import { TableCell, TableRow } from '../../components/ui/table.jsx'
 import { ReportOutcome, ReportTable } from './PluginTable.jsx'
 import './red-team.css'
 
-export default function StrategyBreakdown({ strategies = [] }) {
+export default function StrategyBreakdown({ strategies = [], embedded = false }) {
   const titleId = useId()
   return (
-    <section className="rt-panel">
-      <div className="rt-panel-head">
+    <section className={embedded ? 'rt-breakdown-table' : 'rt-panel'}>
+      <div className={embedded ? 'rt-breakdown-table-heading' : 'rt-panel-head'}>
         <h2 className="rt-panel-title" id={titleId}>By strategy</h2>
       </div>
       {!strategies?.length ? (

@@ -117,7 +117,6 @@
   .rt-chip { min-height: 44px; }
   .rt-panel button, .rt-panel select { min-width: 44px; }
   .rt-panel summary { min-height: 44px; padding-block: 12px; }
-  .rt-method > summary { padding-inline: 18px; }
   .rt-panel button, .rt-panel select,
   .rt-panel input:not([type="checkbox"]):not([type="radio"]),
   .rt-panel label:has(> input[type="radio"]),

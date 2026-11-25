@@ -8,12 +8,12 @@ function Badge({ info }) {
   return <span className={`rt-badge rt-badge-sm rt-tone-${info.tone}`}>{info.label}</span>
 }
 
-export function ReportTable({ titleId, headings, compact = false, children }) {
+export function ReportTable({ titleId, headings, compact = false, className = '', children }) {
   return (
     <div className="rt-table-region transition-none! [&>[data-slot=table-container]]:contents"
       role="region" tabIndex={0} aria-labelledby={titleId}>
       <Table
-        className="rt-table [&_td]:whitespace-normal [&_td]:[overflow-wrap:anywhere] [&_tr]:border-b-0! [&_tr]:transition-none!"
+        className={`rt-table [&_td]:whitespace-normal [&_td]:[overflow-wrap:anywhere] [&_tr]:border-b-0! [&_tr]:transition-none! ${className}`}
         style={compact ? { minWidth: 0 } : undefined}
         role="table" aria-labelledby={titleId}>
         <TableHeader role="rowgroup">
@@ -27,7 +27,7 @@ export function ReportTable({ titleId, headings, compact = false, children }) {
   )
 }
 
-export function ReportOutcome({ outcome }) {
+export function ReportOutcome({ outcome, showRate = true }) {
   const { decided, total, worked, defended, errors, pending, rate } = outcome
   const counts = [
     [worked, 'worked'],
@@ -37,7 +37,7 @@ export function ReportOutcome({ outcome }) {
   ].filter(([count]) => Number.isFinite(count)).map(([count, label]) => `${formatNumber(count)} ${label}`)
   return (
     <>
-      <strong className="rt-num">{rate == null || decided === 0 ? notScored : `${formatPercent(rate)} worked`}</strong>
+      {showRate && <strong className="rt-num">{rate == null || decided === 0 ? notScored : `${formatPercent(rate)} worked`}</strong>}
       {Number.isFinite(decided) && (
         <small>{total == null ? formatNumber(decided) : `${formatNumber(decided)} of ${formatNumber(total)}`} decided</small>
       )}
@@ -46,33 +46,42 @@ export function ReportOutcome({ outcome }) {
   )
 }
 
-export default function PluginTable({ plugins = [], paired = null }) {
+export default function PluginTable({ plugins = [], paired = null, embedded = false }) {
   const titleId = useId()
   const pairedLabel = paired?.mode === 'raw' ? 'Raw model' : 'With policies'
   const pairedRates = paired?.plugin_rates
-  const headings = ['Plugin', 'Risk', 'Attack outcomes', ...(pairedRates ? [pairedLabel] : []), 'Worst strategy']
+  const headings = embedded
+    ? ['Plugin', 'Risk score', 'Attack success', 'Case outcomes', ...(pairedRates ? [pairedLabel] : []), 'Worst strategy']
+    : ['Plugin', 'Risk', 'Attack outcomes', ...(pairedRates ? [pairedLabel] : []), 'Worst strategy']
 
   return (
-    <section className="rt-panel">
-      <div className="rt-panel-head">
+    <section className={embedded ? 'rt-breakdown-table' : 'rt-panel'}>
+      <div className={embedded ? 'rt-breakdown-table-heading' : 'rt-panel-head'}>
         <h2 className="rt-panel-title" id={titleId}>What broke, by plugin</h2>
       </div>
       {!plugins?.length ? (
         <p className="rt-empty">No plugin results in this report.</p>
       ) : (
-        <ReportTable titleId={titleId} headings={headings}>
+        <ReportTable titleId={titleId} headings={headings} className={embedded ? 'rt-compact-plugin-table' : undefined}>
           {plugins.map((plugin) => {
             const severity = severityLabel(plugin.severity)
             const level = levelLabel(plugin.level)
             const score = plugin.level === 'none' ? 0 : plugin.risk_score
             const pairedRate = pairedRates?.[plugin.id]
+            const pairedText = Number.isFinite(pairedRate) ? formatPercent(pairedRate) : notScored
+            const worstStrategy = plugin.worst_strategy_name || plugin.worst_strategy
             return (
               <TableRow key={plugin.id} role="row">
                 <TableCell role="rowheader" data-label="Plugin">
                   <strong>{plugin.name || plugin.id}</strong>
                   {!severity.missing && <small><Badge info={severity} /></small>}
+                  {embedded && <div className="rt-plugin-mobile-details">
+                    <ReportOutcome outcome={plugin} showRate={false} />
+                    {pairedRates && <small>{pairedLabel} {pairedText}</small>}
+                    {worstStrategy && <small>{worstStrategy}</small>}
+                  </div>}
                 </TableCell>
-                <TableCell role="cell" data-label="Risk">
+                <TableCell role="cell" data-label={embedded ? 'Risk score' : 'Risk'}>
                   {Number.isFinite(score) ? (
                     <>
                       <strong className="rt-num">{score.toFixed(1)}</strong>
@@ -80,14 +89,21 @@ export default function PluginTable({ plugins = [], paired = null }) {
                     </>
                   ) : notScored}
                 </TableCell>
-                <TableCell role="cell" data-label="Attack outcomes"><ReportOutcome outcome={plugin} /></TableCell>
+                {embedded && (
+                  <TableCell role="cell" data-label="Attack success">
+                    <strong className="rt-num">{Number.isFinite(plugin.rate) && plugin.decided !== 0 ? formatPercent(plugin.rate) : notScored}</strong>
+                  </TableCell>
+                )}
+                <TableCell role="cell" data-label={embedded ? 'Case outcomes' : 'Attack outcomes'}>
+                  <ReportOutcome outcome={plugin} showRate={!embedded} />
+                </TableCell>
                 {pairedRates && (
                   <TableCell role="cell" data-label={pairedLabel} className="rt-num">
-                    {Number.isFinite(pairedRate) ? formatPercent(pairedRate) : notScored}
+                    {pairedText}
                   </TableCell>
                 )}
                 <TableCell role="cell" data-label="Worst strategy">
-                  {plugin.worst_strategy_name || plugin.worst_strategy || (
+                  {worstStrategy || (
                     <span className="rt-muted">{plugin.decided > 0 && plugin.worked === 0 ? 'No attack worked' : notScored}</span>
                   )}
                 </TableCell>

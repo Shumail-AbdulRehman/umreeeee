@@ -1,5 +1,6 @@
 """Tenant-scoped Promptfoo Red Team configuration, launch and reads."""
 
+from collections import defaultdict
 import csv
 from hashlib import sha256
 import io
@@ -21,7 +22,7 @@ from app.red_team.framework_compliance import framework_catalog
 from app.services.admin_common import audit, serialize, utcnow
 from app.services.content_service import decrypt
 from app.services.enforcement_service import resolve_policies
-from app.services.red_team_report import build_report
+from app.services.red_team_report import build_report, build_summary
 from app.services.remote_detection import catalog_ready
 from app.validators.registry import registry
 from scripts.check_promptfoo_runtime import runtime_status
@@ -319,10 +320,26 @@ class RedTeamService:
                 query['created_at']['$gte'] = start
             if end:
                 query['created_at']['$lt'] = end
-        rows = self.db.red_team_tests.find(query).sort([
+        rows = list(self.db.red_team_tests.find(query).sort([
             ('created_at', DESCENDING), ('_id', DESCENDING),
-        ]).skip((page - 1) * page_size).limit(page_size)
-        return {'items': [self._with_progress(row) for row in rows], 'page': page, 'page_size': page_size,
+        ]).skip((page - 1) * page_size).limit(page_size))
+        terminal_ids = [row['_id'] for row in rows if row.get('status') in TERMINAL]
+        attacks_by_test = defaultdict(list)
+        if terminal_ids:
+            attacks = self.db.red_team_attacks.find(
+                {'company_id': query['company_id'], 'test_id': {'$in': terminal_ids}},
+                {'_id': 0, 'test_id': 1, 'plugin_id': 1, 'strategy_id': 1, 'severity': 1,
+                 'verdict': 1, 'verdict_source': 1},
+            )
+            for attack in attacks:
+                attacks_by_test[attack['test_id']].append(attack)
+        items = []
+        for row in rows:
+            item = self._with_progress(row)
+            if row.get('status') in TERMINAL:
+                item['summary'] = build_summary(row, attacks_by_test[row['_id']])
+            items.append(item)
+        return {'items': items, 'page': page, 'page_size': page_size,
                 'total': self.db.red_team_tests.count_documents(query)}
 
     def _with_progress(self, test, detail=False):
