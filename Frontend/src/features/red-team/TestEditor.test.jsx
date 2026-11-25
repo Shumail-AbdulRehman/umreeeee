@@ -50,11 +50,20 @@ describe('TestEditor', () => {
     expect(screen.queryByLabelText('Run as')).toBeNull()
   })
 
-  it('quick-select merges offered framework mappings and explains unmapped controls', () => {
-    setup()
+  it.each([
+    ['string IDs', 'pii:direct', 'not-offered'],
+    ['API plugin objects', { id: 'pii:direct', name: 'Direct PII leak', severity: 'high' }, { id: 'not-offered', name: 'Unavailable check', severity: 'low' }],
+  ])('quick-select merges offered framework mappings and counts gaps for %s', (_shape, offered, unavailable) => {
+    const framework = capabilities.frameworks[0]
+    setup({ capabilities: { ...capabilities, frameworks: [{
+      ...framework,
+      controls: [{ id: 'llm02', plugins: [offered] }, { id: 'llm99', plugins: [unavailable] }],
+    }] } })
     const section = screen.getByRole('heading', { name: 'What to attack' }).closest('section')
+    const quickSelect = within(section).getByRole('button', { name: 'Use OWASP LLM Top 10' })
+    expect(quickSelect.disabled).toBe(false)
     expect(within(section).getByText('1 control does not map to offered plugins.')).toBeTruthy()
-    fireEvent.click(within(section).getByRole('button', { name: 'Use OWASP LLM Top 10' }))
+    fireEvent.click(quickSelect)
     expect(within(section).getByRole('checkbox', { name: /Direct PII leak/ }).checked).toBe(true)
     expect(within(section).getByRole('checkbox', { name: /Prompt extraction/ }).checked).toBe(true)
   })

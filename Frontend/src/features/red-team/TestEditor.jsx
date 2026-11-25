@@ -43,13 +43,22 @@ function groupBy(items, key) {
   return [...groups]
 }
 
+function pluginReferenceId(plugin) {
+  return typeof plugin === 'string' ? plugin : plugin?.id
+}
+
 function frameworkMapping(framework, plugins) {
   const offered = new Set(plugins.map((plugin) => plugin.id))
   const controls = Array.isArray(framework.controls) ? framework.controls : []
   const explicit = [framework.plugin_ids, framework.mapped_plugins, framework.plugins]
     .find((value) => Array.isArray(value)) ?? []
-  const candidates = [...explicit]
-  for (const control of controls) candidates.push(...(control.plugins ?? control.plugin_ids ?? []))
+  const candidates = explicit.map(pluginReferenceId)
+  let unmapped = 0
+  for (const control of controls) {
+    const ids = (control.plugins ?? control.plugin_ids ?? []).map(pluginReferenceId)
+    candidates.push(...ids)
+    if (!ids.some((id) => offered.has(id))) unmapped += 1
+  }
   if (!candidates.length) {
     for (const plugin of plugins) {
       const maps = plugin.frameworks
@@ -58,10 +67,6 @@ function frameworkMapping(framework, plugins) {
     }
   }
   const pluginIds = [...new Set(candidates.filter((id) => offered.has(id)))]
-  const unmapped = controls.filter((control) => {
-    const ids = control.plugins ?? control.plugin_ids ?? []
-    return !ids.some((id) => offered.has(id))
-  }).length
   return { pluginIds, unmapped }
 }
 

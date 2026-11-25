@@ -14,6 +14,10 @@ let browser
  page.setDefaultTimeout(15000)
  const errors=[],requests=[],unexpected=[],accessibility=[]
  let role='org_admin',failReport=false,slowAda=false
+ let releaseInitialReport
+ const initialReport = new Promise(resolve => { releaseInitialReport = resolve })
+ let releaseAdaReport
+ const adaReport = new Promise(resolve => { releaseAdaReport = resolve })
  page.on('pageerror',e=>errors.push(e.message))
  await page.addInitScript(()=>localStorage.setItem('centurion.auth.token','synthetic-only'))
  await page.route(`${base}/api/**`,async route=>{
@@ -35,7 +39,8 @@ let browser
    assert.equal(new Date(to).toISOString(),to)
    const days=(Date.parse(to)-Date.parse(from))/86400000
    assert.equal([7,30,90].includes(days),true)
-   if(slowAda&&userId===id(1)) await new Promise(resolve=>setTimeout(resolve,800))
+   await initialReport
+   if(slowAda&&userId===id(1)) await adaReport
    if(failReport) return send({detail:{message:'Analytics temporarily unavailable'}},503)
    const total=userId===id(3)?0:userId===id(1)?7:userId===id(2)?9:16
    const blocked=total?2:0,allowed=total?total-3:0
@@ -59,7 +64,30 @@ let browser
   const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze()
   result.violations.forEach(v=>accessibility.push({label,id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))
  }
+ const checkLoadingLayout=async (selector, width, metricColumns, chartColumns)=>{
+  await page.setViewportSize({width,height:1000})
+  const layout=await page.locator(`${selector}:visible`).evaluate(skeleton=>{
+   const metrics=skeleton.querySelector('.sk-metrics')
+   const charts=skeleton.querySelector('.sk-two-columns')
+   const bounds=skeleton.getBoundingClientRect()
+   const countTracks=element=>getComputedStyle(element).gridTemplateColumns.split(' ').length
+   return {
+    fillsWidth:Math.abs(metrics.getBoundingClientRect().right-bounds.right)<1,
+    metricColumns:countTracks(metrics),
+    chartColumns:countTracks(charts),
+    valuesFit:[...metrics.children].every(cell=>
+     cell.children[1].getBoundingClientRect().right<=cell.getBoundingClientRect().right),
+    pageFits:document.documentElement.scrollWidth<=innerWidth,
+   }
+  })
+  assert.deepEqual(layout,{fillsWidth:true,metricColumns,chartColumns,valuesFit:true,pageFits:true},`loading layout at ${width}px`)
+ }
  await page.goto(`${base}/#user-insights`)
+ for(const [width,metrics,charts] of [[1440,4,2],[1200,4,1],[1024,2,1],[768,2,1],[390,2,1],[320,2,1]]){
+  await checkLoadingLayout('.loading-user-insights .page-skeleton',width,metrics,charts)
+ }
+ await page.setViewportSize({width:1440,height:1000})
+ releaseInitialReport()
  await ready();assert.equal(await metric().innerText(),'16')
  const nav=page.locator('.side .nav-section').filter({has:page.getByRole('heading',{name:'Manage',exact:true})})
  await nav.getByRole('button',{name:'User insights',exact:true}).waitFor()
@@ -80,7 +108,10 @@ let browser
  await page.getByRole('button',{name:/Omar Khan Engineering/}).click();await ready()
  await page.getByRole('button',{name:/Ada Morgan Engineering/}).click()
  await page.waitForFunction(()=>document.querySelector('.loading-surface'))
+ await checkLoadingLayout('.loading-user-report .page-skeleton',1024,2,1)
+ await page.setViewportSize({width:1440,height:1000})
  await page.getByRole('button',{name:/Omar Khan Engineering/}).click();await ready()
+ releaseAdaReport()
  await page.waitForTimeout(1000)
  assert.equal(await metric().innerText(),'9','Late results must never overwrite the selected person')
  await page.getByRole('heading',{name:'Omar Khan',exact:true}).waitFor();slowAda=false
