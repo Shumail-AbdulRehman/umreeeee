@@ -8,6 +8,12 @@ def ensure_indexes(database) -> None:
     database.users.create_index([('company_id', ASCENDING), ('is_active', ASCENDING), ('role', ASCENDING)], name='users_company_status_role')
     database.users.create_index([('company_id', ASCENDING), ('group_ids', ASCENDING)], name='users_company_groups')
     database.users.create_index([('invitation_token_hash', ASCENDING)], name='users_invitation_token_hash_idx')
+    database.staff_imports.create_index([('company_id', ASCENDING), ('idempotency_key', ASCENDING)],
+                                        unique=True, name='staff_import_request_unique')
+    database.staff_invitation_jobs.create_index([('company_id', ASCENDING), ('receipt_id', ASCENDING), ('row', ASCENDING)],
+                                                unique=True, name='staff_import_row_unique')
+    database.staff_invitation_jobs.create_index([('state', ASCENDING), ('lease_until', ASCENDING), ('created_at', ASCENDING)],
+                                                name='staff_invitation_dispatch')
     database.integrations.create_index([('company_id', ASCENDING)], name='integrations_company_id_idx')
     database.integrations.create_index(
         [('company_id', ASCENDING), ('provider', ASCENDING), ('account_name_normalized', ASCENDING)],

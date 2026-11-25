@@ -149,6 +149,12 @@ content cleanup: schedule `python -m scripts.expire_content` through Heroku Sche
 (or `cd backend && python -m scripts.expire_content` for the complete repository).
 Read endpoints enforce content expiry even before cleanup runs.
 
+## Staff invitation delivery
+
+Run `python -m app.workers.staff_invitation_worker` as a separate process with the API's MongoDB and SMTP configuration. The Heroku process is `staff-invitations`. On a Docker Compose deployment, start the `staff-invitations` service.
+
+Import creates accounts and queues invitations in one MongoDB transaction. The worker sends each invitation and updates its delivery status. Queued invitations stay pending while the worker is stopped. An interrupted send can become **Delivery unconfirmed**, which the admin can handle using **Resend** in Users.
+
 ## Request duration and troubleshooting
 
 Prompt Studio currently executes synchronously. Heroku's router times out requests after

@@ -148,6 +148,15 @@ services:
       api:
         condition: service_healthy
 
+  staff-invitations:
+    <<: *backend
+    command: ["python", "-m", "app.workers.staff_invitation_worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
   frontend:
     image: averiq-frontend:local
     build:

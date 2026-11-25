@@ -6,7 +6,7 @@ from bson import ObjectId
 from fastapi import HTTPException
 from pymongo.errors import DuplicateKeyError
 
-from app.services.admin_common import audit, company_id, transaction, utcnow
+from app.core.config import INVITATION_EXPIRE_HOURS
 from app.core.errors import DomainError, object_id
 from app.core.permissions import ADMIN_ROLES, require_admin
 from app.core.security import generate_invitation_token, hash_invitation_token
@@ -14,8 +14,23 @@ from app.db.mongo import get_database
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.users import ManagedUserRead
+from app.services.admin_common import audit, company_id, transaction, utcnow
 from app.services.email_service import send_invitation_email
 from app.utils.normalizers import normalize_department_name, normalize_email, normalize_person_name, validate_email
+
+
+def invitation_record(fields, company, groups, token, now):
+    return {**fields, 'company_id': company, 'group_ids': groups, 'groups': [],
+            'password_hash': None, 'is_email_verified': False, 'is_active': True,
+            'token_version': 0, 'version': 1, 'invitation_token_hash': hash_invitation_token(token),
+            'invitation_expires_at': now + timedelta(hours=INVITATION_EXPIRE_HOURS), 'invited_at': now,
+            'created_at': now, 'updated_at': now}
+
+
+def ensure_invitation_not_sending(record):
+    locked_until = record.get('staff_invite_sending_until')
+    if locked_until and locked_until > utcnow():
+        raise DomainError(409, 'invitation_sending', 'The import is sending this invitation. Try again after delivery finishes.')
 
 
 class UserManagementService:
@@ -104,11 +119,7 @@ class UserManagementService:
 
         def operation(db, session):
             ids = self.validate_groups(db, user, payload.group_ids, session)
-            record = {**fields, 'company_id': company_id(user), 'group_ids': ids, 'groups': [],
-                      'password_hash': None, 'is_email_verified': False, 'is_active': True,
-                      'token_version': 0, 'version': 1, 'invitation_token_hash': hash_invitation_token(token),
-                      'invitation_expires_at': now + timedelta(hours=72), 'invited_at': now,
-                      'created_at': now, 'updated_at': now}
+            record = invitation_record(fields, company_id(user), ids, token, now)
             try:
                 result = db.users.insert_one(record, session=session)
             except DuplicateKeyError as exc:
@@ -173,6 +184,8 @@ class UserManagementService:
             if target['role'] == 'super_admin':
                 raise DomainError(403, 'privileged_account', 'Super Admin changes require the local command')
             email_changed = fields['email'] != target['email']
+            if email_changed:
+                ensure_invitation_not_sending(target)
             if email_changed and target.get('password_hash') is not None:
                 raise DomainError(422, 'immutable_email', 'Verified email changes are not supported',
                                   {'email': ['Email cannot be changed here']})
@@ -184,7 +197,8 @@ class UserManagementService:
             increments = {'version': 1}
             if token:
                 changes.update(invitation_token_hash=hash_invitation_token(token),
-                               invitation_expires_at=utcnow() + timedelta(hours=72), invited_at=utcnow())
+                               invitation_expires_at=utcnow() + timedelta(hours=INVITATION_EXPIRE_HOURS), invited_at=utcnow(),
+                               staff_invite_attempt=None, staff_invite_sending_until=None)
                 increments['token_version'] = 1
             try:
                 result = db.users.update_one({'_id': target['_id'], 'company_id': company_id(user), 'version': payload.version},
@@ -245,6 +259,7 @@ class UserManagementService:
                 raise DomainError(404, 'not_found', 'User not found')
             if target.get('password_hash') or not target.get('is_active', True):
                 raise DomainError(409, 'not_invited', 'Only active invited accounts can be resent')
+            ensure_invitation_not_sending(target)
             sent = target.get('invited_at')
             if sent and (utcnow() - sent).total_seconds() < 60:
                 raise HTTPException(status_code=429, detail='Wait before resending the invitation',
@@ -253,7 +268,8 @@ class UserManagementService:
                                           'password_hash': None,
                                           'invitation_token_hash': target.get('invitation_token_hash')},
                 {'$set': {'invitation_token_hash': hash_invitation_token(token),
-                          'invitation_expires_at': utcnow() + timedelta(hours=72), 'invited_at': utcnow()},
+                          'invitation_expires_at': utcnow() + timedelta(hours=INVITATION_EXPIRE_HOURS), 'invited_at': utcnow()},
+                 '$unset': {'staff_invite_attempt': '', 'staff_invite_sending_until': ''},
                  '$inc': {'version': 1, 'token_version': 1}}, session=session)
             if result.modified_count != 1:
                 raise DomainError(409, 'invitation_changed', 'Invitation changed. Refresh and try again.')

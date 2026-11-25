@@ -45,6 +45,7 @@ export default function App() {
   const isInvitationRoute = route === 'accept-invite'
   const invitationToken = hashState.params.get('token') || ''
   const openCreateUser = hashState.params.get('modal') === 'add'
+  const staffImportRoute = route === 'users' ? hashState.params.get('import') || '' : ''
   const openCreateIntegration = hashState.params.get('modal') === 'add'
   const filterGroupId = hashState.params.get('group_id') || ''
   const filterIntegrationId = hashState.params.get('integration_id') || ''
@@ -221,9 +222,9 @@ export default function App() {
         <Topbar page={page} user={user} onNavigate={navigate} onLogout={handleLogout} />
 
         <div className="content">
-          <PageTitle page={page} />
+          {!(page === 'users' && staffImportRoute) && <PageTitle page={page} />}
           {isStandalonePage ? <PageLoadingBoundary key={`${page}:${filterGroupId}:${filterIntegrationId}:${hashState.params.get('run_id') || ''}:${hashState.params.get('status') || ''}`} label={pageMeta[page].title} kind={page}><Suspense fallback={<LoadingSurface kind={page} label={`Opening ${pageMeta[page].title}…`} />}><ActivePage currentUser={user}
-            openCreateUser={openCreateUser} openCreateIntegration={openCreateIntegration}
+            openCreateUser={openCreateUser} staffImportRoute={staffImportRoute} openCreateIntegration={openCreateIntegration}
             filterGroupId={filterGroupId} filterIntegrationId={filterIntegrationId}
             runId={hashState.params.get('run_id') || ''} filterStatus={hashState.params.get('status') || ''}
             conversationId={hashState.params.get('chat') || ''}

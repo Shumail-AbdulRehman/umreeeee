@@ -1,15 +1,27 @@
 import DataTable from '../components/DataTable'
 import StatusBadge from '../components/StatusBadge'
 import { Pagination, SearchInput } from '../components/Surface'
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { listGroups } from '../services/groups/groupService'
 import { createManagedUser, fetchManagedUsers, resendManagedInvitation, setManagedUserStatus, updateManagedUser, updateOwnGroups, fetchOwnGroups } from '../services/users/userManagementService'
 import Modal from '../components/Modal'
 import FieldErrors from '../components/FieldErrors'
+import { InlineLoadingBar } from '../components/LoadingSurface'
+import { isAdmin } from '../utils/permissions'
 
 const blank = { first_name: '', last_name: '', email: '', department: '', role: 'user', group_ids: [] }
+const StaffImportPage = lazy(() => import('../features/staff-import/StaffImportPage'))
 
-export default function UsersPage({ currentUser, openCreateUser = false }) {
+export default function UsersPage({ currentUser, openCreateUser = false, staffImportRoute = '' }) {
+  if (staffImportRoute && isAdmin(currentUser)) {
+    return <Suspense fallback={<InlineLoadingBar label="Opening staff import…" />}>
+      <StaffImportPage user={currentUser} receiptId={staffImportRoute === '1' ? null : staffImportRoute} />
+    </Suspense>
+  }
+  return <UsersDirectory currentUser={currentUser} openCreateUser={openCreateUser} />
+}
+
+function UsersDirectory({ currentUser, openCreateUser }) {
   const requestSequence = useRef(0)
   const [result, setResult] = useState({ items: [], total: 0, page_size: 20 })
   const [groups, setGroups] = useState([])
@@ -94,7 +106,9 @@ export default function UsersPage({ currentUser, openCreateUser = false }) {
       <select aria-label="Filter user status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1) }}><option value="">All statuses</option>{['active', 'invited', 'pending_verification', 'inactive'].map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}</select>
       <select aria-label="Filter user role" value={roleFilter} onChange={(event) => { setRoleFilter(event.target.value); setPage(1) }}><option value="">All roles</option><option value="org_admin">Organization admin</option><option value="user">User</option><option value="super_admin">Super Admin</option></select>
       <select aria-label="Filter user group" value={groupFilter} onChange={(event) => { setGroupFilter(event.target.value); setPage(1) }}><option value="">All groups</option>{groups.map((group) => <option key={group._id} value={group._id}>{group.name}</option>)}</select>
-      <button className="btn" disabled={busy} onClick={editOwnGroups}>My policy groups</button><button className="btn primary" onClick={() => open()}>Invite user</button></div>
+      <button className="btn" disabled={busy} onClick={editOwnGroups}>My policy groups</button>
+      {isAdmin(currentUser) && <a className="btn" href="#users?import=1">Import staff</a>}
+      <button className="btn primary" onClick={() => open()}>Invite user</button></div>
     {message && <div className="admin-notice" role="status">{message}{groupsSaved && <> <a href="#prompt-studio">Return to Prompt Studio ↗</a></>}</div>}{error && <div className="admin-error" role="alert">{error}</div>}
     {ownGroups && <form className="admin-panel admin-stack" onSubmit={saveOwnGroups} aria-label="Manage my policy groups">
       <h2>Manage my groups</h2>

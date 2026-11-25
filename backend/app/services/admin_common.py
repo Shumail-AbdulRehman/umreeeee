@@ -16,13 +16,20 @@ def company_id(user):
     return object_id(user.company.id)
 
 
-def audit(db, session, user, action, resource_type, resource_id, request_id, before=None, after=None):
-    db.audit_events.insert_one({
+def audit_record(user, action, resource_type, resource_id, request_id, before=None, after=None):
+    return {
         'company_id': company_id(user), 'actor_user_id': object_id(user.id),
         'action': action, 'resource_type': resource_type, 'resource_id': resource_id,
         'before': before or {}, 'after': after or {}, 'request_id': request_id,
         'created_at': utcnow(),
-    }, session=session)
+    }
+
+
+def audit(db, session, user, action, resource_type, resource_id, request_id, before=None, after=None):
+    db.audit_events.insert_one(
+        audit_record(user, action, resource_type, resource_id, request_id, before, after),
+        session=session,
+    )
 
 
 def transaction(user, operation):

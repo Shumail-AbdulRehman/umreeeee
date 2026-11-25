@@ -19,6 +19,7 @@ Run each command in its own terminal. From `backend`:
 .venv/bin/python -m app.queue.dispatcher
 .venv/bin/python -m app.workers.red_team_worker
 .venv/bin/python -m scripts.reconcile_red_team
+.venv/bin/python -m app.workers.staff_invitation_worker
 ```
 
 From `Frontend`:
@@ -31,6 +32,8 @@ npm run dev
 Open `http://localhost:5173`; FastAPI OpenAPI is at `http://127.0.0.1:8000/docs`. Check `/api/health` for process liveness and `/api/ready` for Mongo/readiness. The Red Team capabilities endpoint reports TCP reachability and recent worker/dispatcher heartbeats as hints, not delivery guarantees. Start with one worker; prefetch is 1. The dispatcher publishes only IDs from durable Mongo job rows. Run `.venv/bin/python -m scripts.expire_content` periodically to remove expired prompt/run response ciphertext. It does not delete result metadata.
 
 For an optional isolated synthetic tenant, set a private `DEMO_ADMIN_PASSWORD` of at least 12 characters and run `.venv/bin/python -m scripts.seed_demo --slug sentinel-demo-<unique> --email admin-<unique>@example.test` to preview, then repeat with `--apply`. This command creates one verified demo administrator; it does not reset existing data, create a provider, or send a real request. Alternatively, register normally through the UI and verify through the configured SMTP inbox. Mark any fake provider used for the demonstration clearly as fake. The script's password must not be shared or reused.
+
+Open **Users → Import staff** as an organization admin. Run the staff invitation worker with the API's MongoDB and SMTP configuration. Staff invitation jobs are stored in MongoDB. The import receipt shows pending invitations while the worker is stopped and updates as delivery is attempted. For local delivery checks, use a dedicated database and an SMTP capture server.
 
 ## Checks and troubleshooting
 

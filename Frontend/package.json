@@ -17,7 +17,8 @@
     "test:violations": "node tests/violations.browser.cjs",
     "test:studio": "playwright test --config playwright.studio.config.js",
     "test:red-team": "playwright test --config playwright.redteam.config.js",
-    "test:platform": "playwright test --config playwright.platform.config.js"
+    "test:platform": "playwright test --config playwright.platform.config.js",
+    "test:staff-import": "playwright test --config playwright.staff-import.config.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",

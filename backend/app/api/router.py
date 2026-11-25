@@ -6,6 +6,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.integrations import router as integrations_router
 from app.api.routes.prompts import router as prompts_router
 from app.api.routes.users import router as users_router
+from app.api.routes.staff_import import router as staff_import_router
 from app.api.routes.administration import router as administration_router
 from app.api.routes.observability import router as observability_router
 from app.api.routes.analytics import router as analytics_router
@@ -20,6 +21,7 @@ api_router.include_router(dashboard_router)
 api_router.include_router(integrations_router)
 api_router.include_router(prompts_router)
 api_router.include_router(users_router)
+api_router.include_router(staff_import_router)
 api_router.include_router(administration_router)
 api_router.include_router(observability_router)
 api_router.include_router(analytics_router)

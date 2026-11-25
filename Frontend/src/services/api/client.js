@@ -4,10 +4,10 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').trim().replac
 const TOKEN_STORAGE_KEY = 'centurion.auth.token'
 
 export class ApiError extends Error {
-  constructor({ status, code, message, fieldErrors = {}, requestId = null, run = null }) {
+  constructor({ status, code, message, fieldErrors = {}, requestId = null, run = null, validation = null }) {
     super(message)
     this.name = 'ApiError'
-    Object.assign(this, { status, code, fieldErrors, requestId, run })
+    Object.assign(this, { status, code, fieldErrors, requestId, run, validation })
   }
 }
 
@@ -31,7 +31,7 @@ async function parseResponse(response, protectedRequest) {
       window.dispatchEvent(new Event('sentinel:session-expired'))
     }
     throw new ApiError({ status: response.status, code: detail?.code || 'request_error', message,
-      fieldErrors, requestId: detail?.request_id || null, run: body?.run || null })
+      fieldErrors, requestId: detail?.request_id || null, run: body?.run || null, validation: body?.validation || null })
   }
 
   return body
